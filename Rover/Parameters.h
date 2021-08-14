@@ -415,11 +415,6 @@ public:
     AP_Torqeedo torqeedo;
 #endif
 
-#if HAL_AIS_ENABLED
-    // Automatic Identification System - for tracking sea-going vehicles
-    AP_AIS ais;
-#endif
-
     // navigation type
     AP_Int8 mis_nav_type;
 
