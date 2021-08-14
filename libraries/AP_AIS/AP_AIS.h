@@ -14,16 +14,17 @@
  */
 #pragma once
 
+#include <AP_HAL/AP_HAL_Boards.h>
+
+#ifndef AP_AIS_ENABLED
+#define AP_AIS_ENABLED !HAL_MINIMIZE_FEATURES
+#endif
+
+#if AP_AIS_ENABLED
+
 #include <AP_Param/AP_Param.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_Common/AP_ExpandingArray.h>
-#include <AP_Common/Location.h>
-
-#ifndef HAL_AIS_ENABLED
-#define HAL_AIS_ENABLED !HAL_MINIMIZE_FEATURES
-#endif
-
-#if HAL_AIS_ENABLED
 
 #define AIVDM_BUFFER_SIZE 10
 #define AIVDM_PAYLOAD_SIZE 65
@@ -37,7 +38,35 @@ public:
     AP_AIS(const AP_AIS &other) = delete;
     AP_AIS &operator=(const AP_AIS&) = delete;
 
-     enum class AISType {
+    // get singleton instance
+    static AP_AIS *get_singleton() {
+        return _singleton;
+    }
+
+    // return true if AIS is enabled
+    bool enabled() const { return AISType(_type.get()) != AISType::NONE; }
+
+    // Initialize the AIS object and prepare it for use
+    void init();
+
+    // update AIS, expected to be called at 20hz
+    void update();
+
+    // send mavlink AIS message
+    void send(mavlink_channel_t chan);
+
+    // parameter block
+    static const struct AP_Param::GroupInfo var_info[];
+
+private:
+
+    // parameters
+    AP_Int8 _type;             // type of AIS receiver
+    AP_Int16 _max_list;        // maximum number of vessels to track at once
+    AP_Int16 _time_out;        // time in seconds that a vessel will be dropped from the list
+    AP_Int16 _log_options;     // logging options bitmask
+
+    enum class AISType {
         NONE   = 0,
         NMEA   = 1,
     };
@@ -141,6 +170,8 @@ private:
     bool _term_is_checksum;         // current term is the checksum
     bool _sentence_valid;           // is current sentence valid so far
     bool _sentence_done;            // true if this sentence has already been decoded
+
+    static AP_AIS *_singleton;
 };
 
-#endif  // HAL_AIS_ENABLED
+#endif  // AP_AIS_ENABLED
