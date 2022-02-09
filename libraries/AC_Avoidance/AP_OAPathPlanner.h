@@ -36,7 +36,8 @@ public:
         OA_NOT_REQUIRED = 0,            // object avoidance is not required
         OA_PROCESSING,                  // still calculating alternative path
         OA_ERROR,                       // error during calculation
-        OA_SUCCESS                      // success
+        OA_SUCCESS,                     // success
+        OA_ABANDON                      // abandon current task
     };
 
     // path planner responsible for a particular result
