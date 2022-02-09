@@ -125,6 +125,7 @@ void AR_WPNav::update(float dt)
    
     // true if OA has been recently active;
     bool _oa_was_active = _oa_active;
+    bool _oa_abandon = false;
 
     AP_OAPathPlanner *oa = AP_OAPathPlanner::get_singleton();
     if (oa != nullptr) {
@@ -142,6 +143,11 @@ void AR_WPNav::update(float dt)
             break;
         case AP_OAPathPlanner::OA_SUCCESS:
             _oa_active = true;
+            break;
+        case AP_OAPathPlanner::OA_ABANDON:
+            _oa_abandon = true;
+            stop_vehicle = true;
+            _oa_active = false;
             break;
         }
     }
@@ -166,7 +172,7 @@ void AR_WPNav::update(float dt)
     }
 
     // check if vehicle has reached the destination
-    const bool near_wp = _distance_to_destination <= _radius;
+    const bool near_wp = (_distance_to_destination <= _radius) || (_oa_abandon == true);
     const bool past_wp = !_oa_active && current_loc.past_interval_finish_line(_origin, _destination);
     if (!_reached_destination && (near_wp || past_wp)) {
        _reached_destination = true;
