@@ -285,6 +285,7 @@ void AP_OAPathPlanner::avoidance_thread()
             continue;
         case OA_PATHPLAN_BENDYRULER: {
             if (_oabendyruler == nullptr) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             }
             _oabendyruler->set_config(_margin_max);
@@ -292,6 +293,8 @@ void AP_OAPathPlanner::avoidance_thread()
             AP_OABendyRuler::OABendyType bendy_type;
             if (_oabendyruler->update(avoidance_request2.current_loc, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, bendy_type, false)) {
                 res = OA_SUCCESS;
+            }else if(_oabendyruler->abandon_waypoint()){
+                res = OA_ABANDON;
             }
             path_planner_used = map_bendytype_to_pathplannerused(bendy_type);
             break;
@@ -299,6 +302,7 @@ void AP_OAPathPlanner::avoidance_thread()
 
         case OA_PATHPLAN_DIJKSTRA: {
             if (_oadijkstra == nullptr) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             }
             _oadijkstra->set_fence_margin(_margin_max);
@@ -320,6 +324,7 @@ void AP_OAPathPlanner::avoidance_thread()
 
         case OA_PATHPLAN_DJIKSTRA_BENDYRULER: {
             if ((_oabendyruler == nullptr) || _oadijkstra == nullptr) {
+                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             } 
             _oabendyruler->set_config(_margin_max);
