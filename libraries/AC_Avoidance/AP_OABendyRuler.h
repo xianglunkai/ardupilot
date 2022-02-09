@@ -79,6 +79,7 @@ private:
     AP_Float _bendy_ratio;          // object avoidance will avoid major directional change if change in margin ratio is less than this param
     AP_Int16 _bendy_angle;          // object avoidance will try avoding change in direction over this much angle
     AP_Int8  _bendy_type;           // Type of BendyRuler to run
+    AP_Int8  _colregs;              // COLREGs constrain to run
     
     // internal variables used by background thread
     float _current_lookahead;       // distance (in meters) ahead of the vehicle we are looking for obstacles

@@ -68,6 +68,13 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
     // @User: Standard
     AP_GROUPINFO_FRAME("TYPE", 4, AP_OABendyRuler, _bendy_type, OA_BENDYRULER_TYPE_DEFAULT, AP_PARAM_FRAME_COPTER | AP_PARAM_FRAME_HELI | AP_PARAM_FRAME_TRICOPTER),
 
+    // @Param{Rover}: COLREGs
+    // @DisplayName: Type of BendyRuler
+    // @Description: BendyRuler will search for clear path along the direction defined by this parameter
+    // @Values: 1:Horizontal search, 2:Vertical search
+    // @User: Standard
+    AP_GROUPINFO_FRAME("COLREGs", 5, AP_OABendyRuler, _colregs, 0, AP_PARAM_FRAME_ROVER),
+
     AP_GROUPEND
 };
 
@@ -149,7 +156,8 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
     for (uint8_t i = 0; i <= (170 / OA_BENDYRULER_BEARING_INC_XY); i++) {
         for (uint8_t bdir = 0; bdir <= 1; bdir++) {
             // skip duplicate check of bearing straight towards destination
-            if ((i==0) && (bdir > 0)) {
+            // with COLREGs constrain
+            if (((i==0) && (bdir == 0)) || (_colregs.get() && (bdir == 0))) {
                 continue;
             }
             // bearing that we are probing
