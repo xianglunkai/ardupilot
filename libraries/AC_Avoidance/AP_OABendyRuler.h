@@ -29,6 +29,8 @@ public:
     // returns true and populates origin_new and destination_new if OA is required.  returns false if OA is not required
     bool update(const Location& current_loc, const Location& destination, const Vector2f &ground_speed_vec, Location &origin_new, Location &destination_new, OABendyType &bendy_type, bool proximity_only);
 
+    bool abandon_waypoint() const { return _abandon_wp; }
+
     static const struct AP_Param::GroupInfo var_info[];
 
 private:
@@ -71,6 +73,15 @@ private:
     // Logging function
     void Write_OABendyRuler(const uint8_t type, const bool active, const float target_yaw, const float target_pitch, const bool resist_chg, const float margin, const Location &final_dest, const Location &oa_dest) const;
 
+
+    // calculate minimum distance between goal and any obstacle
+    bool calc_goal_margin_from_fence(const Location &start,const Location &end,float &margin) const;
+    bool calc_goal_margin_from_object_database(const Location &start, const Location &end, float &margin) const;
+    bool calc_goal_margin_from_circular_fence(const Location &start, const Location &end, float &margin) const;
+    bool calc_goal_margin_from_inclusion_and_exclusion_polygons(const Location &start, const Location &end, float &margin) const;
+    bool calc_goal_margin_from_inclusion_and_exclusion_circles(const Location &start, const Location &end, float &margin) const;
+
+
     // OA common parameters
     float _margin_max;              // object avoidance will ignore objects more than this many meters from vehicle
     
@@ -82,6 +93,7 @@ private:
     AP_Int8  _colregs;              // COLREGs constrain to run
     
     // internal variables used by background thread
+    bool  _abandon_wp{false};       // give up current destination or not
     float _current_lookahead;       // distance (in meters) ahead of the vehicle we are looking for obstacles
     float _bearing_prev;            // stored bearing in degrees 
     Location _destination_prev;     // previous destination, to check if there has been a change in destination
