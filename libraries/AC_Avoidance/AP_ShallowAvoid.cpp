@@ -4,7 +4,6 @@
 #include <AP_RangeFinder/AP_RangeFinder_Backend.h>
 
 #include <AP_Math/curve_fitting.h>
-
 #include "AP_ShallowAvoid.h"
 
 // singleton instance
@@ -19,17 +18,58 @@ namespace AP {
 extern const AP_HAL::HAL &hal;
 
 const AP_Param::GroupInfo AP_ShallowAvoid::var_info[] = {
-
+    // @Param: SAM_DST
+    // @DisplayName: Shallow avoidance sample distance in real time
+    // @Description: Shallow avoidance will sample this many meters for model in real time
+    // @Units: m
+    // @Range: 1 100
+    // @Increment: 1
+    // @User: Standard
     AP_GROUPINFO("SAM_DST", 1, AP_ShallowAvoid, _sample_distance, 10),
 
+    // @Param: PRE_DST
+    // @DisplayName: Shallow Avoidance predict distance in real time
+    // @Description: Shallow Avoidance will predict this may meters in real time
+    // @Units: m
+    // @Range: 1 100
+    // @Increment: 1
+    // @User: Standard
     AP_GROUPINFO("PRE_DST", 2, AP_ShallowAvoid, _predict_distance, 10),
 
-    AP_GROUPINFO("ANG_MAX", 3, AP_ShallowAvoid, _max_lean_angle, 75),
+    // @Param: ANG_MAX
+    // @DisplayName: Shallow Avoidance constrain angle maximum
+    // @Description: Shallow Avoidance will constrain mission angle error 
+    // @Units: deg
+    // @Range: 0 180
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("ANG_MAX", 3, AP_ShallowAvoid, _max_lean_angle, 30),
 
+    // @Param: DPT_MIN
+    // @DisplayName: Shallow Avoidance water depth minmum
+    // @Description: Shallow Avoidance will constrain water depth for mission
+    // @Units: m
+    // @Range: 1 100
+    // @Increment: 1
+    // @User: Standard
     AP_GROUPINFO("DPT_MIN", 4, AP_ShallowAvoid, _min_water_depth, 1.0),
 
+    // @Param: RADIUS_MIN
+    // @DisplayName: Shallow Avoidance shallow radius
+    // @Description: Shallow Avoidance will look this meters around current waypoint
+    // @Units: m
+    // @Range: 1 100
+    // @Increment: 1
+    // @User: Standard
     AP_GROUPINFO("RADIUS_MIN", 5, AP_ShallowAvoid, _min_water_radius, 20),
 
+    // @Param: SLOPE_MIN
+    // @DisplayName: Shallow Avoidance shallow slope minmum
+    // @Description: Shallow Avoidance constrain shallow slope
+    // @Units: deg
+    // @Range: 1 75
+    // @Increment: 1
+    // @User: Standard
     AP_GROUPINFO("SLOPE_MIN", 6, AP_ShallowAvoid, _min_water_slope, 1),
 
     AP_GROUPEND
