@@ -7,7 +7,7 @@
 #include "AP_OABendyRuler.h"
 #include "AP_OADijkstra.h"
 #include "AP_OADatabase.h"
-
+#include "AP_ShorelineAvoid.h"
 #include "AP_ShallowAvoid.h"
 
 /*
@@ -120,7 +120,7 @@ private:
     AP_OADatabase _oadatabase;      // Database of dynamic objects to avoid
     uint32_t avoidance_latest_ms;   // last time Dijkstra's or BendyRuler algorithms ran
 
-
+    AP_ShorelineAvoid _oashoreline; // shoreline avoidance node
     AP_ShallowAvoid _oashallow;     // shallow avoidance node
 
     bool proximity_only = true;

@@ -68,8 +68,12 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     AP_SUBGROUPPTR(_oabendyruler, "BR_", 6, AP_OAPathPlanner, AP_OABendyRuler),
 
     #if APM_BUILD_TYPE(APM_BUILD_Rover)
-   
-    //@Group: SO_
+    // @Group: SL_
+    // @Path: AP_ShorelineAvoid.cpp
+    AP_SUBGROUPINFO(_oashoreline, "SL_", 8, AP_OAPathPlanner, AP_ShorelineAvoid),
+
+    // @Group: SO_
+    // @Path: AP_ShallowAvoid.cpp
     AP_SUBGROUPINFO(_oashallow, "SO_", 9, AP_OAPathPlanner, AP_ShallowAvoid),
 
    #endif
@@ -370,12 +374,15 @@ void AP_OAPathPlanner::avoidance_thread()
         } // switch
 
 #if APM_BUILD_TYPE(APM_BUILD_Rover)
+        // shoreline avoidance
+        bool shoreline_detect = _oashoreline.update(avoidance_request2.current_loc,
+                                                           avoidance_request2.origin,avoidance_request2.destination);
         // shallow avoidance
-        bool shallow_detect   = _shallow_avoid.update(avoidance_request2.current_loc,
+        bool shallow_detect   = _oashallow.update(avoidance_request2.current_loc,
                                                 avoidance_request2.origin,avoidance_request2.destination,
                                                 avoidance_request2.ground_speed_vec,
                                                 0.001f * OA_UPDATE_MS);
-        if(shallow_detect){
+        if(shoreline_detect || shallow_detect){
             res = OA_CAN_NOT_ARRIVAL;
         }
 #endif
