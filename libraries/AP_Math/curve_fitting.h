@@ -18,6 +18,7 @@ float EvaluatePolynomial(const std::deque<float>& coef,const float p)
     return r;
 }
 
+// y = a * x + b
 std::deque<float> LeastSquare(const std::deque<float>& points, const float dt,float* ptr_error_square = nullptr)
 {
     // translate vector from deque
