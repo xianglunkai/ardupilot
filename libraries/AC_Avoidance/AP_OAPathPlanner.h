@@ -8,6 +8,8 @@
 #include "AP_OADijkstra.h"
 #include "AP_OADatabase.h"
 
+#include "AP_ShallowAvoid.h"
+
 /*
  * This class provides path planning around fence, stay-out zones and moving obstacles
  */
@@ -117,6 +119,9 @@ private:
     AP_OADijkstra *_oadijkstra;     // Dijkstra's algorithm
     AP_OADatabase _oadatabase;      // Database of dynamic objects to avoid
     uint32_t avoidance_latest_ms;   // last time Dijkstra's or BendyRuler algorithms ran
+
+
+    AP_ShallowAvoid _oashallow;     // shallow avoidance node
 
     bool proximity_only = true;
     static AP_OAPathPlanner *_singleton;

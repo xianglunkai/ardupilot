@@ -27,7 +27,7 @@ extern const AP_HAL::HAL &hal;
 const float OA_MARGIN_MAX_DEFAULT = 5;
 const int16_t OA_OPTIONS_DEFAULT = 1;
 
-const int16_t OA_UPDATE_MS = 1000;      // path planning updates run at 1hz
+const int16_t OA_UPDATE_MS  = 100;      // path planning updates run at 10hz
 const int16_t OA_TIMEOUT_MS = 3000;     // results over 3 seconds old are ignored
 
 const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
@@ -66,6 +66,13 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     // @Group: BR_
     // @Path: AP_OABendyRuler.cpp
     AP_SUBGROUPPTR(_oabendyruler, "BR_", 6, AP_OAPathPlanner, AP_OABendyRuler),
+
+    #if APM_BUILD_TYPE(APM_BUILD_Rover)
+   
+    //@Group: SO_
+    AP_SUBGROUPINFO(_oashallow, "SO_", 9, AP_OAPathPlanner, AP_ShallowAvoid),
+
+   #endif
 
     AP_GROUPEND
 };
@@ -361,6 +368,18 @@ void AP_OAPathPlanner::avoidance_thread()
         }
 
         } // switch
+
+#if APM_BUILD_TYPE(APM_BUILD_Rover)
+        // shallow avoidance
+        bool shallow_detect   = _shallow_avoid.update(avoidance_request2.current_loc,
+                                                avoidance_request2.origin,avoidance_request2.destination,
+                                                avoidance_request2.ground_speed_vec,
+                                                0.001f * OA_UPDATE_MS);
+        if(shallow_detect){
+            res = OA_CAN_NOT_ARRIVAL;
+        }
+#endif
+
 
         {
             // give the main thread the avoidance result
