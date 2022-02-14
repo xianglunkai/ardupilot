@@ -235,6 +235,23 @@ struct Vector2
     // returns true if they intersect and intersection argument is updated with intersection closest to seg_start
     static bool circle_segment_intersection(const Vector2<T>& seg_start, const Vector2<T>& seg_end, const Vector2<T>& circle_center, T radius, Vector2<T>& intersection) WARN_IF_UNUSED;
 
+    // saturation operation for vector2<T>
+    static Vector2<T> satgd_vecotor(const Vector2<T>& vec,float a){
+        float u_inf = std::fmax(vec.x * 1.0f,vec.y * 1.0f);
+        Vector2<T> vec_out = vec;
+        if(u_inf > a){
+            vec_out = vec*a/u_inf;
+        }
+        return vec_out;
+    }
+
+    // find intersection between segment and lines
+    static bool intersection_between_segment_and_lines(const Vector2<T>& seg_start, const Vector2<T>& seg_end,const std::vector<Vector2<T>> &points,Vector2<T> &intersection) WARN_IF_UNUSED;
+    
+    // calculate distance between point and lines
+    static T distance_between_point_and_lines(const Vector2<T>& point, const std::vector<Vector2<T>> &points,Vector2<T>& closest_point);
+
+
     // check if a point falls on the line segment from seg_start to seg_end
     static bool point_on_segment(const Vector2<T>& point,
                                  const Vector2<T>& seg_start,
