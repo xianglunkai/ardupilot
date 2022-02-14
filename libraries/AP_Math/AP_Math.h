@@ -341,3 +341,9 @@ float fixedwing_turn_rate(float bank_angle_deg, float airspeed);
 // convert degrees farenheight to Kelvin
 float degF_to_Kelvin(float temp_f);
 
+float sign(float val);
+
+float fhan(float v1, float v2, float r0, float h0);
+
+float fal(float e, float alpha, float delta);
+
