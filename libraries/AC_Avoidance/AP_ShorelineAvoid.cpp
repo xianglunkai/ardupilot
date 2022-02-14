@@ -180,14 +180,13 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector
     RangeFinder *rangefinder = RangeFinder::get_singleton();
     if (rangefinder != nullptr && rangefinder->has_data_orient(ROTATION_PITCH_270)) {
         const bool sensor_healthy = (rangefinder->status_orient(ROTATION_PITCH_270) == RangeFinder::Status::Good);
-        const float water_depth_m = rangefinder->distance_cm_orient(ROTATION_PITCH_270,true) * 0.01f;
+        const float water_depth_m = rangefinder->distance_orient(ROTATION_PITCH_270,true);
 
         if(sensor_healthy && water_depth_m <=_shollow_min_depth && _close_to_shoreline){
 
             GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "shallow water alarm:%f",water_depth_m);
             
             const float move_distance = (current_ne - _sonar_avoid_loc).length();
-    
             if(move_distance > _shollow_move_dist) {
                 _mission_lock = false;
                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "shallow water avoidance");

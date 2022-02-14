@@ -141,10 +141,10 @@ bool AP_ShallowAvoid::update(const Location &current_loc,const Location& origin,
     
     // Push back sensor data into dequeue
     const bool sensor_healthy = (rangefinder->status_orient(ROTATION_PITCH_270) == RangeFinder::Status::Good);
-    const float water_depth_m = rangefinder->distance_cm_orient(ROTATION_PITCH_270,true) * 0.01f;
+    const float water_depth_m = rangefinder->distance_orient(ROTATION_PITCH_270,true);
     const float speed = AP::ahrs().groundspeed();
     std::size_t nw = MAX(_sample_distance / (speed * dt),1.0f/ dt);
-    if(sensor_healthy && fabs(lean_angle) <= _max_lean_angle && speed >= 1.0f){
+    if(sensor_healthy && fabsf(lean_angle) <= _max_lean_angle && speed >= 1.0f){
         if(_sample_points.size() >= nw){
             _sample_points.pop_front();
         }
@@ -165,7 +165,7 @@ bool AP_ShallowAvoid::update(const Location &current_loc,const Location& origin,
    // Predict and shallow check
    const float predict_time = dt * nw + MAX(_predict_distance /speed ,1.0f);
    const float predict_depth = EvaluatePolynomial(_coef,predict_time);
-   if(predict_depth <= _min_water_depth && _coef[1] <= -tan(radians(_min_water_slope))){
+   if(predict_depth <= _min_water_depth && _coef[1] <= -tanf(radians(_min_water_slope))){
         _last_avoid_flag = true;
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Shallow avoidance!");
         return true;
