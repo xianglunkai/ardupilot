@@ -39,7 +39,9 @@ public:
 
     enum Rotation orientation() const { return (Rotation)params.orientation.get(); }
     float distance() const { return state.distance_m; }
+    float distance_filt() const { return _filter_state.vp;}
     uint16_t distance_cm() const { return state.distance_m*100.0f; }
+    uint16_t distance_cm_filt() const { return _filter_state.vp*100.0f;}
     uint16_t voltage_mv() const { return state.voltage_mv; }
     virtual int16_t max_distance_cm() const { return params.max_distance_cm; }
     virtual int16_t min_distance_cm() const { return params.min_distance_cm; }
@@ -68,6 +70,9 @@ public:
     // quality is not available
     virtual bool get_signal_quality_pct(uint8_t &quality_pct) const { return false; }
 
+    // filter
+    void update_filter();
+
 protected:
 
     // update status based on distance measurement
@@ -78,6 +83,14 @@ protected:
 
     RangeFinder::RangeFinder_State &state;
     AP_RangeFinder_Params &params;
+
+    // filter struct
+    struct RangeFinder_filter_status {
+        float v1;
+        float v2;
+        float vp;
+        uint32_t last_filter_ms;
+    }_filter_state;
 
     // semaphore for access to shared frontend data
     HAL_Semaphore _sem;

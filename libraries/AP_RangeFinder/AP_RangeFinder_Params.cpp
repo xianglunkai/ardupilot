@@ -129,6 +129,27 @@ const AP_Param::GroupInfo AP_RangeFinder_Params::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("ORIENT", 53, AP_RangeFinder_Params, orientation, ROTATION_PITCH_270),
 
+    // @Param: FLT_R0
+    // @DisplayName: Rangefinder orientation
+    // @Description: Orientation of rangefinder
+    // @Values: 0:Forward, 1:Forward-Right, 2:Right, 3:Back-Right, 4:Back, 5:Back-Left, 6:Left, 7:Forward-Left, 24:Up, 25:Down
+    // @User: Advanced
+    AP_GROUPINFO("FLT_R0", 54, AP_RangeFinder_Params, filt_r0, 1.0),
+
+    // @Param: FLT_N1
+    // @DisplayName: Rangefinder orientation
+    // @Description: Orientation of rangefinder
+    // @Values: 0:Forward, 1:Forward-Right, 2:Right, 3:Back-Right, 4:Back, 5:Back-Left, 6:Left, 7:Forward-Left, 24:Up, 25:Down
+    // @User: Advanced
+    AP_GROUPINFO("FLT_N1", 55, AP_RangeFinder_Params, filt_n1, 50),
+
+    // @Param: FLT_N2
+    // @DisplayName: Rangefinder orientation
+    // @Description: Orientation of rangefinder
+    // @Values: 0:Forward, 1:Forward-Right, 2:Right, 3:Back-Right, 4:Back, 5:Back-Left, 6:Left, 7:Forward-Left, 24:Up, 25:Down
+    // @User: Advanced
+    AP_GROUPINFO("FLT_N2", 56, AP_RangeFinder_Params, filt_n2, 50),
+
     AP_GROUPEND
 };
 
