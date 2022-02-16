@@ -257,9 +257,6 @@ void AP_Proximity_ARS408_CAN::handle_frame(AP_HAL::CANFrame &frame)
                 set_status(AP_Proximity::Status::NoData);
              }
 
-
-          //  printf("RS408: Object_General: %d,Object_Quality: %d,Object_Extended: %d\n",obj_general_list_.size(),obj_quality_list_.size(),obj_extended_list_.size());
-
             // Empty obj_general_list_ \obj_quality_list_\obj_extended_list_
             obj_general_list_.clear();
             obj_quality_list_.clear();
@@ -356,7 +353,7 @@ void AP_Proximity_ARS408_CAN::handle_frame(AP_HAL::CANFrame &frame)
                             if ((distance_m <= distance_max()) && (distance_m >= distance_min())) {
                             boundary.set_face_attributes(face, angle_deg, distance_m);
                                 // update OA database
-                                database_push(angle_deg, distance_m);
+                                database_push(angle_deg, distance_m,obj_radius);
                             } else {
                                 // invalidate distance of face
                             boundary.reset_face(face);
