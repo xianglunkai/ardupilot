@@ -142,7 +142,7 @@ void AP_OADatabase::update()
 }
 
 // push a location into the database
-void AP_OADatabase::queue_push(const Vector3f &pos, uint32_t timestamp_ms, float distance)
+void AP_OADatabase::queue_push(const Vector3f &pos, uint32_t timestamp_ms, float distance,float radius)
 {
     if (!healthy()) {
         return;
@@ -171,7 +171,13 @@ void AP_OADatabase::queue_push(const Vector3f &pos, uint32_t timestamp_ms, float
         return;
     }
 
-    const OA_DbItem item = {pos, timestamp_ms, MAX(_radius_min, distance * dist_to_radius_scalar), 0, AP_OADatabase::OA_DbItemImportance::Normal};
+   if(is_zero(radius)){
+        radius = MAX(_radius_min, distance * dist_to_radius_scalar);
+    }else{
+        radius = MAX(_radius_min,radius);
+    }
+
+    const OA_DbItem item = {pos, timestamp_ms, radius, 0, AP_OADatabase::OA_DbItemImportance::Normal};
     {
         WITH_SEMAPHORE(_queue.sem);
         _queue.items->push(item);
