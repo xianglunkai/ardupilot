@@ -225,6 +225,7 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector
         
         float distance_to_lines = Vector2f::distance_between_point_and_lines(current_ne,item.second,closest_p1);
         float distance_to_goal  = Vector2f::distance_between_point_and_lines(destination_ne,item.second,closest_p2);
+        float distance_p12      = (closest_p1 - closest_p2).length();
 
         // update intersection with current line
         if(cur2dest_state == true && org2dest_state == true && current_ne != origin_ne){         
@@ -251,7 +252,9 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector
         }
         
         // destination near shoreline
-        if(distance_to_goal < _shoreline_safe_dist && distance_to_lines < _shoreline_safe_dist){
+        if(distance_to_goal < _shoreline_safe_dist && 
+           distance_to_lines < _shoreline_safe_dist &&
+           distance_p12 < _shoreline_safe_dist){
             GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "goal near shoreline");
             _mission_lock = false;
             return true;
