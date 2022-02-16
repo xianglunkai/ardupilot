@@ -383,7 +383,7 @@ void AP_OAPathPlanner::avoidance_thread()
                                                 avoidance_request2.ground_speed_vec,
                                                 0.001f * OA_UPDATE_MS);
         if(shoreline_detect || shallow_detect){
-            res = OA_CAN_NOT_ARRIVAL;
+            res = OA_ABANDON;
         }
 #endif
 
