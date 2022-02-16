@@ -35,7 +35,7 @@ public:
     void update();
 
     // push an object into the database.  Pos is the offset in meters from the EKF origin, angle is in degrees, distance in meters
-    void queue_push(const Vector3f &pos, uint32_t timestamp_ms, float distance);
+    void queue_push(const Vector3f &pos, uint32_t timestamp_ms, float distance,float radius=0.0f);
 
     // returns true if database is healthy
     bool healthy() const { return (_queue.items != nullptr) && (_database.items != nullptr); }
