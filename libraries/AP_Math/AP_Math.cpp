@@ -512,6 +512,10 @@ float fhan(float v1, float v2, float r0, float h0)
 
 float fal(float e, float alpha, float delta)
 {
+    if(is_zero(delta)){
+        return e;
+    }
+
     if(fabsf(e) < delta){
         return e / (powf(delta, 1.0f-alpha));
     }else{
