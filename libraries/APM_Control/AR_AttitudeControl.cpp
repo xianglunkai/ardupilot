@@ -443,6 +443,22 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_TURN_MAX_G", 13, AR_AttitudeControl, _turn_lateral_G_max, 0.6f),
 
+    // @Param: _STR_CTL_TYP
+    // @DisplayName: Steer rate controller type
+    // @Range: 0 PID 1 ADRC 2 ADP
+    // @User: Standard
+    AP_GROUPINFO("_STR_CTL_TYP", 20, AR_AttitudeControl, _steer_rate_ctl_type, 0),
+
+    // @Param: _SPD_CTL_TYPE
+    // @DisplayName: Speed controller type
+    // @Range: 0 PID 1 ADRC 2 ADP
+    // @User: Standard
+    AP_GROUPINFO("_SPD_CTL_TYPE", 21, AR_AttitudeControl, _throttle_speed_ctl_type, 0),
+
+
+    AP_SUBGROUPINFO(_steer_rate_adrc, "_STR_RAT_", 30, AR_AttitudeControl, AC_ADRC),
+    AP_SUBGROUPINFO(_throttle_speed_adrc, "_SPEED_", 31, AR_AttitudeControl, AC_ADRC),
+
     AP_GROUPEND
 };
 
@@ -514,6 +530,11 @@ float AR_AttitudeControl::get_turn_rate_from_heading(float heading_rad, float ra
 // desired yaw rate in radians/sec. Positive yaw is to the right.
 float AR_AttitudeControl::get_steering_out_rate(float desired_rate, bool motor_limit_left, bool motor_limit_right, float dt)
 {
+    // select controller
+    if(_steer_rate_ctl_type == Controller_type::ADRC){
+        return get_steering_out_rate_adrc(desired_rate,dt);
+    } 
+
     // sanity check dt
     dt = constrain_float(dt, 0.0f, 1.0f);
 
@@ -552,6 +573,48 @@ float AR_AttitudeControl::get_steering_out_rate(float desired_rate, bool motor_l
 
     float output = _steer_rate_pid.update_all(_desired_turn_rate, AP::ahrs().get_yaw_rate_earth(), (motor_limit_left || motor_limit_right));
     output += _steer_rate_pid.get_ff();
+    // constrain and return final output
+    return output;
+}
+
+float AR_AttitudeControl::get_steering_out_rate_adrc(float desired_rate,float dt)
+{
+    // sanity check dt
+    dt = constrain_float(dt, 0.0f, 1.0f);
+
+    // if not called recently, reset input filter and desired turn rate to actual turn rate (used for accel limiting)
+    const uint32_t now = AP_HAL::millis();
+    if ((_steer_turn_last_ms == 0) || ((now - _steer_turn_last_ms) > AR_ATTCONTROL_TIMEOUT_MS)) {
+        _desired_turn_rate = AP::ahrs().get_yaw_rate_earth();
+        _steer_rate_adrc.reset_eso(_desired_turn_rate);
+    }
+    _steer_turn_last_ms = now;
+
+    // acceleration limit desired turn rate
+    if (is_positive(_steer_accel_max)) {
+        const float change_max = radians(_steer_accel_max) * dt;
+        desired_rate = constrain_float(desired_rate, _desired_turn_rate - change_max, _desired_turn_rate + change_max);
+    }
+    _desired_turn_rate = desired_rate;
+
+    // rate limit desired turn rate
+    if (is_positive(_steer_rate_max)) {
+        const float steer_rate_max_rad = radians(_steer_rate_max);
+        _desired_turn_rate = constrain_float(_desired_turn_rate, -steer_rate_max_rad, steer_rate_max_rad);
+    }
+
+    // G limit based on speed
+    float speed;
+    if (get_forward_speed(speed)) {
+        // do not limit to less than 1 deg/s
+        const float turn_rate_max = MAX(get_turn_rate_from_lat_accel(get_turn_lat_accel_max(), fabsf(speed)), radians(1.0f));
+        _desired_turn_rate = constrain_float(_desired_turn_rate, -turn_rate_max, turn_rate_max);
+    }
+
+    // set ADRC's dt
+    _steer_rate_adrc.set_dt(dt);
+
+    float output = _steer_rate_adrc.update_all(_desired_turn_rate, AP::ahrs().get_yaw_rate_earth());
     // constrain and return final output
     return output;
 }
@@ -607,6 +670,11 @@ float AR_AttitudeControl::get_turn_rate_from_lat_accel(float lat_accel, float sp
 //   cruise speed should be in m/s, cruise throttle should be a number from -1 to +1
 float AR_AttitudeControl::get_throttle_out_speed(float desired_speed, bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt)
 {
+    // select controller
+    if(_throttle_speed_ctl_type == Controller_type::ADRC){
+        return get_throttle_out_speed_adrc(desired_speed,dt);
+    } 
+
     // sanity check dt
     dt = constrain_float(dt, 0.0f, 1.0f);
 
@@ -667,6 +735,56 @@ float AR_AttitudeControl::get_throttle_out_speed(float desired_speed, bool motor
     return throttle_out;
 }
 
+
+float AR_AttitudeControl::get_throttle_out_speed_adrc(float desired_speed,float dt)
+{
+        // sanity check dt
+    dt = constrain_float(dt, 0.0f, 1.0f);
+
+    // get speed forward
+    float speed;
+    if (!get_forward_speed(speed)) {
+        // we expect caller will not try to control heading using rate control without a valid speed estimate
+        // on failure to get speed we do not attempt to steer
+        return 0.0f;
+    }
+
+    // if not called recently, reset input filter and desired speed to actual speed (used for accel limiting)
+    if (!speed_control_active()) {
+        _throttle_speed_adrc.reset_eso(speed);
+        _desired_speed = speed;
+    }
+    _speed_last_ms = AP_HAL::millis();
+
+    // acceleration limit desired speed
+    _desired_speed = get_desired_speed_accel_limited(desired_speed, dt);
+
+    // set ADRC's dt
+    _throttle_speed_adrc.set_dt(dt);
+
+    // calculate final output
+    float throttle_out = _throttle_speed_adrc.update_all(desired_speed, speed);
+ 
+    // clear local limit flags used to stop i-term build-up as we stop reversed outputs going to motors
+    _throttle_limit_low = false;
+    _throttle_limit_high = false;
+
+    // protect against reverse output being sent to the motors unless braking has been enabled
+    if (!_brake_enable) {
+        // if both desired speed and actual speed are positive, do not allow negative values
+        if ((desired_speed >= 0.0f) && (throttle_out <= 0.0f)) {
+            throttle_out = 0.0f;
+            _throttle_limit_low = true;
+        } else if ((desired_speed <= 0.0f) && (throttle_out >= 0.0f)) {
+            throttle_out = 0.0f;
+            _throttle_limit_high = true;
+        }
+    }
+
+    // final output throttle in range -1 to 1
+    return throttle_out;
+}
+
 // return a throttle output from -1 to +1 to perform a controlled stop.  returns true once the vehicle has stopped
 float AR_AttitudeControl::get_throttle_out_stop(bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt, bool &stopped)
 {
@@ -703,6 +821,7 @@ float AR_AttitudeControl::get_throttle_out_stop(bool motor_limit_low, bool motor
         // reset filters and I-term
         _throttle_speed_pid.reset_filter();
         _throttle_speed_pid.reset_I();
+        _throttle_speed_adrc.reset_eso(speed);
         // ensure desired speed is zero
         _desired_speed = 0.0f;
         return 0.0f;
