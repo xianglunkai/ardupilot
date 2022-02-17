@@ -9,7 +9,7 @@ const AP_Param::GroupInfo AC_ADRC::var_info[] = {
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("WC",2,AC_ADRC,wc_,10),
+    AP_GROUPINFO("WC",1,AC_ADRC,wc_,10),
 
     // @Param: WO
     // @Description: ESO bandwidth
@@ -17,27 +17,27 @@ const AP_Param::GroupInfo AC_ADRC::var_info[] = {
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("WO",3,AC_ADRC,wo_,15),
+    AP_GROUPINFO("WO",2,AC_ADRC,wo_,15),
     
     // @Param: B0
     // @Description: Control input gain
     // @User: Standard
-    AP_GROUPINFO("B0",4,AC_ADRC,b0_,10),
+    AP_GROUPINFO("B0",3,AC_ADRC,b0_,10),
 
     // @Param: DELTA
     // @Description: Linear deadzone
     // @User: Standard
-    AP_GROUPINFO("DELTA",5,AC_ADRC,delta_,0.0),
+    AP_GROUPINFO("DELTA",4,AC_ADRC,delta_,0.0),
 
     // @Param: ORDER
     // @Description: Model order
     // @User: Standard
-    AP_GROUPINFO("ORDER",6,AC_ADRC,order_,1),
+    AP_GROUPINFO("ORDER",5,AC_ADRC,order_,1),
 
     // @Param: LM
     // @Description: Control output bound
     // @User: Standard
-    AP_GROUPINFO("LM",7,AC_ADRC,limit_,1.0f),
+    AP_GROUPINFO("LM",6,AC_ADRC,limit_,1.0f),
 
     AP_GROUPEND
 
