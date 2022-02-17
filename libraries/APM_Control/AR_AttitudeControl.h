@@ -89,6 +89,14 @@ public:
     AC_PID& get_sailboat_heel_pid() { return _sailboat_heel_pid; }
     const AP_Logger::PID_Info& get_throttle_speed_pid_info() const { return _throttle_speed_pid_info; }
 
+    // access ADRC controller info
+    AC_ADRC& get_steering_rate_adrc() { return _steer_rate_adrc; }
+    AC_ADRC& get_throttle_speed_adrc() { return _throttle_speed_adrc;}
+
+    // access controller type
+    AP_Int8& steer_rate_ctl_type() { return _steer_rate_ctl_type;}
+    AP_Int8& throttle_speed_ctl_type() { return _throttle_speed_ctl_type;}
+
     // get forward speed in m/s (earth-frame horizontal velocity but only along vehicle x-axis).  returns true on success
     bool get_forward_speed(float &speed) const;
 
