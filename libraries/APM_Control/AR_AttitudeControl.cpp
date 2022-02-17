@@ -453,11 +453,69 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @DisplayName: Speed controller type
     // @Range: 0 PID 1 ADRC 2 ADP
     // @User: Standard
-    AP_GROUPINFO("_SPD_CTL_TYPE", 21, AR_AttitudeControl, _throttle_speed_ctl_type, 0),
+    AP_GROUPINFO("_SPD_CTL_TYP", 21, AR_AttitudeControl, _throttle_speed_ctl_type, 0),
 
+    // @Param: STR_WC
+    // @Description: Response bandwidth
+    // @Units: rad/s
+    // @Range: 0.1 100
+    // @Increment: 1
+    // @User: Standard
 
-    AP_SUBGROUPINFO(_steer_rate_adrc, "_STR_RAT_", 30, AR_AttitudeControl, AC_ADRC),
-    AP_SUBGROUPINFO(_throttle_speed_adrc, "_SPEED_", 31, AR_AttitudeControl, AC_ADRC),
+    // @Param: STR_WO
+    // @Description: ESO bandwidth
+    // @Units: rad/s
+    // @Range: 0.1 100
+    // @Increment: 1
+    // @User: Standard
+    
+    // @Param: STR_B0
+    // @Description: Control input gain
+    // @User: Standard
+
+    // @Param: STR_DELTA
+    // @Description: Linear deadzone
+    // @User: Standard
+ 
+    // @Param: STR_ORDER
+    // @Description: Model order
+    // @User: Standard
+
+    // @Param: STR_LM
+    // @Description: Control output bound
+    // @User: Standard
+    AP_SUBGROUPINFO(_steer_rate_adrc,"_STR_", 30, AR_AttitudeControl, AC_ADRC),
+
+    // @Param: SPD_WC
+    // @Description: Response bandwidth
+    // @Units: rad/s
+    // @Range: 0.1 100
+    // @Increment: 1
+    // @User: Standard
+
+    // @Param: SPD_WO
+    // @Description: ESO bandwidth
+    // @Units: rad/s
+    // @Range: 0.1 100
+    // @Increment: 1
+    // @User: Standard
+    
+    // @Param: SPD_B0
+    // @Description: Control input gain
+    // @User: Standard
+
+    // @Param: SPD_DELTA
+    // @Description: Linear deadzone
+    // @User: Standard
+ 
+    // @Param: SPD_ORDER
+    // @Description: Model order
+    // @User: Standard
+
+    // @Param: SPD_LM
+    // @Description: Control output bound
+    // @User: Standard
+    AP_SUBGROUPINFO(_throttle_speed_adrc,"_SPD_", 31, AR_AttitudeControl, AC_ADRC),
 
     AP_GROUPEND
 };
@@ -798,7 +856,7 @@ float AR_AttitudeControl::get_throttle_out_stop(bool motor_limit_low, bool motor
     float desired_speed_limited = get_desired_speed_accel_limited(0.0f, dt);
 
     // get speed forward
-    float speed;
+    float speed = 0.0f;
     if (!get_forward_speed(speed)) {
         // could not get speed so assume stopped
         _stopped = true;
