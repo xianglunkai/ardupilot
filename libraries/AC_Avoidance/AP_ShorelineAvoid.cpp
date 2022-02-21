@@ -109,22 +109,25 @@ bool AP_ShorelineAvoid::is_active() const
 // Return false if destination could arrivalable temporarily.
 bool AP_ShorelineAvoid::update(const Location &current_loc,const Location& origin,const Location& destination)
 {
-    // Convert start and end to offsets from EKF origin
-    Vector2f current_NE,origin_NE,destination_NE;
-    if (!current_loc.get_vector_xy_from_origin_NE(current_NE) ||
-        !origin.get_vector_xy_from_origin_NE(origin_NE) ||
-        !destination.get_vector_xy_from_origin_NE(destination_NE)) {
+    // convert location with lat-lng to offsets from ekf orgin
+    Vector2f current_ne,origin_ne,destination_ne;
+    if (!current_loc.get_vector_xy_from_origin_NE(current_ne) ||
+        !origin.get_vector_xy_from_origin_NE(origin_ne) ||
+        !destination.get_vector_xy_from_origin_NE(destination_ne)) {
+        // OA is not required
         return false;
     }
 
-    // If vehicle already reach destination,return true
+    // vehicle already reach destination,return true
     float mission_distance = origin.get_distance(destination);
-    if (current_NE == destination_NE || mission_distance < 1e-3f) {
+    if (current_ne == destination_ne || mission_distance < 1e-3f) {
         return true;
     }
 
-    // cm ->m
-    current_NE *= 0.01f;destination_NE *= 0.01f;origin_NE *= 0.01f;
+    // translate units cm to m
+    current_ne *= 0.01f;
+    origin_ne *= 0.01f;
+    destination_ne *= 0.01f;
 
    // check result's destination matches our request ,and update current mission 
     const bool destination_matches = ((destination.lat == _destination_prev.lat) && 
@@ -134,11 +137,10 @@ bool AP_ShorelineAvoid::update(const Location &current_loc,const Location& origi
        _destination_prev = destination;
        _intersect_point.zero();
 
-    #if SHORE_SONAR_AVOID_ENABLE == 1
-       _sonar_avoid_loc = current_NE;
+ #if SHORE_SONAR_AVOID_ENABLE == 1
+       _sonar_avoid_loc = current_ne;
        _close_to_shoreline = false;
-    #endif
-
+#endif
        _mission_lock = true;
    }
 
@@ -147,21 +149,19 @@ bool AP_ShorelineAvoid::update(const Location &current_loc,const Location& origi
        _last_avoid_flag = false;
    }
 
-    // Special consideration if two waypoints close 
-    const float wp_distance = (destination_NE - origin_NE).length();
+    // special consideration if two waypoints close 
+    const float wp_distance = (destination_ne - origin_ne).length();
     if(wp_distance <= _shoreline_safe_dist && _last_avoid_flag == true){
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "contious shoreline avoidance");
         _last_avoid_flag = false;
         return true;
-    }else{
-        _last_avoid_flag = false;
     }
 
     // return true if exist shoreline
-    if(!update_shoreline(current_NE,destination_NE)){ return false;}
+    if(!update_shoreline(current_ne,destination_ne)){ return false;}
     
     // return true if destination with back of shoreline
-    const bool res = update_avoidance(current_NE,origin_NE,destination_NE);
+    const bool res = update_avoidance(current_ne,origin_ne,destination_ne);
     if(res == true){_last_avoid_flag = true;}
 
     return res;
@@ -210,40 +210,38 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector
    }
 
     // check shorelines empty
-    Vector2f intersection1,intersection2,closest_p1,closest_p2;
+    Vector2f pb_sl_cross,ab_sl_cross,closest_psl,closest_bsl;
     if(_shoreline_set.empty()){return false;}
 
     // check every shoreline
     for(auto item:_shoreline_set){
-        float shoreline_len = calc_shoreline_len(item.second);
+        auto sl = item.second;
+        float shoreline_len = calc_shoreline_len(sl);
         if( shoreline_len < _shoreline_min_length){
             continue;
         }
 
-        bool cur2dest_state = Vector2f::intersection_between_segment_and_lines(current_ne,destination_ne,item.second,intersection1);
-        bool org2dest_state = Vector2f::intersection_between_segment_and_lines(origin_ne,destination_ne,item.second,intersection2);
+        bool pb_sl = Vector2f::intersection_between_segment_and_lines(current_ne,destination_ne,sl,pb_sl_cross);
+        bool ab_sl = Vector2f::intersection_between_segment_and_lines(origin_ne,destination_ne,sl,ab_sl_cross);
         
-        float distance_to_lines = Vector2f::distance_between_point_and_lines(current_ne,item.second,closest_p1);
-        float distance_to_goal  = Vector2f::distance_between_point_and_lines(destination_ne,item.second,closest_p2);
-        float distance_p12      = (closest_p1 - closest_p2).length();
+        float distance_psl = Vector2f::distance_between_point_and_lines(current_ne,sl,closest_psl);
+        float distance_bsl  = Vector2f::distance_between_point_and_lines(destination_ne,sl,closest_bsl);
 
         // update intersection with current line
-        if(cur2dest_state == true && org2dest_state == true && current_ne != origin_ne){         
-            _intersect_point = intersection2;
+        if(pb_sl == true && ab_sl == true && current_ne != origin_ne){         
+            _intersect_point    = ab_sl_cross;
         }
 
         // store close to shoreline state
 #if SHORE_SONAR_AVOID_ENABLE == 1
-        if(cur2dest_state == true){ 
-             _close_to_shoreline = true;
-        }
+        if(pb_sl == true){  _close_to_shoreline = true; }
 #endif
 
         // current line is back of shoreline,return true if project distance close to total distance
-        if(cur2dest_state == true && org2dest_state == false){
+        if(pb_sl == true && ab_sl == false){
             const float total_dist = (destination_ne - origin_ne).length();
             const float proj_dist  = (current_ne - origin_ne) * (destination_ne - origin_ne) / total_dist;
-            const float distance_to_closestp2 = (closest_p2 - current_ne).length();
+            const float distance_to_closestp2 = (closest_bsl - current_ne).length();
             if((total_dist - proj_dist) <= _shoreline_safe_dist || (distance_to_closestp2 <= _shoreline_safe_dist)){
                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "mission edging shoreline");
                 _mission_lock = false;
@@ -252,9 +250,9 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector
         }
         
         // destination near shoreline
-        if(distance_to_goal < _shoreline_safe_dist && 
-           distance_to_lines < _shoreline_safe_dist &&
-           distance_p12 < _shoreline_safe_dist){
+        if(distance_psl < _shoreline_safe_dist && 
+           distance_bsl < _shoreline_safe_dist &&
+           (closest_psl - closest_bsl).length() < _shoreline_safe_dist){
             GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "goal near shoreline");
             _mission_lock = false;
             return true;
