@@ -185,7 +185,7 @@ void GCS_MAVLINK_Rover::send_pid_tuning()
     Parameters &g = rover.g;
     ParametersG2 &g2 = rover.g2;
 
-    const AP_Logger::PID_Info *pid_info;
+    const AP_Logger::PID_Info *pid_info = nullptr;
 
     // controller type
     const AP_Int8 steer_rate_ctl_type     = g2.attitude_control.steer_rate_ctl_type();
@@ -221,7 +221,7 @@ void GCS_MAVLINK_Rover::send_pid_tuning()
 
         if(throttle_speed_ctl_type == g2.attitude_control.PID){
             pid_info = &g2.attitude_control.get_throttle_speed_pid_info();
-        }else if(steer_rate_ctl_type == g2.attitude_control.ADRC){
+        }else if(throttle_speed_ctl_type == g2.attitude_control.ADRC){
             pid_info = &g2.attitude_control.get_throttle_speed_adrc().get_debug_info();
         }else{
 
