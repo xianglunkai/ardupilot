@@ -4,6 +4,7 @@
 #include <AC_PID/AC_PID.h>
 #include <AC_PID/AC_P.h>
 #include <AC_PID/AC_ADRC.h>
+#include <AC_PID/AC_ADRC_Yaw.h>
 
 class AR_AttitudeControl {
 public:
@@ -24,16 +25,17 @@ public:
     // set rate_max_rads to a non-zero number to apply a limit on the desired turn rate
     // return value is normally in range -1.0 to +1.0 but can be higher or lower
     float get_steering_out_heading(float heading_rad, float rate_max_rads, bool motor_limit_left, bool motor_limit_right, float dt);
+    float get_steering_out_heading_adrc(float heading_rad,float dt);
 
     // return a desired turn-rate given a desired heading in radians
     // normally the results are later passed into get_steering_out_rate
     float get_turn_rate_from_heading(float heading_rad, float rate_max_rads) const;
 
+
     // return a steering servo output given a desired yaw rate in radians/sec.
     // positive yaw is to the right
     // return value is normally in range -1.0 to +1.0 but can be higher or lower
     float get_steering_out_rate(float desired_rate, bool motor_limit_left, bool motor_limit_right, float dt);
-
     float get_steering_out_rate_adrc(float desired_rate,float dt);
 
     // get latest desired turn rate in rad/sec recorded during calls to get_steering_out_rate.  For reporting purposes only
@@ -65,7 +67,6 @@ public:
     //   motor_limit should be true if motors have hit their upper or lower limits
     //   cruise speed should be in m/s, cruise throttle should be a number from -1 to +1
     float get_throttle_out_speed(float desired_speed, bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt);
-    
     float get_throttle_out_speed_adrc(float desired_speed,float dt);
 
     // return a throttle output from -1 to +1 to perform a controlled stop.  stopped is set to true once stop has been completed
@@ -91,11 +92,13 @@ public:
 
     // access ADRC controller info
     AC_ADRC& get_steering_rate_adrc() { return _steer_rate_adrc; }
-    AC_ADRC& get_throttle_speed_adrc() { return _throttle_speed_adrc;}
+    AC_ADRC& get_throttle_speed_adrc() { return _throttle_speed_adrc; }
+    AC_ADRC_YAW& get_steering_angle_adrc() { return _steer_angle_adrc; }
 
     // access controller type
-    AP_Int8& steer_rate_ctl_type() { return _steer_rate_ctl_type;}
+    AP_Int8& steering_rate_ctl_type() { return _steer_rate_ctl_type;}
     AP_Int8& throttle_speed_ctl_type() { return _throttle_speed_ctl_type;}
+    AP_Int8& steering_angle_ctl_type() { return _steer_angle_ctl_type;}
 
     // get forward speed in m/s (earth-frame horizontal velocity but only along vehicle x-axis).  returns true on success
     bool get_forward_speed(float &speed) const;
@@ -152,11 +155,14 @@ private:
 
     AC_ADRC  _steer_rate_adrc;      // steering rate ADRC controller
     AC_ADRC  _throttle_speed_adrc;  // throttle speed ADRC controller
+    AC_ADRC_YAW _steer_angle_adrc;  // steering angle ADRC controller
 
-    AP_Int8 _steer_rate_ctl_type;   
-    AP_Int8 _throttle_speed_ctl_type;
+    AP_Int8 _steer_rate_ctl_type;   // steering rate controller type
+    AP_Int8 _throttle_speed_ctl_type; // speed/throttle controller type
+    AP_Int8 _steer_angle_ctl_type;  // steering angle controller type
 
     // steering control
+    uint32_t _steer_angle_last_ms;  // system time of last call to steering angle controller
     uint32_t _steer_lat_accel_last_ms;  // system time of last call to lateral acceleration controller (i.e. get_steering_out_lat_accel)
     uint32_t _steer_turn_last_ms;   // system time of last call to steering rate controller
     float    _desired_lat_accel;    // desired lateral acceleration (in m/s/s) from latest call to get_steering_out_lat_accel (for reporting purposes)

@@ -443,8 +443,9 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_TURN_MAX_G", 13, AR_AttitudeControl, _turn_lateral_G_max, 0.6f),
 
+
     // @Param: _STR_CTL_TYP
-    // @DisplayName: Steer rate controller type
+    // @DisplayName: Steering rate controller type
     // @Range: 0 PID 1 ADRC 2 ADP
     // @User: Standard
     AP_GROUPINFO("_STR_CTL_TYP", 20, AR_AttitudeControl, _steer_rate_ctl_type, 0),
@@ -454,6 +455,12 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Range: 0 PID 1 ADRC 2 ADP
     // @User: Standard
     AP_GROUPINFO("_SPD_CTL_TYP", 21, AR_AttitudeControl, _throttle_speed_ctl_type, 0),
+
+    // @Param: _ANG_CTL_TYP
+    // @DisplayName: Steering angle controller type 
+    // @Range: 0 PID 1 ADRC 2 ADP
+    // @User: Standard
+    AP_GROUPINFO("_ANG_CTL_TYP", 22, AR_AttitudeControl, _steer_angle_ctl_type, 0),
 
     // @Param: STR_WC
     // @Description: Response bandwidth
@@ -517,6 +524,41 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @User: Standard
     AP_SUBGROUPINFO(_throttle_speed_adrc,"_SPD_", 31, AR_AttitudeControl, AC_ADRC),
 
+    // @Param: ANG_WC
+    // @Description: Response bandwidth
+    // @Units: rad/s
+    // @Range: 0.1 100
+    // @Increment: 1
+    // @User: Standard
+
+    // @Param: ANG_WO
+    // @Description: ESO bandwidth
+    // @Units: rad/s
+    // @Range: 0.1 100
+    // @Increment: 1
+    // @User: Standard
+
+    // @Param: ANG_B0
+    // @Description: Control input gain
+    // @User: Standard
+
+    // @Param: ANG_DELTA
+    // @Description: Linear deadzone
+    // @User: Standard
+
+    // @Param: ANG_KESAI
+    // @Description: Response damping
+    // @User: Standard
+
+    // @Param: ANG_ERRMAX
+    // @Description: Control error maximum
+    // @User: Standard,
+
+    // @Param: ANG_LM
+    // @Description: Control output bound
+    // @User: Standard
+    AP_SUBGROUPINFO(_steer_angle_adrc,"_ANG_", 32, AR_AttitudeControl, AC_ADRC_YAW),
+
     AP_GROUPEND
 };
 
@@ -556,11 +598,48 @@ float AR_AttitudeControl::get_steering_out_lat_accel(float desired_accel, bool m
 // return value is normally in range -1.0 to +1.0 but can be higher or lower
 float AR_AttitudeControl::get_steering_out_heading(float heading_rad, float rate_max_rads, bool motor_limit_left, bool motor_limit_right, float dt)
 {
+    // select controller
+    if(_steer_angle_ctl_type == Controller_type::ADRC){
+        return get_steering_out_heading_adrc(heading_rad,dt);
+    } 
+
     // calculate the desired turn rate (in radians) from the angle error (also in radians)
     float desired_rate = get_turn_rate_from_heading(heading_rad, rate_max_rads);
 
     return get_steering_out_rate(desired_rate, motor_limit_left, motor_limit_right, dt);
 }
+
+float AR_AttitudeControl::get_steering_out_heading_adrc(float heading_rad,float dt)
+{
+    // get ground course
+    float ground_course_deg;
+    Vector2f ground_speed_vec = AP::ahrs().groundspeed_vector();
+    const float angular_velocity = degrees(AP::ahrs().get_yaw_rate_earth());
+    const float ground_speed_dir = degrees(ground_speed_vec.angle());
+    if (ground_speed_vec.length() < AR_ATTCONTROL_STEER_SPEED_MIN) {
+        // with zero ground speed use vehicle's heading
+        ground_course_deg = AP::ahrs().yaw_sensor * 0.01f;
+    } else {
+        ground_course_deg = ground_speed_dir;
+    }
+    ground_course_deg =  wrap_360(ground_course_deg);
+
+    // if not called recently, reset input filter and desired heading to actual heading 
+    const uint32_t now = AP_HAL::millis();
+    if(_steer_angle_last_ms == 0 || (now - _steer_angle_last_ms) >= AR_ATTCONTROL_TIMEOUT_MS){
+        _steer_angle_adrc.reset_eso(ground_course_deg,angular_velocity);
+        _steer_angle_adrc.reset_filter();
+    } 
+    _steer_angle_last_ms = now;
+
+    // set ADRC's dt
+    _steer_angle_adrc.set_dt(dt);
+
+    float output = _steer_angle_adrc.update_all(degrees(heading_rad), ground_course_deg);
+    // constrain and return final output
+    return output;
+}
+
 
 // return a desired turn-rate given a desired heading in radians
 float AR_AttitudeControl::get_turn_rate_from_heading(float heading_rad, float rate_max_rads) const
