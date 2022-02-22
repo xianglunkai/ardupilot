@@ -48,6 +48,7 @@ class AP_BattMonitor_Generator;
 class AP_BattMonitor_INA2XX;
 class AP_BattMonitor_LTC2946;
 class AP_BattMonitor_Torqeedo;
+class AP_BattMonitor_KXD_CAN;
 
 class AP_BattMonitor
 {
@@ -67,6 +68,8 @@ class AP_BattMonitor
     friend class AP_BattMonitor_LTC2946;
 
     friend class AP_BattMonitor_Torqeedo;
+
+    friend class AP_BattMonitor_KXD_CAN;
 
 public:
 
@@ -101,6 +104,9 @@ public:
         INA2XX                     = 21,
         LTC2946                    = 22,
         Torqeedo                   = 23,
+
+        KXD_CAN                    = 30,
+        KXD_RS485                  = 31,
     };
 
     FUNCTOR_TYPEDEF(battery_failsafe_handler_fn_t, void, const char *, const int8_t);
