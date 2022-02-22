@@ -66,6 +66,7 @@ public:
         Driver_Type_Benewake = 11,
 
         Driver_Type_ARS408 = 20,
+        Driver_Type_KXD_CAN = 21,
     };
 
     void init(void);
