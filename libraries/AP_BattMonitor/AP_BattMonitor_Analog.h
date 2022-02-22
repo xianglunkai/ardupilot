@@ -75,6 +75,19 @@
  # define AP_BATT_VOLTDIVIDER_DEFAULT       10.1f
  # define AP_BATT_CURR_AMP_PERVOLT_DEFAULT  17.0f
 
+#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX && (CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX)
+ #define AP_BATT_VOLT_PIN 0
+ #define AP_BATT_CURR_PIN 1
+ #define AP_BATT_VOLTDIVIDER_DEFAULT 10.1f
+ #define AP_BATT_CURR_AMP_PERVOLT_DEFAULT 17.0f
+
+#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX && (CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60)
+ #define AP_BATT_VOLT_PIN 4
+ #define AP_BATT_CURR_PIN 5
+ #define AP_BATT_TEMP_PIN 3
+ #define AP_BATT_VOLTDIVIDER_DEFAULT 10.1f
+ #define AP_BATT_CURR_AMP_PERVOLT_DEFAULT 17.0f
+
 #else
  # define AP_BATT_VOLT_PIN                  -1
  # define AP_BATT_CURR_PIN                  -1
@@ -109,6 +122,9 @@ public:
     /// returns true if battery monitor provides current info
     virtual bool has_current() const override;
 
+    // returns true if battery monitor provides temperature
+    virtual bool has_temperature() const override;
+
     virtual void init(void) override {}
 
     static const struct AP_Param::GroupInfo var_info[];
@@ -117,6 +133,7 @@ protected:
 
     AP_HAL::AnalogSource *_volt_pin_analog_source;
     AP_HAL::AnalogSource *_curr_pin_analog_source;
+    AP_HAL::AnalogSource *_temp_pin_analog_source;
 
     // Parameters
     AP_Float _volt_multiplier;          /// voltage on volt pin multiplied by this to calculate battery voltage
