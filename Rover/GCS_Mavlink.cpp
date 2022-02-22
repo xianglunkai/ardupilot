@@ -188,15 +188,16 @@ void GCS_MAVLINK_Rover::send_pid_tuning()
     const AP_Logger::PID_Info *pid_info = nullptr;
 
     // controller type
-    const AP_Int8 steer_rate_ctl_type     = g2.attitude_control.steering_rate_ctl_type();
-    const AP_Int8 throttle_speed_ctl_type = g2.attitude_control.throttle_speed_ctl_type(); 
+    const AP_Int8 steering_rate_ctl_type     = g2.attitude_control.steering_rate_ctl_type();
+    const AP_Int8 throttle_speed_ctl_type    = g2.attitude_control.throttle_speed_ctl_type(); 
+    const AP_Int8 heading_angle_ctl_type     = g2.attitude_control.steering_angle_ctl_type();
 
     // steering PID
     if (g.gcs_pid_mask & 1) {
 
-        if(steer_rate_ctl_type == g2.attitude_control.PID){
+        if(steering_rate_ctl_type == g2.attitude_control.PID){
             pid_info = &g2.attitude_control.get_steering_rate_pid().get_pid_info();
-        }else if(steer_rate_ctl_type == g2.attitude_control.ADRC){
+        }else if(steering_rate_ctl_type == g2.attitude_control.ADRC){
             pid_info = &g2.attitude_control.get_steering_rate_adrc().get_debug_info();
         }else{
 
@@ -294,7 +295,15 @@ void GCS_MAVLINK_Rover::send_pid_tuning()
 
     // sailboat heel to mainsail pid
     if (g.gcs_pid_mask & 32) {
-        pid_info = &g2.attitude_control.get_sailboat_heel_pid().get_pid_info();
+
+         if(heading_angle_ctl_type == g2.attitude_control.PID){
+            pid_info = &g2.attitude_control.get_sailboat_heel_pid().get_pid_info();
+        }else if(heading_angle_ctl_type == g2.attitude_control.ADRC){
+            pid_info = &g2.attitude_control.get_steering_angle_adrc().get_debug_info();
+        }else{
+
+        }
+ 
         mavlink_msg_pid_tuning_send(chan, 9,
                                     pid_info->target,
                                     pid_info->actual,
