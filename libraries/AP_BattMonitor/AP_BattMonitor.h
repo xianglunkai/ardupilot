@@ -49,6 +49,7 @@ class AP_BattMonitor_INA2XX;
 class AP_BattMonitor_LTC2946;
 class AP_BattMonitor_Torqeedo;
 class AP_BattMonitor_KXD_CAN;
+class AP_BattMonitor_KXD_RS485;
 
 class AP_BattMonitor
 {
@@ -70,6 +71,7 @@ class AP_BattMonitor
     friend class AP_BattMonitor_Torqeedo;
 
     friend class AP_BattMonitor_KXD_CAN;
+    friend class AP_BattMonitor_KXD_RS485;
 
 public:
 
