@@ -325,7 +325,57 @@
     #endif
     #define HAL_BUZZER_PIN                12 // You can choose between 27,22,4,12
     #define OBAL_ALLOW_ADC                1
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX
+    #define HAL_BOARD_LOG_DIRECTORY "/root/ardupilot/logs"
+    #define HAL_BOARD_TERRAIN_DIRECTORY "/root/ardupilot/terrain"
+    #define HAL_BOARD_STORAGE_DIRECTORY "/root/ardupilot/storage"
+    #define HAL_NUM_CAN_IFACES 1
+    
+    #define HAL_INS_PROBE_LIST PROBE_IMU_I2C(Invensense, 2, 0x68, ROTATION_NONE)
 
+    #define HAL_BARO_PROBE_LIST PROBE_BARO_I2C(MS56XX, 2, 0x77)
+    #define HAL_MAG_PROBE1 PROBE_MAG_I2C(QMC5883L, 2, 0x0d, false, ROTATION_YAW_270)
+    #define HAL_MAG_PROBE2 PROBE_MAG_I2C(QMC5883L, 1, 0x0d, true, ROTATION_ROLL_180)
+    #define HAL_MAG_PROBE3 PROBE_MAG_I2C(HMC5843, 2, 0x1e, false, ROTATION_YAW_270)
+    #define HAL_MAG_PROBE4 PROBE_MAG_I2C(HMC5843, 1, 0x1e, true, ROTATION_ROLL_180)
+
+    // external compass
+    #define HAL_MAG_PROBE5 PROBE_MAG_I2C(IST8310, 1, 0x0e, true, ROTATION_YAW_180)
+
+    #define HAL_MAG_PROBE_LIST HAL_MAG_PROBE1;HAL_MAG_PROBE2;HAL_MAG_PROBE3;HAL_MAG_PROBE4
+
+    #define HAL_GPIO_A_LED_PIN        0
+    #define HAL_GPIO_B_LED_PIN        1
+    #define HAL_GPIO_C_LED_PIN        2
+    #define HAL_GPIO_LED_ON           0
+    #define HAL_GPIO_LED_OFF          1
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+    #define HAL_BOARD_LOG_DIRECTORY "/home/root/ardupilot/logs"
+    #define HAL_BOARD_TERRAIN_DIRECTORY "/home/root/ardupilot/terrain"
+    #define HAL_BOARD_STORAGE_DIRECTORY "/home/root/ardupilot/storage"
+    #define HAL_NUM_CAN_IFACES 2
+
+    #define HAL_BARO_PROBE1 PROBE_BARO_I2C(BMP388, 2, 0x76)
+    #define HAL_BARO_PROBE2 PROBE_BARO_I2C(MS56XX, 2, 0x77, AP_Baro_MS56XX::BARO_MS5611)
+    #define HAL_BARO_PROBE_LIST HAL_BARO_PROBE1;HAL_BARO_PROBE2
+
+#if 0
+    #define HAL_INS_PROBE_LIST PROBE_IMU_I2C(Invensensev2, 2, 0x69,ROTATION_NONE)
+    #define HAL_MAG_PROBE1 PROBE_MAG_I2C(AK09916,2,0x0c,false,ROTATION_YAW_90)
+#else
+    #define HAL_INS_PROBE_LIST PROBE_IMU_SPI(Invensensev2, "ICM20948", ROTATION_NONE)
+    #define HAL_MAG_PROBE1 PROBE_MAG_IMU(AK09916, ICM20948, 0, ROTATION_YAW_90)
+#endif
+
+    // External compass
+    #define HAL_MAG_PROBE2 PROBE_MAG_I2C(HMC5843,2,0x1e,true, ROTATION_ROLL_180)
+    #define HAL_MAG_PROBE_LIST HAL_MAG_PROBE1;HAL_MAG_PROBE2
+
+    #define HAL_GPIO_A_LED_PIN        0
+    #define HAL_GPIO_B_LED_PIN        1
+    #define HAL_GPIO_C_LED_PIN        2
+    #define HAL_GPIO_LED_ON           0
+    #define HAL_GPIO_LED_OFF          1
 #else
     #error "no Linux board subtype set"
 #endif
