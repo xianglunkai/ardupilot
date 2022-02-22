@@ -47,6 +47,7 @@ public:
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
         RPM_TYPE_SITL   = 10,
 #endif
+        RPM_TYPE_ANALOG = 20,
     };
 
     // The RPM_State structure is filled in by the backend driver
