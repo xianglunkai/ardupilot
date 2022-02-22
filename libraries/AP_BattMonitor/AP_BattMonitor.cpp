@@ -19,6 +19,7 @@
 
 
 #include "AP_BattMonitor_KXD_CAN.h"
+#include "AP_BattMonitor_KXD_RS485.h"
 
 #include <AP_HAL/AP_HAL.h>
 
@@ -306,6 +307,11 @@ AP_BattMonitor::init()
                 drivers[instance] = new AP_BattMonitor_KXD_CAN(*this, state[instance], _params[instance]);
             break;
 #endif // HAL_KXD_CAN_ENABLE
+#if HAL_KXD_RS485_ENABLED
+            case Type::KXD_RS485:
+                drivers[instance] = new AP_BattMonitor_KXD_RS485(*this, state[instance], _params[instance]);
+            break;
+#endif // HAL_KXD_ENABLED
             case Type::NONE:
             default:
                 break;
