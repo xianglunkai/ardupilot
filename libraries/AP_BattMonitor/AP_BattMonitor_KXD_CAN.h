@@ -51,7 +51,7 @@ private:
             return ((timestamp_ms > 0) && ((AP_HAL::millis() - timestamp_ms) < 10000));
         }
 
-    }BMS_devices[BMS_CAN_DEVICE_COUNT_MAX];
+    }BMS_devices[KXD_CAN_DEVICE_COUNT_MAX];
 
     HAL_Semaphore _sem_static;
 
