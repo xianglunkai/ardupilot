@@ -13,6 +13,7 @@
 #include <AP_HAL_Empty/AP_HAL_Empty.h>
 #include <AP_HAL_Empty/AP_HAL_Empty_Private.h>
 #include <AP_Module/AP_Module.h>
+#include <AP_BoardConfig/AP_BoardConfig.h>
 
 #include "AnalogIn_ADS1115.h"
 #include "AnalogIn_IIO.h"
@@ -48,6 +49,22 @@
 #include "CANSocketIface.h"
 
 using namespace Linux;
+
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX
+#include "watchdog.h"
+#include "RCOutput_Imx_IOMCU.hpp"
+#include "AnalogIn_Imx_IOMCU.hpp"
+static Imx_IOMCU mcu;
+const char* mcu_path = "/dev/ttyACM0";
+#endif
+
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+#include "watchdog.h"
+#include "RCOutput_Imx_K60_IOMCU.hpp"
+#include "AnalogIn_Imx_K60_IOMCU.hpp"
+static Imx_K60::Imx_IOMCU mcu;
+const char* mcu_path = "/dev/ttymxc3";
+#endif
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NAVIO || \
     CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NAVIO2 || \
@@ -101,6 +118,10 @@ static AnalogIn_IIO analogIn;
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NAVIO2 || \
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_EDGE
 static AnalogIn_Navio2 analogIn;
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX
+static AnalogIn_Imx_IOMCU analogIn(&mcu);
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+static AnalogIn_Imx_K60_IOMCU analogIn(&mcu);
 #else
 static Empty::AnalogIn analogIn;
 #endif
@@ -133,6 +154,9 @@ static GPIO_Sysfs gpioDriver;
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP || \
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO || \
       CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_AERO
+static GPIO_Sysfs gpioDriver;
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX || \
+      CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
 static GPIO_Sysfs gpioDriver;
 #else
 static Empty::GPIO gpioDriver;
@@ -173,6 +197,10 @@ static RCInput_RCProtocol rcinDriver{"/dev/ttyPS0", NULL};
 // this is needed to allow for RC input using SERIALn_PROTOCOL=23. No fd is opened
 // in the linux driver and instead user needs to provide a uart via SERIALn_PROTOCOL
 static RCInput_RCProtocol rcinDriver{nullptr, nullptr};
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX
+static RCInput_RCProtocol rcinDriver{"/dev/ttymxc4", NULL};
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+static RCInput_RCProtocol rcinDriver{nullptr,nullptr};
 #else
 static RCInput rcinDriver;
 #endif
@@ -217,6 +245,10 @@ static RCOutput_Sysfs rcoutDriver(0, 0, 15);
 static RCOutput_Sysfs rcoutDriver(0, 0, 8);
 #elif  CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_OBAL_V1
 static RCOutput_PCA9685 rcoutDriver(i2c_mgr_instance.get_device(1, PCA9685_PRIMARY_ADDRESS), 0, 0, RPI_GPIO_<17>());
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX
+static RCOutput_Imx_IOMCU rcoutDriver(&mcu);
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+static RCOutput_Imx_K60_IOMCU rcoutDriver(&mcu);
 #else
 static Empty::RCOutput rcoutDriver;
 #endif
@@ -306,6 +338,26 @@ void _usage(void)
 
 void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
 {
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+   linux_watchdog_stop();
+    printf("Connect MCU start!\n");
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+    {
+        printf("ignore SIGPIPE error.\n");
+        exit(0);
+        return;
+    }
+    while (1)
+    {
+        int uart = mcu.init(mcu_path);
+        if (uart >= 0)
+            break;
+        printf("%s open error,waiting...\n", mcu_path);
+        usleep(1000000);
+    }
+     printf("Connect MCU success!\n");
+#endif
+
 #if AP_MODULE_SUPPORTED
     const char *module_path = AP_MODULE_DEFAULT_DIRECTORY;
 #endif
@@ -434,6 +486,13 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
     AP_Module::call_hook_setup_complete();
 #endif
 
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+    // setup watchdog to reset if main loop stops
+    if (AP_BoardConfig::watchdog_enabled()) {
+        linux_watchdog_init();
+    }
+#endif
+
     while (!_should_exit) {
         callbacks->loop();
     }
@@ -444,6 +503,10 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
     I2CDeviceManager::from(i2c_mgr)->teardown();
     SPIDeviceManager::from(spi)->teardown();
     Scheduler::from(scheduler)->teardown();
+
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+    linux_watchdog_stop();
+#endif
 }
 
 void HAL_Linux::setup_signal_handlers() const
