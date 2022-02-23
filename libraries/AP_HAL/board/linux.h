@@ -325,6 +325,7 @@
     #endif
     #define HAL_BUZZER_PIN                12 // You can choose between 27,22,4,12
     #define OBAL_ALLOW_ADC                1
+
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX
     #define HAL_BOARD_LOG_DIRECTORY "/root/ardupilot/logs"
     #define HAL_BOARD_TERRAIN_DIRECTORY "/root/ardupilot/terrain"
@@ -349,6 +350,7 @@
     #define HAL_GPIO_C_LED_PIN        2
     #define HAL_GPIO_LED_ON           0
     #define HAL_GPIO_LED_OFF          1
+
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
     #define HAL_BOARD_LOG_DIRECTORY "/home/root/ardupilot/logs"
     #define HAL_BOARD_TERRAIN_DIRECTORY "/home/root/ardupilot/terrain"
