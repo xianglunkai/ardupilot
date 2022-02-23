@@ -2,6 +2,7 @@
 #include "AP_OADijkstra.h"
 #include "AP_OABendyRuler.h"
 #include <AP_Logger/AP_Logger.h>
+#include "AP_Astar_RT.h"
 
 void AP_OABendyRuler::Write_OABendyRuler(const uint8_t type, const bool active, const float target_yaw, const float target_pitch, const bool resist_chg, const float margin, const Location &final_dest, const Location &oa_dest) const
 {
@@ -28,6 +29,24 @@ void AP_OABendyRuler::Write_OABendyRuler(const uint8_t type, const bool active, 
     };
     AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }
+
+void AP_OART_AStar::Write_RTAstar(const AP_OART_AStar::AP_OART_Astar_State& state, const AP_OART_AStar::AP_OA_RTAStar_Error& error_id, const Location &next_loc, uint64_t nodes_time, uint64_t visgraph_time, uint64_t path_time, uint64_t total_time)
+{
+    const struct log_OARTAstar pkt{
+        LOG_PACKET_HEADER_INIT(LOG_OA_RTASTAR_MSG),
+        time_us        : AP_HAL::micros64(),
+        state          : static_cast<uint8_t>(state),
+        error_id       : static_cast<uint8_t>(error_id),
+        next_lat       : next_loc.lat,
+        next_lng       : next_loc.lng,
+        nodes_time     : nodes_time,
+        visgraph_time  : visgraph_time,
+        path_time      : path_time,
+        total_time     : total_time
+    };
+    AP::logger().WriteBlock(&pkt, sizeof(pkt));
+}
+
 
 void AP_OADijkstra::Write_OADijkstra(const uint8_t state, const uint8_t error_id, const uint8_t curr_point, const uint8_t tot_points, const Location &final_dest, const Location &oa_dest) const
 {
