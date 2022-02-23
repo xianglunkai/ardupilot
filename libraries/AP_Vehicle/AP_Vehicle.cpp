@@ -1,5 +1,5 @@
 #include "AP_Vehicle.h"
-
+#include <stdio.h>
 #include <AP_BLHeli/AP_BLHeli.h>
 #include <AP_Common/AP_FWVersion.h>
 #include <AP_Arming/AP_Arming.h>
@@ -102,6 +102,11 @@ void AP_Vehicle::setup()
                         "\n\nFree RAM: %u\n",
                         AP::fwversion().fw_string,
                         (unsigned)hal.util->available_memory());
+                        
+    printf("\n\nInit %s"
+                    "\n\nFree RAM: %u\n",
+                    AP::fwversion().fw_string,
+                    (unsigned)hal.util->available_memory());
 
     load_parameters();
 
