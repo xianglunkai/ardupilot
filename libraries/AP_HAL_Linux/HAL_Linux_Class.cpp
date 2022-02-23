@@ -457,7 +457,7 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
     }
 
     setup_signal_handlers();
-
+    printf("Hardware initialization begin!\n");
     scheduler->init();
     gpio->init();
     rcout->init();
@@ -465,11 +465,13 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
     serial(0)->begin(115200);
     analogin->init();
     utilInstance.init(argc+gopt.optind-1, &argv[gopt.optind-1]);
+    printf("Hardware initialization finshed!\n");
 
     // NOTE: See commit 9f5b4ffca ("AP_HAL_Linux_Class: Correct
     // deadlock, and infinite loop in setup()") for details about the
     // order of scheduler initialize and setup on Linux.
     scheduler->set_system_initialized();
+    printf("systen initialization completed!\n");
 
     // possibly load external modules
 #if AP_MODULE_SUPPORTED
@@ -482,6 +484,7 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
     AP_Module::call_hook_setup_start();
 #endif
     callbacks->setup();
+    printf("Software initialization completed!\n");
 #if AP_MODULE_SUPPORTED
     AP_Module::call_hook_setup_complete();
 #endif
@@ -489,10 +492,11 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
     // setup watchdog to reset if main loop stops
     if (AP_BoardConfig::watchdog_enabled()) {
+        printf("Enable and initialize watchdog!\n");
         linux_watchdog_init();
     }
 #endif
-
+    printf("Start main thread!\n");
     while (!_should_exit) {
         callbacks->loop();
     }
@@ -506,6 +510,7 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
     linux_watchdog_stop();
+    printf("Stop watchdog!\n");
 #endif
 }
 
