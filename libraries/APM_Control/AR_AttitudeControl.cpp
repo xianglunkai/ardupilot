@@ -598,23 +598,17 @@ float AR_AttitudeControl::get_steering_out_lat_accel(float desired_accel, bool m
 // return value is normally in range -1.0 to +1.0 but can be higher or lower
 float AR_AttitudeControl::get_steering_out_heading(float heading_rad, float rate_max_rads, bool motor_limit_left, bool motor_limit_right, float dt)
 {
-    // select controller
-    if(_steer_angle_ctl_type == Controller_type::ADRC){
-        return get_steering_out_heading_adrc(heading_rad,dt);
-    } 
-
     // calculate the desired turn rate (in radians) from the angle error (also in radians)
-    float desired_rate = get_turn_rate_from_heading(heading_rad, rate_max_rads);
+    float desired_rate = get_turn_rate_from_heading(heading_rad, AP::ahrs().yaw,rate_max_rads);
 
     return get_steering_out_rate(desired_rate, motor_limit_left, motor_limit_right, dt);
 }
 
-float AR_AttitudeControl::get_steering_out_heading_adrc(float heading_rad,float dt)
+float AR_AttitudeControl::get_steering_out_course(float heading_rad,float rate_max_rads,bool motor_limit_left, bool motor_limit_right,float dt)
 {
     // get ground course
     float ground_course_deg;
     Vector2f ground_speed_vec = AP::ahrs().groundspeed_vector();
-    const float angular_velocity = degrees(AP::ahrs().get_yaw_rate_earth());
     const float ground_speed_dir = degrees(ground_speed_vec.angle());
     if (ground_speed_vec.length() < AR_ATTCONTROL_STEER_SPEED_MIN) {
         // with zero ground speed use vehicle's heading
@@ -624,10 +618,24 @@ float AR_AttitudeControl::get_steering_out_heading_adrc(float heading_rad,float 
     }
     ground_course_deg =  wrap_360(ground_course_deg);
 
+    // select controller
+    if(_steer_angle_ctl_type == Controller_type::ADRC){
+        return get_steering_out_course_adrc(degrees(heading_rad),ground_course_deg,dt);
+    } 
+
+   // calculate the desired turn rate (in radians) from the angle error (also in radians)
+    float desired_rate = get_turn_rate_from_heading(heading_rad, radians(ground_course_deg),rate_max_rads);
+
+    return get_steering_out_rate(desired_rate, motor_limit_left, motor_limit_right, dt);
+}
+
+float AR_AttitudeControl::get_steering_out_course_adrc(float heading_deg,float current_heading,float dt)
+{
+    const float angular_velocity = degrees(AP::ahrs().get_yaw_rate_earth());
     // if not called recently, reset input filter and desired heading to actual heading 
     const uint32_t now = AP_HAL::millis();
     if(_steer_angle_last_ms == 0 || (now - _steer_angle_last_ms) >= AR_ATTCONTROL_TIMEOUT_MS){
-        _steer_angle_adrc.reset_eso(ground_course_deg,angular_velocity);
+        _steer_angle_adrc.reset_eso(current_heading,angular_velocity);
         _steer_angle_adrc.reset_filter();
     } 
     _steer_angle_last_ms = now;
@@ -635,16 +643,16 @@ float AR_AttitudeControl::get_steering_out_heading_adrc(float heading_rad,float 
     // set ADRC's dt
     _steer_angle_adrc.set_dt(dt);
 
-    float output = _steer_angle_adrc.update_all(degrees(heading_rad), ground_course_deg);
+    float output = _steer_angle_adrc.update_all(heading_deg, current_heading);
     // constrain and return final output
     return output;
 }
 
 
 // return a desired turn-rate given a desired heading in radians
-float AR_AttitudeControl::get_turn_rate_from_heading(float heading_rad, float rate_max_rads) const
+float AR_AttitudeControl::get_turn_rate_from_heading(float heading_rad, float current_heading,float rate_max_rads) const
 {
-    const float yaw_error = wrap_PI(heading_rad - AP::ahrs().yaw);
+    const float yaw_error = wrap_PI(heading_rad - current_heading);
 
     // Calculate the desired turn rate (in radians) from the angle error (also in radians)
     float desired_rate = _steer_angle_p.get_p(yaw_error);
