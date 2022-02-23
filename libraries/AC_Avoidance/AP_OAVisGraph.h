@@ -22,8 +22,8 @@ public:
         OATYPE_INTERMEDIATE_POINT,
     };
 
-    // support up to 255 items of each type
-    typedef uint8_t oaid_num;
+    // support up to 65536 items of each type
+    typedef uint16_t oaid_num;
 
     // id for uniquely identifying objects held in visibility graphs and paths
     class OAItemID {

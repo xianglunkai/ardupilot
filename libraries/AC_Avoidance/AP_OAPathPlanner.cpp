@@ -75,7 +75,6 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     // @Group: SO_
     // @Path: AP_ShallowAvoid.cpp
     AP_SUBGROUPINFO(_oashallow, "SO_", 9, AP_OAPathPlanner, AP_ShallowAvoid),
-
    #endif
 
     AP_GROUPEND
@@ -117,6 +116,11 @@ void AP_OAPathPlanner::init()
             AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
         }
         break;
+    case OA_PATHPLAN_RT_ASTAR:
+        if (_oart_astar == nullptr) {
+            _oart_astar = new AP_OART_AStar();
+        }
+        break;
     }
 
     _oadatabase.init();
@@ -149,7 +153,14 @@ bool AP_OAPathPlanner::pre_arm_check(char *failure_msg, uint8_t failure_msg_len)
             return false;
         }
         break;
+    case OA_PATHPLAN_RT_ASTAR:
+        if ( _oart_astar == nullptr) {
+            hal.util->snprintf(failure_msg, failure_msg_len, "RT-ASTAR OA requires reboot");
+            return false;
+        }
+        break;
     }
+
     return true;
 }
 
@@ -369,6 +380,27 @@ void AP_OAPathPlanner::avoidance_thread()
             }
             path_planner_used = OAPathPlannerUsed::Dijkstras;
             break;
+        }
+        case OA_PATHPLAN_RT_ASTAR: {
+            if (_oart_astar == nullptr) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
+                continue;
+            }
+            _oart_astar->set_config(_margin_max);
+            const AP_OART_AStar::AP_OART_Astar_State astar_rt_state = _oart_astar ->update(avoidance_request2.current_loc, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, false);
+            switch (astar_rt_state) {
+            case AP_OART_AStar::RT_ASTAR_STATE_NOT_REQUIRED:
+                res = OA_NOT_REQUIRED;
+                break;
+            case AP_OART_AStar::RT_ASTAR_STATE_ERROR:
+                res = OA_ERROR;
+                break;
+            case AP_OART_AStar::RT_ASTAR_STATE_SUCCESS:
+                res = OA_SUCCESS;
+                break;
+            }
+            // To-Do: make another WP Nav backend to handle RT-ASTAR, this is a quick hack
+            path_planner_used = OAPathPlannerUsed::BendyRulerHorizontal;
         }
 
         } // switch
