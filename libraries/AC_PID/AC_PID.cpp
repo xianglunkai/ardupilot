@@ -64,6 +64,13 @@ const AP_Param::GroupInfo AC_PID::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("SMAX", 12, AC_PID, _slew_rate_max, 0),
 
+
+    // @Param: DLTA
+    // @DisplayName: PID linear zone
+    // @Description: use for nonlinear controller
+    // @Units: Hz
+    AP_GROUPINFO("DLTA", 13, AC_PID,_delta,0.0),
+
     AP_GROUPEND
 };
 
@@ -159,8 +166,8 @@ float AC_PID::update_all(float target, float measurement, bool limit)
     // update I term
     update_i(limit);
 
-    float P_out = (_error * _kp);
-    float D_out = (_derivative * _kd);
+    float P_out = (fal(_error,0.5,_delta) * _kp);
+    float D_out = (fal(_derivative,1.25,_delta) * _kd);
 
     // calculate slew limit modifier for P+D
     _pid_info.Dmod = _slew_limiter.modifier((_pid_info.P + _pid_info.D) * _slew_limit_scale, _dt);
@@ -212,8 +219,8 @@ float AC_PID::update_error(float error, bool limit)
     // update I term
     update_i(limit);
 
-    float P_out = (_error * _kp);
-    float D_out = (_derivative * _kd);
+    float P_out = (fal(_error,0.5,_delta) * _kp);
+    float D_out = (fal(_derivative,1.25,_delta) * _kd);
 
     // calculate slew limit modifier for P+D
     _pid_info.Dmod = _slew_limiter.modifier((_pid_info.P + _pid_info.D) * _slew_limit_scale, _dt);

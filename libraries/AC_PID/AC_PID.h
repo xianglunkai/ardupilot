@@ -139,6 +139,7 @@ protected:
     AP_Float _filt_E_hz;         // PID error filter frequency in Hz
     AP_Float _filt_D_hz;         // PID derivative filter frequency in Hz
     AP_Float _slew_rate_max;
+    AP_Float _delta;
 
     SlewLimiter _slew_limiter{_slew_rate_max, _slew_rate_tau};
 
