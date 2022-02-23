@@ -387,7 +387,7 @@ void AR_WPNav::update_steering(const Location& current_loc, float current_speed)
         _cross_track_error = calc_crosstrack_error(current_loc);
         _desired_heading_cd = _reversed ? wrap_360_cd(_oa_wp_bearing_cd + 18000) : _oa_wp_bearing_cd;;
         _desired_lat_accel = 0.0f;
-        _desired_turn_rate_rads = _atc.get_turn_rate_from_heading(radians(_desired_heading_cd * 0.01f), radians(_pivot_rate));
+        _desired_turn_rate_rads = _atc.get_turn_rate_from_heading(radians(_desired_heading_cd * 0.01f), AP::ahrs().yaw,radians(_pivot_rate));
 
         // update flag so that it can be cleared
         update_pivot_active_flag();
