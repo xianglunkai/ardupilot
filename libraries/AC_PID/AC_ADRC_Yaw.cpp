@@ -30,9 +30,9 @@ const AP_Param::GroupInfo AC_ADRC_YAW::var_info[] = {
     AP_GROUPINFO("DELTA",4,AC_ADRC_YAW,delta_,50),
 
     // @Param: KESAI
-    // @Description: Response damping
+    // @Description: Response damping,should set zero initially
     // @User: Standard
-    AP_GROUPINFO("KESAI",5,AC_ADRC_YAW,kesai_,1.0f),
+    AP_GROUPINFO("KESAI",5,AC_ADRC_YAW,kesai_,0.0f),
 
     // @Param: ERRMAX
     // @Description: Control error maximum
