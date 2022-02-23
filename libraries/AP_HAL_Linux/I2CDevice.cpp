@@ -255,7 +255,7 @@ AP_HAL::Device::PeriodicHandle I2CDevice::register_periodic_callback(
     if (!p) {
         AP_HAL::panic("Could not create periodic callback");
     }
-
+    printf("get i2c ap-i2c-%u, address = %x,period_usec=%d\n",_bus.bus,_address,period_usec);
     if (!_bus.thread.is_started()) {
         char name[16];
         snprintf(name, sizeof(name), "ap-i2c-%u", _bus.bus);
