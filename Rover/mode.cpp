@@ -438,17 +438,17 @@ void Mode::navigate_to_waypoint()
         calc_steering_to_heading(desired_heading_cd, turn_rate);
     } else {
         if(g2.mis_nav_type == 1){
-        // retrieve desired yaw from waypoint controller
-        float desired_yaw_cd = g2.wp_nav.nav_bearing_cd();
+            // retrieve desired yaw from waypoint controller
+            float desired_yaw_cd = g2.wp_nav.nav_bearing_cd();
 
-        // if simple avoidance is active at very low speed do not attempt to turn
-        if (g2.avoid.limits_active() && (fabsf(attitude_control.get_desired_speed()) <= attitude_control.get_stop_speed())) {
-            desired_yaw_cd = ahrs.yaw_sensor;
-        }
+            // if simple avoidance is active at very low speed do not attempt to turn
+            if (g2.avoid.limits_active() && (fabsf(attitude_control.get_desired_speed()) <= attitude_control.get_stop_speed())) {
+                desired_yaw_cd = ahrs.yaw_sensor;
+            }
 
-        // call steering angle controller
-        calc_steering_to_heading(desired_yaw_cd);
-        return;
+            // call steering angle controller
+            calc_steering_to_course(desired_yaw_cd);
+            return;
         }
 
         // retrieve turn rate from waypoint controller
@@ -504,6 +504,20 @@ void Mode::calc_steering_to_heading(float desired_heading_cd, float rate_max_deg
                                                                          rover.G_Dt);
     set_steering(steering_out * 4500.0f);
 }
+
+// calculate steering output to drive towards desired heading
+// rate_max is a maximum turn rate in deg/s.  set to zero to use default turn rate limits
+void Mode::calc_steering_to_course(float desired_heading_cd, float rate_max_degs)
+{
+    // call heading controller
+    const float steering_out = attitude_control.get_steering_out_course(radians(desired_heading_cd*0.01f),
+                                                                         radians(rate_max_degs),
+                                                                         g2.motors.limit.steer_left,
+                                                                         g2.motors.limit.steer_right,
+                                                                         rover.G_Dt);
+    set_steering(steering_out * 4500.0f);
+}
+
 
 void Mode::set_steering(float steering_value)
 {
