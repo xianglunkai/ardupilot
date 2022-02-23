@@ -14,6 +14,7 @@ static void failsafe_check_static()
 
 void Rover::init_ardupilot()
 {
+    printf("Intialize ardupuilot begin!\n");
 #if STATS_ENABLED == ENABLED
     // initialise stats module
     g2.stats.init();
@@ -145,6 +146,7 @@ void Rover::init_ardupilot()
 
     // flag that initialisation has completed
     initialised = true;
+    printf("Intialize ardupuilot success!\n");
 }
 
 //*********************************************************************************
