@@ -446,7 +446,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
 
     // @Param: _STR_CTL_TYP
     // @DisplayName: Steering rate controller type
-    // @Range: 0 PID 1 ADRC 2 ADP
+    // @Range: 0 PID 1 ADRC 2 ADPC
     // @User: Standard
     AP_GROUPINFO("_STR_CTL_TYP", 20, AR_AttitudeControl, _steer_rate_ctl_type, 0),
 
@@ -491,7 +491,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Param: STR_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_steer_rate_adrc,"_STR_", 30, AR_AttitudeControl, AC_ADRC),
+    AP_SUBGROUPINFO(_steer_rate_adrc,"_STR_AR_", 30, AR_AttitudeControl, AC_ADRC),
 
     // @Param: SPD_WC
     // @Description: Response bandwidth
@@ -522,7 +522,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Param: SPD_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_throttle_speed_adrc,"_SPD_", 31, AR_AttitudeControl, AC_ADRC),
+    AP_SUBGROUPINFO(_throttle_speed_adrc,"_SPD_AR_", 31, AR_AttitudeControl, AC_ADRC),
 
     // @Param: ANG_WC
     // @Description: Response bandwidth
@@ -557,7 +557,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Param: ANG_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_steer_angle_adrc,"_ANG_", 32, AR_AttitudeControl, AC_ADRC_YAW),
+    AP_SUBGROUPINFO(_steer_angle_adrc,"_ANG_AR_", 32, AR_AttitudeControl, AC_ADRC_YAW),
 
     AP_GROUPEND
 };
