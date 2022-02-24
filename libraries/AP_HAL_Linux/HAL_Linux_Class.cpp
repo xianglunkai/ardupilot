@@ -510,7 +510,6 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
     linux_watchdog_stop();
-    printf("Stop watchdog!\n");
 #endif
 }
 
