@@ -34,10 +34,10 @@ const AP_Param::GroupInfo AC_ADRC_YAW::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("KESAI",5,AC_ADRC_YAW,kesai_,0.0f),
 
-    // @Param: ERRMAX
+    // @Param: ERMAX
     // @Description: Control error maximum
     // @User: Standard
-    AP_GROUPINFO("ERRMAX",6,AC_ADRC_YAW,error_max_,60),
+    AP_GROUPINFO("ERMAX",6,AC_ADRC_YAW,error_max_,60),
 
     // @Param: LM
     // @Description: Control output bound
