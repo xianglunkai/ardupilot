@@ -178,19 +178,15 @@ bool AP_OAPathPlanner::start_thread()
     // create the avoidance thread as low priority. It should soak
     // up spare CPU cycles to fill in the avoidance_result structure based
     // on requests in avoidance_request
+    uint32_t stack_size = 8192;
     #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60 || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX
-        if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_OAPathPlanner::avoidance_thread, void),
-                                      "avoidance",
-                                      1024*1024, AP_HAL::Scheduler::PRIORITY_IO, -1)) {
-            return false;
-        }
-    #else
-       if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_OAPathPlanner::avoidance_thread, void),
-                                      "avoidance",
-                                      8192, AP_HAL::Scheduler::PRIORITY_IO, -1)) {
-        return false;
-        }
+        stack_size = 1024 * 1024;
     #endif
+    if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_OAPathPlanner::avoidance_thread, void),
+                                    "avoidance",
+                                    stack_size, AP_HAL::Scheduler::PRIORITY_IO, -1)) {
+     return false;
+    }
     _thread_created = true;
     return true;
 }
