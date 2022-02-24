@@ -356,7 +356,7 @@ void AP_Proximity_ARS408_CAN::handle_frame(AP_HAL::CANFrame &frame)
                                 database_push(angle_deg, distance_m,obj_radius);
                             } else {
                                 // invalidate distance of face
-                            boundary.reset_face(face);
+                                boundary.reset_face(face);
                             }
                         }
                     }else{
