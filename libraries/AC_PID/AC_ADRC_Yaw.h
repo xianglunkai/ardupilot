@@ -36,6 +36,7 @@ class AC_ADRC_YAW{
     
     private:
         // Parameters
+        AP_Float gama_;
         AP_Float wc_;
         AP_Float wo_;
         AP_Float b0_;
