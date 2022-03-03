@@ -13,7 +13,7 @@ class AC_MFAC{
 public:
 
     // Constructor for MFAC
-    AC_MFAC(float initial_lamada,float initial_kr,float initial_eplise);
+    AC_MFAC(float initial_lamada,float initial_kr,float initial_eplise,float dt);
 
     CLASS_NO_COPY(AC_MFAC);
 
