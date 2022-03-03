@@ -27,7 +27,7 @@ const AP_Param::GroupInfo AC_ADRC::var_info[] = {
     // @Param: DELTA
     // @Description: Linear deadzone
     // @User: Standard
-    AP_GROUPINFO("DELTA",4,AC_ADRC,delta_,0.0),
+    AP_GROUPINFO("DELTA",4,AC_ADRC,delta_,1.0),
 
     // @Param: ORDER
     // @Description: Model order
@@ -43,9 +43,17 @@ const AP_Param::GroupInfo AC_ADRC::var_info[] = {
 
 };
 
-AC_ADRC::AC_ADRC()
+AC_ADRC::AC_ADRC(float initial_wc,float initial_wo,float initial_b0,float initial_delta,float initial_order,float dt):
+    dt_(dt)
 {
+    // load parameter values from eeprom
     AP_Param::setup_object_defaults(this,var_info);
+
+    wc_ = initial_wc;
+    wo_ = initial_wo;
+    b0_ = initial_b0;
+    delta_ = initial_delta;
+    order_ = initial_order;
 
     memset(&_debug_info, 0, sizeof(_debug_info));
 }

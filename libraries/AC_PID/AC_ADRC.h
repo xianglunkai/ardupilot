@@ -9,7 +9,7 @@
 class AC_ADRC{
     public:
        // Constructor for ADRC
-        AC_ADRC();
+        AC_ADRC(float initial_wc,float initial_wo,float initial_b0,float initial_delta,float intiial_order,float dt);
         virtual ~AC_ADRC() = default;
 
         CLASS_NO_COPY(AC_ADRC);
