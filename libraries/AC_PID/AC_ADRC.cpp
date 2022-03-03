@@ -43,7 +43,7 @@ const AP_Param::GroupInfo AC_ADRC::var_info[] = {
 
 };
 
-AC_ADRC::AC_ADRC(float initial_wc,float initial_wo,float initial_b0,float initial_delta,float initial_order,float dt):
+AC_ADRC::AC_ADRC(float initial_wc,float initial_wo,float initial_b0,float initial_delta,int8_t initial_order,float dt):
     dt_(dt)
 {
     // load parameter values from eeprom
