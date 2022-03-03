@@ -59,7 +59,8 @@ const AP_Param::GroupInfo AC_MFAC::var_info[] = {
 
 
 // Constructor
-AC_MFAC::AC_MFAC(float initial_lamada,float initial_kr,float initial_eplise)
+AC_MFAC::AC_MFAC(float initial_lamada,float initial_kr,float initial_eplise,float dt):
+    _dt(dt)
 {
     // load parameter values from eeprom
     AP_Param::setup_object_defaults(this,var_info);
