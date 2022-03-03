@@ -5,6 +5,7 @@
 #include <AC_PID/AC_P.h>
 #include <AC_PID/AC_ADRC.h>
 #include <AC_PID/AC_ADRC_Yaw.h>
+#include <AC_PID/AC_MFAC.h>
 
 class AR_AttitudeControl {
 public:
@@ -31,6 +32,7 @@ public:
     // return value is normally in range -1.0 to +1.0 but can be higher or lower
     float get_steering_out_course(float heading_rad,float rate_max_rads,bool motor_limit_left, bool motor_limit_right,float dt);
     float get_steering_out_course_adrc(float heading_deg,float current_heading,float dt);
+    float get_steering_out_course_mfac(float heading_rad,float current_heading,float dt);
 
     // return a desired turn-rate given a desired heading in radians
     // normally the results are later passed into get_steering_out_rate
@@ -42,6 +44,7 @@ public:
     // return value is normally in range -1.0 to +1.0 but can be higher or lower
     float get_steering_out_rate(float desired_rate, bool motor_limit_left, bool motor_limit_right, float dt);
     float get_steering_out_rate_adrc(float desired_rate,float dt);
+    float get_steering_out_rate_mfac(float desired_rate,float dt);
 
     // get latest desired turn rate in rad/sec recorded during calls to get_steering_out_rate.  For reporting purposes only
     float get_desired_turn_rate() const;
@@ -73,6 +76,7 @@ public:
     //   cruise speed should be in m/s, cruise throttle should be a number from -1 to +1
     float get_throttle_out_speed(float desired_speed, bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt);
     float get_throttle_out_speed_adrc(float desired_speed,float dt);
+    float get_throttle_out_speed_mfac(float desired_speed,float dt);
 
     // return a throttle output from -1 to +1 to perform a controlled stop.  stopped is set to true once stop has been completed
     float get_throttle_out_stop(bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt, bool &stopped);
@@ -99,6 +103,11 @@ public:
     AC_ADRC& get_steering_rate_adrc() { return _steer_rate_adrc; }
     AC_ADRC& get_throttle_speed_adrc() { return _throttle_speed_adrc; }
     AC_ADRC_YAW& get_steering_angle_adrc() { return _steer_angle_adrc; }
+
+    // access MFAC controller info
+    AC_MFAC& get_steering_angle_mfac() { return _steer_angle_mfac; }
+    AC_MFAC& get_steering_rate_mfac() { return _steer_rate_mfac; }
+    AC_MFAC& get_throttle_speed_mfac() { return _throttle_speed_mfac; }
 
     // access controller type
     AP_Int8& steering_rate_ctl_type() { return _steer_rate_ctl_type;}
@@ -138,7 +147,8 @@ public:
 public:
     enum Controller_type:int8_t{
         PID   = 0,
-        ADRC  = 1
+        ADRC  = 1,
+        MFAC  = 2,
     };
 
 private:
@@ -158,9 +168,15 @@ private:
     AP_Float _steer_rate_max;       // steering rate control maximum rate in deg/s
     AP_Float _turn_lateral_G_max;   // sterring maximum lateral acceleration limit in 'G'
 
+    // ADRC controllers
     AC_ADRC  _steer_rate_adrc;      // steering rate ADRC controller
     AC_ADRC  _throttle_speed_adrc;  // throttle speed ADRC controller
     AC_ADRC_YAW _steer_angle_adrc;  // steering angle ADRC controller
+
+    // MFAC controllers
+    AC_MFAC _steer_rate_mfac;      // steering rate MFAC controller
+    AC_MFAC _throttle_speed_mfac;  // throttle speed MFAC controller
+    AC_MFAC _steer_angle_mfac;     // steering angle MFAC controller
 
     AP_Int8 _steer_rate_ctl_type;   // steering rate controller type
     AP_Int8 _throttle_speed_ctl_type; // speed/throttle controller type

@@ -49,6 +49,39 @@
 #define AR_ATTCONTROL_HEEL_SAIL_FILT    10.0f
 #define AR_ATTCONTROL_DT                0.02f
 
+// ADRC controller default parameters:
+#define AR_ATTCONTROL_STEER_ANG_WC      10.0f
+#define AR_ATTCONTROL_STEER_ANG_WO      13.0f
+#define AR_ATTCONTROL_STEER_ANG_B0      80.0f
+#define AR_ATTCONTROL_STEER_ANG_DELTA   50.0f
+
+#define AR_ATTCONTROL_STEER_RATE_WC     45.0f
+#define AR_ATTCONTROL_STEER_RATE_WO     12.0f
+#define AR_ATTCONTROL_STEER_RATE_B0     10.0f
+#define AR_ATTCONTROL_STEER_RATE_DELTA   1.0f
+#define AR_ATTCONTROL_STEER_RATE_ORDER   1
+
+#define AR_ATTCONTROL_THR_SPEED_WC      5.0f
+#define AR_ATTCONTROL_THR_SPEED_WO      5.0f
+#define AR_ATTCONTROL_THR_SPEED_B0      10.0f
+#define AR_ATTCONTROL_THR_SPEED_DELTA   1.0f
+#define AR_ATTCONTROL_THR_SPEED_ORDER   1
+
+//MFAC controller default parameters:
+#define AR_ATTCONTROL_STEER_ANG_LAMADA  1.0f
+#define AR_ATTCONTROL_STEER_ANG_KR      0.3f
+#define AR_ATTCONTROL_STEER_ANG_EPLISE  0.01f
+
+#define AR_ATTCONTROL_STEER_RATE_LAMADA  1.0f
+#define AR_ATTCONTROL_STEER_RATE_KR      0.1f
+#define AR_ATTCONTROL_STEER_RATE_EPLISE  0.01f
+
+#define AR_ATTCONTROL_THR_SPEED_LAMADA  10.0f
+#define AR_ATTCONTROL_THR_SPEED_KR      0.1f
+#define AR_ATTCONTROL_THR_SPEED_EPLISE  0.01f
+
+
+
 // throttle/speed control maximum acceleration/deceleration (in m/s) (_ACCEL_MAX parameter default)
 #define AR_ATTCONTROL_THR_ACCEL_MAX     1.00f
 
@@ -444,120 +477,244 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     AP_GROUPINFO("_TURN_MAX_G", 13, AR_AttitudeControl, _turn_lateral_G_max, 0.6f),
 
 
-    // @Param: _STR_CTL_TYP
+    // @Param: _CTL_TYP_STR
     // @DisplayName: Steering rate controller type
     // @Range: 0 PID 1 ADRC 2 ADPC
     // @User: Standard
-    AP_GROUPINFO("_STR_CTL_TYP", 20, AR_AttitudeControl, _steer_rate_ctl_type, 0),
+    AP_GROUPINFO("_CTL_TYP_STR", 20, AR_AttitudeControl, _steer_rate_ctl_type, 0),
 
-    // @Param: _SPD_CTL_TYPE
+    // @Param: _CTL_TYP_SPD
     // @DisplayName: Speed controller type
     // @Range: 0 PID 1 ADRC 2 ADP
     // @User: Standard
-    AP_GROUPINFO("_SPD_CTL_TYP", 21, AR_AttitudeControl, _throttle_speed_ctl_type, 0),
+    AP_GROUPINFO("_CTL_TYP_SPD", 21, AR_AttitudeControl, _throttle_speed_ctl_type, 0),
 
-    // @Param: _ANG_CTL_TYP
+    // @Param: _CTL_TYP_ANG
     // @DisplayName: Steering angle controller type 
     // @Range: 0 PID 1 ADRC 2 ADP
     // @User: Standard
-    AP_GROUPINFO("_ANG_CTL_TYP", 22, AR_AttitudeControl, _steer_angle_ctl_type, 0),
+    AP_GROUPINFO("_CTL_TYP_ANG", 22, AR_AttitudeControl, _steer_angle_ctl_type, 0),
 
-    // @Param: STR_WC
+    // @Param: STR_AR_WC
     // @Description: Response bandwidth
     // @Units: rad/s
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
 
-    // @Param: STR_WO
+    // @Param: STR_AR_WO
     // @Description: ESO bandwidth
     // @Units: rad/s
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
     
-    // @Param: STR_B0
+    // @Param: STR_AR_B0
     // @Description: Control input gain
     // @User: Standard
 
-    // @Param: STR_DELTA
+    // @Param: STR_AR_DELTA
     // @Description: Linear deadzone
     // @User: Standard
  
-    // @Param: STR_ORDER
+    // @Param: STR_AR_ORDER
     // @Description: Model order
     // @User: Standard
 
-    // @Param: STR_LM
+    // @Param: STR_AR_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_steer_rate_adrc,"_STR_AR_", 30, AR_AttitudeControl, AC_ADRC),
+    AP_SUBGROUPINFO(_steer_rate_adrc,"_STR_AR_", 23, AR_AttitudeControl, AC_ADRC),
 
-    // @Param: SPD_WC
+    // @Param: SPD_AR_WC
     // @Description: Response bandwidth
     // @Units: rad/s
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
 
-    // @Param: SPD_WO
+    // @Param: SPD_AR_WO
     // @Description: ESO bandwidth
     // @Units: rad/s
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
     
-    // @Param: SPD_B0
+    // @Param: SPD_AR_B0
     // @Description: Control input gain
     // @User: Standard
 
-    // @Param: SPD_DELTA
+    // @Param: SPD_AR_DELTA
     // @Description: Linear deadzone
     // @User: Standard
  
-    // @Param: SPD_ORDER
+    // @Param: SPD_AR_ORDER
     // @Description: Model order
     // @User: Standard
 
-    // @Param: SPD_LM
+    // @Param: SPD_AR_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_throttle_speed_adrc,"_SPD_AR_", 31, AR_AttitudeControl, AC_ADRC),
+    AP_SUBGROUPINFO(_throttle_speed_adrc,"_SPD_AR_", 24, AR_AttitudeControl, AC_ADRC),
 
-    // @Param: ANG_WC
+    // @Param: ANG_AR_WC
     // @Description: Response bandwidth
     // @Units: rad/s
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
 
-    // @Param: ANG_WO
+    // @Param: ANG_AR_WO
     // @Description: ESO bandwidth
     // @Units: rad/s
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
 
-    // @Param: ANG_B0
+    // @Param: ANG_AR_B0
     // @Description: Control input gain
     // @User: Standard
 
-    // @Param: ANG_DELTA
+    // @Param: ANG_AR_DELTA
     // @Description: Linear deadzone
     // @User: Standard
 
-    // @Param: ANG_KESAI
+    // @Param: ANG_AR_KESAI
     // @Description: Response damping
     // @User: Standard
 
-    // @Param: ANG_ERRMAX
+    // @Param: ANG_AR_ERRMAX
     // @Description: Control error maximum
     // @User: Standard,
 
-    // @Param: ANG_LM
+    // @Param: ANG_AR_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_steer_angle_adrc,"_ANG_AR_", 32, AR_AttitudeControl, AC_ADRC_YAW),
+    AP_SUBGROUPINFO(_steer_angle_adrc,"_ANG_AR_", 25, AR_AttitudeControl, AC_ADRC_YAW),
+
+    // @Param: STR_MA_LAMDA
+    // @DisplayName: MFAC penalty facor for controller output change
+    // @Description: Penalty factor for controller output change
+
+    // @Param: STR_MA_MU
+    // @DisplayName: MFAC penalty factor for adaptive parameters change
+    // @Description: Penalty factor for adaptive parameters change
+
+    // @Param: STA_MA_YITA
+    // @DisplayName:MFAC adaptive learning rate
+    // @Description: Adaptive learning rate
+
+    // @Param: STR_MA_EPLSE
+    // @DisplayName: MFAC PPD reset deadzone
+    // @Description: PPD reset deadzone
+
+    // @Param: STR_MA_KR
+    // @DisplayName: MFAC penalty factor for control system damping
+    // @Description: Penalty factor for control system damping
+
+    // @Param: STR_MA_ROU1
+    // @DisplayName: PI Gain
+    // @Description: PI gain produce an ouput that is proportional to the rate of change of the error
+
+    // @Param: STR_MA_ROU2
+    // @DisplayName: D Gain
+    // @Description: D Gain which produces an output that is proportional to the rate of change of the error
+
+    // @Param: STR_MA_FAI1
+    // @DisplayName: MFAC PPD parameter
+    // @Description: PPD parameter intial value
+
+    // @Param: STR_MA_FAI2
+    // @DisplayName: MFAC PPD parameter
+    // @Description:  PPD parameter initial value
+
+    // @Param: STR_MA_LM
+    // @Description: Control output bound
+    // @User: Standard
+    AP_SUBGROUPINFO(_steer_rate_mfac,"_STR_MA_",26,AR_AttitudeControl,AC_MFAC),
+
+    // @Param: SPD_MA_LAMDA
+    // @DisplayName: MFAC penalty facor for controller output change
+    // @Description: Penalty factor for controller output change
+
+    // @Param: SPA_MA_MU
+    // @DisplayName: MFAC penalty factor for adaptive parameters change
+    // @Description: Penalty factor for adaptive parameters change
+
+    // @Param: SPD_MA_YITA
+    // @DisplayName:MFAC adaptive learning rate
+    // @Description: Adaptive learning rate
+
+    // @Param: SPD_MA_EPLSE
+    // @DisplayName: MFAC PPD reset deadzone
+    // @Description: PPD reset deadzone
+
+    // @Param: SPD_MA_KR
+    // @DisplayName: MFAC penalty factor for control system damping
+    // @Description: Penalty factor for control system damping
+
+    // @Param: SPD_MA_ROU1
+    // @DisplayName: PI Gain
+    // @Description: PI gain produce an ouput that is proportional to the rate of change of the error
+
+    // @Param: SPD_MA_ROU2
+    // @DisplayName: D Gain
+    // @Description: D Gain which produces an output that is proportional to the rate of change of the error
+
+    // @Param: SPD_MA_FAI1
+    // @DisplayName: MFAC PPD parameter
+    // @Description: PPD parameter intial value
+
+    // @Param: SPD_MA_FAI2
+    // @DisplayName: MFAC PPD parameter
+    // @Description:  PPD parameter initial value
+
+    // @Param: SPD_MA_LM
+    // @Description: Control output bound
+    // @User: Standard
+    AP_SUBGROUPINFO(_throttle_speed_mfac,"_SPD_MA_",27,AR_AttitudeControl,AC_MFAC),
+
+
+    // @Param: ANG_MA_LAMDA
+    // @DisplayName: MFAC penalty facor for controller output change
+    // @Description: Penalty factor for controller output change
+
+    // @Param: ANG_MA_MU
+    // @DisplayName: MFAC penalty factor for adaptive parameters change
+    // @Description: Penalty factor for adaptive parameters change
+
+    // @Param: ANG_MA_YITA
+    // @DisplayName:MFAC adaptive learning rate
+    // @Description: Adaptive learning rate
+
+    // @Param: ANG_MA_EPLSE
+    // @DisplayName: MFAC PPD reset deadzone
+    // @Description: PPD reset deadzone
+
+    // @Param: ANG_MA_KR
+    // @DisplayName: MFAC penalty factor for control system damping
+    // @Description: Penalty factor for control system damping
+
+    // @Param: ANG_MA_ROU1
+    // @DisplayName: PI Gain
+    // @Description: PI gain produce an ouput that is proportional to the rate of change of the error
+
+    // @Param: ANG_MA_ROU2
+    // @DisplayName: D Gain
+    // @Description: D Gain which produces an output that is proportional to the rate of change of the error
+
+    // @Param: ANG_MA_FAI1
+    // @DisplayName: MFAC PPD parameter
+    // @Description: PPD parameter intial value
+
+    // @Param: ANG_MA_FAI2
+    // @DisplayName: MFAC PPD parameter
+    // @Description:  PPD parameter initial value
+
+    // @Param: ANG_MA_LM
+    // @Description: Control output bound
+    // @User: Standard
+    AP_SUBGROUPINFO(_steer_angle_mfac,"_ANG_MA_",28,AR_AttitudeControl,AC_MFAC),
 
     AP_GROUPEND
 };
@@ -567,7 +724,13 @@ AR_AttitudeControl::AR_AttitudeControl() :
     _steer_rate_pid(AR_ATTCONTROL_STEER_RATE_P, AR_ATTCONTROL_STEER_RATE_I, AR_ATTCONTROL_STEER_RATE_D, AR_ATTCONTROL_STEER_RATE_FF, AR_ATTCONTROL_STEER_RATE_IMAX, 0.0f, AR_ATTCONTROL_STEER_RATE_FILT, 0.0f, AR_ATTCONTROL_DT),
     _throttle_speed_pid(AR_ATTCONTROL_THR_SPEED_P, AR_ATTCONTROL_THR_SPEED_I, AR_ATTCONTROL_THR_SPEED_D, 0.0f, AR_ATTCONTROL_THR_SPEED_IMAX, 0.0f, AR_ATTCONTROL_THR_SPEED_FILT, 0.0f, AR_ATTCONTROL_DT),
     _pitch_to_throttle_pid(AR_ATTCONTROL_PITCH_THR_P, AR_ATTCONTROL_PITCH_THR_I, AR_ATTCONTROL_PITCH_THR_D, 0.0f, AR_ATTCONTROL_PITCH_THR_IMAX, 0.0f, AR_ATTCONTROL_PITCH_THR_FILT, 0.0f, AR_ATTCONTROL_DT),
-    _sailboat_heel_pid(AR_ATTCONTROL_HEEL_SAIL_P, AR_ATTCONTROL_HEEL_SAIL_I, AR_ATTCONTROL_HEEL_SAIL_D, 0.0f, AR_ATTCONTROL_HEEL_SAIL_IMAX, 0.0f, AR_ATTCONTROL_HEEL_SAIL_FILT, 0.0f, AR_ATTCONTROL_DT)
+    _sailboat_heel_pid(AR_ATTCONTROL_HEEL_SAIL_P, AR_ATTCONTROL_HEEL_SAIL_I, AR_ATTCONTROL_HEEL_SAIL_D, 0.0f, AR_ATTCONTROL_HEEL_SAIL_IMAX, 0.0f, AR_ATTCONTROL_HEEL_SAIL_FILT, 0.0f, AR_ATTCONTROL_DT),
+    _steer_angle_adrc(AR_ATTCONTROL_STEER_ANG_WC,AR_ATTCONTROL_STEER_ANG_WO,AR_ATTCONTROL_STEER_ANG_B0,AR_ATTCONTROL_STEER_ANG_DELTA,AR_ATTCONTROL_DT),
+    _steer_rate_adrc(AR_ATTCONTROL_STEER_RATE_WC,AR_ATTCONTROL_STEER_RATE_WO,AR_ATTCONTROL_STEER_RATE_B0,AR_ATTCONTROL_STEER_RATE_DELTA,AR_ATTCONTROL_STEER_RATE_ORDER,AR_ATTCONTROL_DT),
+    _throttle_speed_adrc(AR_ATTCONTROL_THR_SPEED_WC,AR_ATTCONTROL_THR_SPEED_WO,AR_ATTCONTROL_THR_SPEED_B0,AR_ATTCONTROL_THR_SPEED_DELTA,AR_ATTCONTROL_THR_SPEED_ORDER,AR_ATTCONTROL_DT),
+    _steer_angle_mfac(AR_ATTCONTROL_STEER_ANG_LAMADA,AR_ATTCONTROL_STEER_ANG_KR,AR_ATTCONTROL_STEER_ANG_EPLISE,AR_ATTCONTROL_DT),
+    _steer_rate_mfac(AR_ATTCONTROL_STEER_RATE_LAMADA,AR_ATTCONTROL_STEER_RATE_KR,AR_ATTCONTROL_STEER_RATE_EPLISE,AR_ATTCONTROL_DT),
+    _throttle_speed_mfac(AR_ATTCONTROL_THR_SPEED_LAMADA,AR_ATTCONTROL_THR_SPEED_KR,AR_ATTCONTROL_THR_SPEED_EPLISE,AR_ATTCONTROL_DT)
     {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -604,6 +767,9 @@ float AR_AttitudeControl::get_steering_out_heading(float heading_rad, float rate
     return get_steering_out_rate(desired_rate, motor_limit_left, motor_limit_right, dt);
 }
 
+// return a steering servo ouput from -1 to +1 give a course heading in radians
+// set rate_max_rads to a non-zero number to apply a limit on the desired turn rate
+// return value is normally in range -1.0 to +1.0 but can be higher or lower
 float AR_AttitudeControl::get_steering_out_course(float heading_rad,float rate_max_rads,bool motor_limit_left, bool motor_limit_right,float dt)
 {
     // get ground course
@@ -621,7 +787,9 @@ float AR_AttitudeControl::get_steering_out_course(float heading_rad,float rate_m
     // select controller
     if(_steer_angle_ctl_type == Controller_type::ADRC){
         return get_steering_out_course_adrc(degrees(heading_rad),ground_course_deg,dt);
-    } 
+    }else if(_steer_angle_ctl_type == Controller_type::MFAC){
+         return get_steering_out_course_mfac(heading_rad,radians(ground_course_deg),dt);
+    }else{}
 
    // calculate the desired turn rate (in radians) from the angle error (also in radians)
     float desired_rate = get_turn_rate_from_heading(heading_rad, radians(ground_course_deg),rate_max_rads);
@@ -644,6 +812,23 @@ float AR_AttitudeControl::get_steering_out_course_adrc(float heading_deg,float c
     _steer_angle_adrc.set_dt(dt);
 
     float output = _steer_angle_adrc.update_all(heading_deg, current_heading);
+    // constrain and return final output
+    return output;
+}
+
+float AR_AttitudeControl::get_steering_out_course_mfac(float heading_rad,float current_heading,float dt)
+{
+    // if not called recently, reset input filter and desired heading to actual heading 
+    const uint32_t now = AP_HAL::millis();
+    if(_steer_angle_last_ms == 0 || (now - _steer_angle_last_ms) >= AR_ATTCONTROL_TIMEOUT_MS){
+        _steer_angle_mfac.reset(current_heading);
+    } 
+    _steer_angle_last_ms = now;
+
+    // set MFAC's dt
+    _steer_angle_mfac.set_dt(dt);
+
+    float output = _steer_angle_mfac.update_all(heading_rad, current_heading,true);
     // constrain and return final output
     return output;
 }
@@ -678,7 +863,9 @@ float AR_AttitudeControl::get_steering_out_rate(float desired_rate, bool motor_l
     // select controller
     if(_steer_rate_ctl_type == Controller_type::ADRC){
         return get_steering_out_rate_adrc(desired_rate,dt);
-    } 
+    }else if(_steer_rate_ctl_type == Controller_type::MFAC){
+        return get_steering_out_rate_mfac(desired_rate,dt);
+    }else{}
 
     // sanity check dt
     dt = constrain_float(dt, 0.0f, 1.0f);
@@ -764,6 +951,48 @@ float AR_AttitudeControl::get_steering_out_rate_adrc(float desired_rate,float dt
     return output;
 }
 
+float AR_AttitudeControl::get_steering_out_rate_mfac(float desired_rate,float dt)
+{
+    // sanity check dt
+    dt = constrain_float(dt, 0.0f, 1.0f);
+
+    // if not called recently, reset input filter and desired turn rate to actual turn rate (used for accel limiting)
+    const uint32_t now = AP_HAL::millis();
+    if ((_steer_turn_last_ms == 0) || ((now - _steer_turn_last_ms) > AR_ATTCONTROL_TIMEOUT_MS)) {
+        _desired_turn_rate = AP::ahrs().get_yaw_rate_earth();
+        _steer_rate_mfac.reset(_desired_turn_rate);
+    }
+    _steer_turn_last_ms = now;
+
+    // acceleration limit desired turn rate
+    if (is_positive(_steer_accel_max)) {
+        const float change_max = radians(_steer_accel_max) * dt;
+        desired_rate = constrain_float(desired_rate, _desired_turn_rate - change_max, _desired_turn_rate + change_max);
+    }
+    _desired_turn_rate = desired_rate;
+
+    // rate limit desired turn rate
+    if (is_positive(_steer_rate_max)) {
+        const float steer_rate_max_rad = radians(_steer_rate_max);
+        _desired_turn_rate = constrain_float(_desired_turn_rate, -steer_rate_max_rad, steer_rate_max_rad);
+    }
+
+    // G limit based on speed
+    float speed;
+    if (get_forward_speed(speed)) {
+        // do not limit to less than 1 deg/s
+        const float turn_rate_max = MAX(get_turn_rate_from_lat_accel(get_turn_lat_accel_max(), fabsf(speed)), radians(1.0f));
+        _desired_turn_rate = constrain_float(_desired_turn_rate, -turn_rate_max, turn_rate_max);
+    }
+
+    // set MFAC's dt
+    _steer_rate_mfac.set_dt(dt);
+    float output = _steer_rate_mfac.update_all(_desired_turn_rate,AP::ahrs().get_yaw_rate_earth(),false);
+
+    // constrain and return final output
+    return output;
+}
+
 // get latest desired turn rate in rad/sec (recorded during calls to get_steering_out_rate)
 float AR_AttitudeControl::get_desired_turn_rate() const
 {
@@ -818,7 +1047,10 @@ float AR_AttitudeControl::get_throttle_out_speed(float desired_speed, bool motor
     // select controller
     if(_throttle_speed_ctl_type == Controller_type::ADRC){
         return get_throttle_out_speed_adrc(desired_speed,dt);
-    } 
+    }else if(_throttle_speed_ctl_type == Controller_type::MFAC){
+        return get_throttle_out_speed_mfac(desired_speed,dt);
+    }else{
+    }
 
     // sanity check dt
     dt = constrain_float(dt, 0.0f, 1.0f);
@@ -930,6 +1162,56 @@ float AR_AttitudeControl::get_throttle_out_speed_adrc(float desired_speed,float 
     return throttle_out;
 }
 
+
+float AR_AttitudeControl::get_throttle_out_speed_mfac(float desired_speed,float dt)
+{
+    // sanity check dt
+    dt = constrain_float(dt, 0.0f, 1.0f);
+
+    // get speed forward
+    float speed;
+    if (!get_forward_speed(speed)) {
+        // we expect caller will not try to control heading using rate control without a valid speed estimate
+        // on failure to get speed we do not attempt to steer
+        return 0.0f;
+    }
+
+    // if not called recently, reset input filter and desired speed to actual speed (used for accel limiting)
+    if (!speed_control_active()) {
+        _throttle_speed_mfac.reset(speed);
+        _desired_speed = speed;
+    }
+    _speed_last_ms = AP_HAL::millis();
+
+    // acceleration limit desired speed
+    _desired_speed = get_desired_speed_accel_limited(desired_speed, dt);
+
+    // set MFAC's dt
+    _throttle_speed_mfac.set_dt(dt);
+
+    // calculate final output
+    float throttle_out = _throttle_speed_mfac.update_all(desired_speed, speed,false);
+ 
+    // clear local limit flags used to stop i-term build-up as we stop reversed outputs going to motors
+    _throttle_limit_low = false;
+    _throttle_limit_high = false;
+
+    // protect against reverse output being sent to the motors unless braking has been enabled
+    if (!_brake_enable) {
+        // if both desired speed and actual speed are positive, do not allow negative values
+        if ((desired_speed >= 0.0f) && (throttle_out <= 0.0f)) {
+            throttle_out = 0.0f;
+            _throttle_limit_low = true;
+        } else if ((desired_speed <= 0.0f) && (throttle_out >= 0.0f)) {
+            throttle_out = 0.0f;
+            _throttle_limit_high = true;
+        }
+    }
+
+    // final output throttle in range -1 to 1
+    return throttle_out;
+}
+
 // return a throttle output from -1 to +1 to perform a controlled stop.  returns true once the vehicle has stopped
 float AR_AttitudeControl::get_throttle_out_stop(bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt, bool &stopped)
 {
@@ -967,6 +1249,7 @@ float AR_AttitudeControl::get_throttle_out_stop(bool motor_limit_low, bool motor
         _throttle_speed_pid.reset_filter();
         _throttle_speed_pid.reset_I();
         _throttle_speed_adrc.reset_eso(speed);
+        _throttle_speed_mfac.reset(speed);
         // ensure desired speed is zero
         _desired_speed = 0.0f;
         return 0.0f;
