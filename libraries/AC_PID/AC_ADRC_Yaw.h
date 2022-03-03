@@ -9,7 +9,8 @@
 class AC_ADRC_YAW{
     public:
         // Constructor for ADRC
-        AC_ADRC_YAW();
+        AC_ADRC_YAW(float initial_wc,float initial_wo,float initial_b0,float intial_delta,
+                    float dt,float initial_gama = 1.0f,float initial_kesai = 0.0f,float initial_error_max = 90.0f);
         virtual ~AC_ADRC_YAW() = default;
 
         CLASS_NO_COPY(AC_ADRC_YAW);

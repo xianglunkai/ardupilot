@@ -54,9 +54,20 @@ const AP_Param::GroupInfo AC_ADRC_YAW::var_info[] = {
     AP_GROUPEND
 };
 
-AC_ADRC_YAW::AC_ADRC_YAW()
+AC_ADRC_YAW::AC_ADRC_YAW(float initial_wc,float initial_wo,float initial_b0,float intial_delta,
+                         float dt,float initial_gama,float initial_kesai,float initial_error_max):
+    dt_(dt)
 {
+    // load parameter values from eeprom
     AP_Param::setup_object_defaults(this,var_info);
+
+    wc_ = initial_wc;
+    wo_ = initial_wo;
+    b0_ = initial_b0;
+    delta_ = intial_delta;
+    gama_ = initial_gama;
+    kesai_ = initial_kesai;
+    error_max_ = initial_error_max;
 
     // reset input filter to first value received
     flags_.reset_filter_ = true;
