@@ -145,4 +145,5 @@ void AC_ADRC_YAW::reset_eso(float measurement,float measurement_rate)
     z1_ = measurement;
     z2_ = measurement_rate;
     z3_ = 0.0f;
+    memset(&_debug_info, 0, sizeof(_debug_info));
 }

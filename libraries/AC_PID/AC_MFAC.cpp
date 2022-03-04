@@ -134,4 +134,5 @@ void AC_MFAC::reset(const float measurement)
 
     _control_cmd = 0.0f;
     _measurement = measurement;
+    memset(&_debug_info, 0, sizeof(_debug_info));
 }
