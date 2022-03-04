@@ -162,7 +162,7 @@ public:
     Type get_type(uint8_t instance) const;
 
   // true if raw distances should be logged
-    bool get_raw_log_enable() const { return params[primary_instance]._raw_log_enable.get(); }
+   bool get_raw_log_enable() const { return params[primary_instance]._raw_log_enable.get(); }
 
 
     // parameter list
@@ -181,6 +181,10 @@ public:
 protected:
     AP_Proximity_Params params[PROXIMITY_MAX_INSTANCES];
 
+    // method called by vehicle to have AP_Proximity write onboard log
+    // messages:
+    void log();
+
 private:
     static AP_Proximity *_singleton;
     Proximity_State state[PROXIMITY_MAX_INSTANCES];
@@ -197,6 +201,7 @@ private:
     }
 
     void detect_instance(uint8_t instance);
+
 };
 
 namespace AP {
