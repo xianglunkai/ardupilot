@@ -1140,7 +1140,7 @@ float AR_AttitudeControl::get_throttle_out_speed_adrc(float desired_speed,float 
     _throttle_speed_adrc.set_dt(dt);
 
     // calculate final output
-    float throttle_out = _throttle_speed_adrc.update_all(desired_speed, speed);
+    float throttle_out = _throttle_speed_adrc.update_all(_desired_speed, speed);
  
     // clear local limit flags used to stop i-term build-up as we stop reversed outputs going to motors
     _throttle_limit_low = false;
@@ -1149,10 +1149,10 @@ float AR_AttitudeControl::get_throttle_out_speed_adrc(float desired_speed,float 
     // protect against reverse output being sent to the motors unless braking has been enabled
     if (!_brake_enable) {
         // if both desired speed and actual speed are positive, do not allow negative values
-        if ((desired_speed >= 0.0f) && (throttle_out <= 0.0f)) {
+        if ((_desired_speed >= 0.0f) && (throttle_out <= 0.0f)) {
             throttle_out = 0.0f;
             _throttle_limit_low = true;
-        } else if ((desired_speed <= 0.0f) && (throttle_out >= 0.0f)) {
+        } else if ((_desired_speed <= 0.0f) && (throttle_out >= 0.0f)) {
             throttle_out = 0.0f;
             _throttle_limit_high = true;
         }
@@ -1190,7 +1190,7 @@ float AR_AttitudeControl::get_throttle_out_speed_mfac(float desired_speed,float 
     _throttle_speed_mfac.set_dt(dt);
 
     // calculate final output
-    float throttle_out = _throttle_speed_mfac.update_all(desired_speed, speed,false);
+    float throttle_out = _throttle_speed_mfac.update_all(_desired_speed, speed,false);
  
     // clear local limit flags used to stop i-term build-up as we stop reversed outputs going to motors
     _throttle_limit_low = false;
@@ -1199,10 +1199,10 @@ float AR_AttitudeControl::get_throttle_out_speed_mfac(float desired_speed,float 
     // protect against reverse output being sent to the motors unless braking has been enabled
     if (!_brake_enable) {
         // if both desired speed and actual speed are positive, do not allow negative values
-        if ((desired_speed >= 0.0f) && (throttle_out <= 0.0f)) {
+        if ((_desired_speed >= 0.0f) && (throttle_out <= 0.0f)) {
             throttle_out = 0.0f;
             _throttle_limit_low = true;
-        } else if ((desired_speed <= 0.0f) && (throttle_out >= 0.0f)) {
+        } else if ((_desired_speed <= 0.0f) && (throttle_out >= 0.0f)) {
             throttle_out = 0.0f;
             _throttle_limit_high = true;
         }
