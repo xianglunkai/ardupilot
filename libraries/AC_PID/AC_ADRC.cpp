@@ -162,4 +162,5 @@ void AC_ADRC::reset_eso(float measurement)
     z1_ = measurement;
     z2_ = 0.0f;
     z3_ = 0.0f;
+    memset(&_debug_info, 0, sizeof(_debug_info));
 }
