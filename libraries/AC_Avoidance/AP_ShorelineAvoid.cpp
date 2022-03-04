@@ -90,6 +90,9 @@ const AP_Param::GroupInfo AP_ShorelineAvoid::var_info[] = {
 
 AP_ShorelineAvoid::AP_ShorelineAvoid()
 {
+    // load default parameters from eeprom
+    AP_Param::setup_object_defaults(this, var_info); 
+
     if (_singleton != nullptr) {
         AP_HAL::panic("AP_OADetect must be singleton");
     }

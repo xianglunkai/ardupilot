@@ -77,6 +77,9 @@ const AP_Param::GroupInfo AP_ShallowAvoid::var_info[] = {
 
 AP_ShallowAvoid::AP_ShallowAvoid()
 {
+    // load default parameters from eeprom
+    AP_Param::setup_object_defaults(this, var_info); 
+
     if (_singleton != nullptr) {
         AP_HAL::panic("AP_OASonar must be singleton");
     }
