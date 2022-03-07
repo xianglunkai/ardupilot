@@ -177,12 +177,61 @@ void AP_OADatabase::queue_push(const Vector3f &pos, uint32_t timestamp_ms, float
         radius = MAX(_radius_min,radius);
     }
 
-    const OA_DbItem item = {pos, timestamp_ms, radius, 0, AP_OADatabase::OA_DbItemImportance::Normal};
+    const Vector3f vel;
+
+    const OA_DbItem item = {pos, vel,timestamp_ms, radius, 0, AP_OADatabase::OA_DbItemImportance::Normal};
     {
         WITH_SEMAPHORE(_queue.sem);
         _queue.items->push(item);
     }
 }
+
+
+void AP_OADatabase::queue_push(const Vector3f &pos, const Vector3f &vel,uint32_t timestamp_ms, float distance,float radius)
+{
+     if (!healthy()) {
+        return;
+    }
+
+    // check if this obstacle needs to be rejected from DB because of low altitude near home
+    #if APM_BUILD_TYPE(APM_BUILD_ArduCopter)
+    if (!is_zero(_min_alt)) { 
+        Vector2f current_pos;
+        if (!AP::ahrs().get_relative_position_NE_home(current_pos)) {
+            // we do not know where the vehicle is
+            return;
+        }
+        if (current_pos.length() < AP_OADATABASE_DISTANCE_FROM_HOME) {
+            // vehicle is within a small radius of home 
+            float height_above_home;
+            AP::ahrs().get_relative_position_D_home(height_above_home);
+            if (-height_above_home < _min_alt) {
+                // vehicle is below the minimum alt
+                return;
+            }
+        }
+    }
+    #endif
+    
+    // ignore objects that are far away
+    if ((_dist_max > 0.0f) && (distance > _dist_max)) {
+        return;
+    }
+
+    if(is_zero(radius)){
+        radius = MAX(_radius_min, distance * dist_to_radius_scalar);
+    }else{
+        radius = MAX(_radius_min,radius);
+    }
+   
+    const OA_DbItem item = {pos, vel,timestamp_ms, radius, 0, AP_OADatabase::OA_DbItemImportance::Normal};
+    {
+        WITH_SEMAPHORE(_queue.sem);
+        _queue.items->push(item);
+    }
+}
+
+
 
 void AP_OADatabase::init_queue()
 {
