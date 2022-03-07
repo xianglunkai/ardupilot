@@ -134,12 +134,12 @@ bool AP_ShallowAvoid::update(const Location &current_loc,const Location& origin,
 
     // Special consideration if two waypoints close 
     const float wp_distance = (destination_NE - origin_NE).length();
-    if(wp_distance <= _min_water_radius && _last_avoid_flag == true){
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Contious shallow avoidance");
+    if(_last_avoid_flag == true){
         _last_avoid_flag = false;
-        return true;
-    }else{
-        _last_avoid_flag = false;
+        if(wp_distance <= _min_water_radius){
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "contious shallow avoidance");
+            return true;
+        }
     }
     
     // Push back sensor data into dequeue
