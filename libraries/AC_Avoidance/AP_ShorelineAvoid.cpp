@@ -154,30 +154,29 @@ bool AP_ShorelineAvoid::update(const Location &current_loc,const Location& origi
 
     // special consideration if two waypoints close 
     const float wp_distance = (destination_ne - origin_ne).length();
-    if(wp_distance <= _shoreline_safe_dist && _last_avoid_flag == true){
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "contious shoreline avoidance");
+    if( _last_avoid_flag == true && _mission_lock){
         _last_avoid_flag = false;
-        return true;
+        if(wp_distance < _shoreline_safe_dist){
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "contious shoreline avoidance");
+            _mission_lock = false;
+            return true;
+        }
     }
 
-    // return true if exist shoreline
-    if(!update_shoreline(current_ne,destination_ne)){ return false;}
-    
     // return true if destination with back of shoreline
-    const bool res = update_avoidance(current_ne,origin_ne,destination_ne);
-    if(res == true){_last_avoid_flag = true;}
-
-    return res;
+    if(_mission_lock && update_shoreline(current_ne,destination_ne) && update_avoidance(current_ne,origin_ne,destination_ne))
+    {
+        _mission_lock = false;
+        _last_avoid_flag = true;
+        return true;
+    }
+    
+    return false;
 }
 
 // Return true if shoreline detected and can not reach destination 
 bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector2f& origin_ne,const Vector2f& destination_ne)
 {
-    // check mission lock
-    if(_mission_lock == false){
-        return false;
-    }
-
 #if SHORE_SONAR_AVOID_ENABLE == 1
     // sonar low water depth avoidance
     RangeFinder *rangefinder = RangeFinder::get_singleton();
@@ -191,7 +190,6 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector
             
             const float move_distance = (current_ne - _sonar_avoid_loc).length();
             if(move_distance > _shollow_move_dist) {
-                _mission_lock = false;
                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "shallow water avoidance");
                 return true;
             }
@@ -207,7 +205,6 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector
         float distance_to_intersection = (_intersect_point - current_ne).length();
         if(distance_to_intersection < _shoreline_safe_dist){
             GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "shoreline avoidance");
-            _mission_lock = false;
             return true;
         }
    }
@@ -247,7 +244,6 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector
             const float distance_to_closestp2 = (closest_bsl - current_ne).length();
             if((total_dist - proj_dist) <= _shoreline_safe_dist || (distance_to_closestp2 <= _shoreline_safe_dist)){
                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "mission edging shoreline");
-                _mission_lock = false;
                 return true;
             }
         }
@@ -257,7 +253,6 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne,const Vector
            distance_bsl < _shoreline_safe_dist &&
            (closest_psl - closest_bsl).length() < _shoreline_safe_dist){
             GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "goal near shoreline");
-            _mission_lock = false;
             return true;
         }
     }
@@ -382,3 +377,10 @@ float AP_ShorelineAvoid::calc_shoreline_len(const std::vector<Vector2f> &lines) 
     return len;
 }
 
+#if OA_SHORELINE_DEBUG_ENABLE
+// send debug info as ADSB messages
+void AP_ShorelineAvoid::send_debug_info(mavlink_channel_t chan, uint16_t interval_ms)
+{
+    const char callsign[9] = "OA_SHORE";
+}
+#endif
