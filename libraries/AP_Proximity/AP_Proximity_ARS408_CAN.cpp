@@ -405,7 +405,7 @@ void AP_Proximity_ARS408_CAN::handle_frame(AP_HAL::CANFrame &frame)
             const float distance_m = norm(lon_ds,lat_ds);
 
             set_status(AP_Proximity::Status::Good);
-           if (!ignore_reading(angle_deg, distance_m)) {
+            if (!ignore_reading(angle_deg, distance_m)) {
                 // Get location on 3-D boundary based on angle to the object
                 const AP_Proximity_Boundary_3D::Face face = boundary.get_face(angle_deg);
                if ((distance_m <= distance_max()) && (distance_m >= distance_min())) {
