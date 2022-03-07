@@ -239,7 +239,7 @@ float AP_Proximity_ARS408_CAN::distance_max() const
 // get minimum distance (in meters) of sensor
 float AP_Proximity_ARS408_CAN::distance_min() const
 {
-    return 0.2f;  // 0.2 min range 
+    return 0.5f;  // 0.5 min range 
 }
 
 // handler for incoming frames
@@ -348,12 +348,22 @@ void AP_Proximity_ARS408_CAN::handle_frame(AP_HAL::CANFrame &frame)
                         const float distance_m = norm(lon_ds,lat_ds);
                         set_status(AP_Proximity::Status::Good);
 
+                         // get relative velocity
+                        const float rel_lon_vel = (index->data.Object_VrelLong1 << 2 |
+                                                  index->data.Object_VrelLong2) * 0.25 -128.0;
+                        const float rel_lat_vel = (index->data.Object_VrelLat1 << 3 |
+                                                  index->data.Object_VrelLat2) * 0.25 -64.0;
+
+                        const float rel_vel_mag = norm(rel_lat_vel,rel_lon_vel);
+                        const float rel_vel_angle = wrap_360(degrees(-atan2f(rel_lat_vel,rel_lon_vel)));
+
+
                         if (!ignore_reading(angle_deg, distance_m)) {
                             const AP_Proximity_Boundary_3D::Face face = boundary.get_face(angle_deg);
                             if ((distance_m <= distance_max()) && (distance_m >= distance_min())) {
                             boundary.set_face_attributes(face, angle_deg, distance_m);
                                 // update OA database
-                                database_push(angle_deg, distance_m,obj_radius);
+                                database_push(angle_deg,0.0f,distance_m,rel_vel_mag,rel_vel_angle,obj_radius);
                             } else {
                                 // invalidate distance of face
                                 boundary.reset_face(face);
