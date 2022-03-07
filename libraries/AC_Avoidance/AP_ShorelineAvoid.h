@@ -9,6 +9,7 @@
 #include <AP_Param/AP_Param.h>
 #include <vector>
 
+#define OA_SHORELINE_DEBUG_ENABLE 0
 
 class AP_ShorelineAvoid{
     public:
@@ -31,6 +32,10 @@ class AP_ShorelineAvoid{
         // Return true if shoreline detected and can not reach destination 
         // Return false if destination could arrivalable temporarily.
         bool update(const Location &current_loc,const Location& origin,const Location& destination);
+
+#if OA_SHORELINE_DEBUG_ENABLE
+         void send_debug_info(mavlink_channel_t chan, uint16_t interval_ms);
+#endif
 
     private:
          static AP_ShorelineAvoid *_singleton;
