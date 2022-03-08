@@ -524,7 +524,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Param: STR_AR_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_steer_rate_adrc,"_STR_AR_", 23, AR_AttitudeControl, AC_ADRC),
+    AP_SUBGROUPINFO(_steer_rate_adrc,"_STR_AR_", 30, AR_AttitudeControl, AC_ADRC),
 
     // @Param: SPD_AR_WC
     // @Description: Response bandwidth
@@ -555,7 +555,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Param: SPD_AR_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_throttle_speed_adrc,"_SPD_AR_", 24, AR_AttitudeControl, AC_ADRC),
+    AP_SUBGROUPINFO(_throttle_speed_adrc,"_SPD_AR_", 31, AR_AttitudeControl, AC_ADRC),
 
     // @Param: ANG_AR_WC
     // @Description: Response bandwidth
@@ -590,7 +590,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Param: ANG_AR_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_steer_angle_adrc,"_ANG_AR_", 25, AR_AttitudeControl, AC_ADRC_YAW),
+    AP_SUBGROUPINFO(_steer_angle_adrc,"_ANG_AR_", 32, AR_AttitudeControl, AC_ADRC_YAW),
 
     // @Param: STR_MA_LAMDA
     // @DisplayName: MFAC penalty facor for controller output change
@@ -631,7 +631,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Param: STR_MA_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_steer_rate_mfac,"_STR_MA_",26,AR_AttitudeControl,AC_MFAC),
+    AP_SUBGROUPINFO(_steer_rate_mfac,"_STR_MA_",33,AR_AttitudeControl,AC_MFAC),
 
     // @Param: SPD_MA_LAMDA
     // @DisplayName: MFAC penalty facor for controller output change
@@ -672,7 +672,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Param: SPD_MA_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_throttle_speed_mfac,"_SPD_MA_",27,AR_AttitudeControl,AC_MFAC),
+    AP_SUBGROUPINFO(_throttle_speed_mfac,"_SPD_MA_",34,AR_AttitudeControl,AC_MFAC),
 
 
     // @Param: ANG_MA_LAMDA
@@ -714,7 +714,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Param: ANG_MA_LM
     // @Description: Control output bound
     // @User: Standard
-    AP_SUBGROUPINFO(_steer_angle_mfac,"_ANG_MA_",28,AR_AttitudeControl,AC_MFAC),
+    AP_SUBGROUPINFO(_steer_angle_mfac,"_ANG_MA_",35,AR_AttitudeControl,AC_MFAC),
 
     AP_GROUPEND
 };
