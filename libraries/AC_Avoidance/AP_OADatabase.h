@@ -54,6 +54,9 @@ public:
     // send ADSB_VEHICLE mavlink messages
     void send_adsb_vehicle(mavlink_channel_t chan, uint16_t interval_ms);
 
+    // get dynamical object enabled status
+    bool dynamical_object_enable() const { return _dynamical_object_enable.get(); }
+
     static const struct AP_Param::GroupInfo var_info[];
 
 private:
@@ -92,6 +95,8 @@ private:
     AP_Float        _radius_min;                            // objects minimum radius (in meters)
     AP_Float        _dist_max;                              // objects maximum distance (in meters)
     AP_Float        _min_alt;                               // OADatabase minimum vehicle height check (in meters)
+    AP_Int8         _dynamical_object_enable;               // manager dynamical object
+    AP_Float        _dynamical_object_life_time;            // dynamical object life time (in seconds)
 
     struct {
         ObjectBuffer<OA_DbItem> *items;                     // thread safe incoming queue of points from proximity sensor to be put into database

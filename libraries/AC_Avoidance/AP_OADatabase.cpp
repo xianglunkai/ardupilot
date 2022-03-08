@@ -102,6 +102,20 @@ const AP_Param::GroupInfo AP_OADatabase::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO_FRAME("ALT_MIN", 8, AP_OADatabase, _min_alt, 0.0f, AP_PARAM_FRAME_COPTER | AP_PARAM_FRAME_HELI | AP_PARAM_FRAME_TRICOPTER),
 
+    // @Param: DOB_EN
+    // @DisplayName: OADatabase dynamical object manager enable 
+    // @Description: Enable or disable dynamical object manager
+    // @User: Advanced
+    AP_GROUPINFO("DOB_EN", 10, AP_OADatabase, _dynamical_object_enable, 0),
+
+    // @Param: DOB_LIFE
+    // @DisplayName: OADatabase dynamical object lifte time in seconds
+    // @Description: Dynamical object life time 
+    // @Units: seconds
+    // @Range: 0.2 10
+    // @User: Advanced
+    AP_GROUPINFO("DOB_LIFE", 11, AP_OADatabase, _dynamical_object_life_time, 0.5f),
+
     AP_GROUPEND
 };
 
@@ -394,7 +408,11 @@ void AP_OADatabase::database_items_remove_all_expired()
     const uint32_t expiry_ms = (uint32_t)_database_expiry_seconds * 1000;
     uint16_t index = 0;
     while (index < _database.count) {
-        if (now_ms - _database.items[index].timestamp_ms > expiry_ms) {
+        const bool dynamical_object_expiry =  _dynamical_object_enable && 
+                                              (_database.items[index].vel.length() > 0.5f) &&
+                                              (now_ms - _database.items[index].timestamp_ms > 1000 * _dynamical_object_life_time);
+
+        if (now_ms - _database.items[index].timestamp_ms > expiry_ms || dynamical_object_expiry){
             database_item_remove(index);
         } else {
             index++;
@@ -459,7 +477,7 @@ void AP_OADatabase::send_adsb_vehicle(mavlink_channel_t chan, uint16_t interval_
 
         // convert object's position as an offset from EKF origin to Location
         const Location item_loc(Vector3f(_database.items[idx].pos.x * 100.0f, _database.items[idx].pos.y * 100.0f, _database.items[idx].pos.z * 100.0f), Location::AltFrame::ABOVE_ORIGIN);
-
+        const uint16_t hor_velocity = _database.items[idx].vel.length() * 100;   
         mavlink_msg_adsb_vehicle_send(chan,
             idx,
             item_loc.lat,
@@ -467,7 +485,7 @@ void AP_OADatabase::send_adsb_vehicle(mavlink_channel_t chan, uint16_t interval_
             0,                          // altitude_type
             item_loc.alt,               
             0,                          // heading
-            0,                          // hor_velocity
+            hor_velocity,               // hor_velocity
             0,                          // ver_velocity
             callsign,                   // callsign
             255,                        // emitter_type
