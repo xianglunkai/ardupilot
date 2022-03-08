@@ -31,6 +31,7 @@ const float OA_BENDYRULER_LOOKAHEAD_STEP2_RATIO = 1.0f; // step2's lookahead len
 const float OA_BENDYRULER_LOOKAHEAD_STEP2_MIN = 2.0f;   // step2 checks at least this many meters past step1's location
 const float OA_BENDYRULER_LOOKAHEAD_PAST_DEST = 2.0f;   // lookahead length will be at least this many meters past the destination
 const float OA_BENDYRULER_LOW_SPEED_SQUARED = (0.2f * 0.2f);    // when ground course is below this speed squared, vehicle's heading will be used
+const float OA_BENDYRULER_PREDICT_TIME_DELTA = 1.0f; // predict time unit 
 
 #define VERTICAL_ENABLED APM_BUILD_COPTER_OR_HELI
 
@@ -74,6 +75,12 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
     // @Values: 1:Horizontal search, 2:Vertical search
     // @User: Standard
     AP_GROUPINFO_FRAME("COLREGs", 5, AP_OABendyRuler, _colregs, 0, AP_PARAM_FRAME_ROVER),
+
+    // @Param: PRE_TIME
+    // @DisplayName: Predict time length
+    // @User: Standard
+    AP_GROUPINFO("PRD_TIME", 6, AP_OABendyRuler, _predict_time, 5),
+
 
     AP_GROUPEND
 };
@@ -706,6 +713,19 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
         const Vector3f point_cm = item.pos * 100.0f;
         // margin is distance between line segment and obstacle minus obstacle's radius
         const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_NEU, point_cm) * 0.01f - item.radius;
+
+        // add:: dynamical obstacle margin check
+        if( oaDb->dynamical_object_enable() && !is_zero(_predict_time) && item.vel.length() > 0.5f){
+            for(int k = 1;k < _predict_time / OA_BENDYRULER_PREDICT_TIME_DELTA; k ++){
+                const float t = OA_BENDYRULER_PREDICT_TIME_DELTA * k;
+                const Vector3f pre_pos = point_cm + item.vel * t * 100.0f;
+                const float pre_m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_NEU, pre_pos) * 0.01f - item.radius;
+                if(pre_m < smallest_margin){
+                    smallest_margin = pre_m;
+                }
+            }
+        }
+
         if (m < smallest_margin) {
             smallest_margin = m;
         }

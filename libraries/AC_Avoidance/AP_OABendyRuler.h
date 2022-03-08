@@ -91,6 +91,7 @@ private:
     AP_Int16 _bendy_angle;          // object avoidance will try avoding change in direction over this much angle
     AP_Int8  _bendy_type;           // Type of BendyRuler to run
     AP_Int8  _colregs;              // COLREGs constrain to run
+    AP_Float _predict_time;         // dynamical object prediction time in seconds
     
     // internal variables used by background thread
     bool  _abandon_wp{false};       // give up current destination or not
