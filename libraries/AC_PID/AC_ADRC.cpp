@@ -32,7 +32,7 @@ const AP_Param::GroupInfo AC_ADRC::var_info[] = {
     // @Param: ORDER
     // @Description: Model order
     // @User: Standard
-    AP_GROUPINFO("ORDER",5,AC_ADRC,order_,1),
+    AP_GROUPINFO("ORDR",5,AC_ADRC,order_,1),
 
     // @Param: LM
     // @Description: Control output bound
