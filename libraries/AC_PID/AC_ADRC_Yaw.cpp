@@ -100,7 +100,8 @@ float AC_ADRC_YAW::update_all(float target,float measurement)
 
     // update control output
     float kp = wc_ * wc_,kd = 2 * wc_ * kesai_;
-    float control_unbounded = (kp * fal(error,0.5f,delta_) + kd *fal(derivative,0.25,delta_) - gama_ * z3_)/b0_;
+    const float yita = 1.0f / (sq(est_error) + 1.0f);
+    float control_unbounded = (kp * fal(error,0.5f,delta_) + kd *fal(derivative,0.25,delta_) - gama_ * yita * z3_)/b0_;
    
     // Anti saturation
     float control = 0.0f;
