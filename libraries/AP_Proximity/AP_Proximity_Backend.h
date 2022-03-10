@@ -112,7 +112,7 @@ protected:
         database_push(angle, 0.0f, distance, timestamp_ms, current_pos, body_to_ned,radius);
     };
     static void database_push(float angle, float pitch, float distance, uint32_t timestamp_ms, const Vector3f &current_pos, const Matrix3f &body_to_ned,const float radius = 0.0f);
-    static void database_push(float angle, float pitch,float distance, float rvel_mag, float rvel_angle, float radius = 0.0f);
+    static void database_push(float angle, float pitch,float distance, float vel_mag, float vel_angle, float radius = 0.0f,bool rel = true);
 
     uint32_t _last_timeout_check_ms;  // time when boundary was checked for non-updated valid faces
 

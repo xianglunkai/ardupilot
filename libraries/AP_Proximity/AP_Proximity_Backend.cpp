@@ -232,7 +232,7 @@ void AP_Proximity_Backend::database_push(float angle, float pitch, float distanc
 
 // update Object Avoidance database with Earth-frame point
 // consider dynamical object velocity
-void AP_Proximity_Backend::database_push(float angle, float pitch, float distance, float rvel_mag, float rvel_angle, float radius)
+void AP_Proximity_Backend::database_push(float angle, float pitch,float distance, float vel_mag, float vel_angle, float radius,bool rel)
 {
     Vector3f current_pos;
     Matrix3f body_to_ned;
@@ -245,6 +245,15 @@ void AP_Proximity_Backend::database_push(float angle, float pitch, float distanc
             // sanity check on pitch
             return;
         }
+
+        // deal with absolute object velocity
+        if(!rel){
+            const Vector3f abs_vel{vel_mag * cosf(radians(vel_angle)),vel_mag * sinf(radians(vel_angle)),0};
+            const Vector3f abs_pos{distance * cosf(radians(angle)),distance * sinf(radians(angle)),-current_pos.z};
+             oaDb->queue_push(abs_pos, abs_vel,AP_HAL::millis(), distance,radius);
+             return;
+        }
+
         //Assume object is angle and pitch bearing and distance meters away from the vehicle 
         Vector3f object_3D;
         object_3D.offset_bearing(wrap_180(angle), (pitch * -1.0f), distance);
@@ -258,7 +267,7 @@ void AP_Proximity_Backend::database_push(float angle, float pitch, float distanc
         // Calculate the absolute velocity from origin
         const Vector3f angular_speed = AP::ahrs().get_gyro();
         const Vector3f local_pos{distance * cosf(radians(angle)),distance * sinf(radians(angle)),0};
-        const Vector3f local_vel{rvel_mag * cosf(radians(rvel_angle)),rvel_mag * sinf(radians(rvel_angle)),0};
+        const Vector3f local_vel{vel_mag * cosf(radians(vel_angle)),vel_mag * sinf(radians(vel_angle)),0};
         const Vector3f angular_trans_speed = angular_speed % local_pos;
         const Vector3f world_vel = body_to_ned * (local_vel  + angular_trans_speed);
 
