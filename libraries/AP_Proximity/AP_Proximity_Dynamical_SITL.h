@@ -14,7 +14,7 @@ class AP_Proximity_Dynamical_SITL : public AP_Proximity_Backend
 
 public:
     // constructor
-    AP_Proximity_Dynamical_SITL(AP_Proximity &_frontend, AP_Proximity::Proximity_State &_state);
+    using AP_Proximity_Backend::AP_Proximity_Backend;
 
     // update state
     void update(void) override;
@@ -36,15 +36,10 @@ private:
 
     // initial state
     Run_State _state{Run_State::GET_CENTER};
-
-    const float _mode_run_time = 10;
-    const uint8_t _object_num = 8;
+    Run_State _last_state{Run_State::GET_CENTER};
 
     // mode center postion
     Vector2f _center_loc;
-
-    // objects postion
-    std::vector<Vector2f> _objects_loc;
 
     // last running time
     uint32_t _last_update_ms{0};
