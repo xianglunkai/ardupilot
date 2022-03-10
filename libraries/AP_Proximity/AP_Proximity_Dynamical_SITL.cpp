@@ -12,13 +12,13 @@ extern const AP_HAL::HAL& hal;
 
 #define PROXIMITY_MAX_RANGE 200.0f
 #define PROXIMITY_ACCURACY 0.1f
-#define PROXIMITY_CENTER_OFFSET_DIST 50
+#define PROXIMITY_CENTER_OFFSET_DIST 30
 #define PROXIMITY_OBJECT_MAX_RANGE   30.0f
 #define PROXIMITY_OBJECT_MAX_VEL     2.0f
 #define PROXIMITY_OBJECT_RADIUS      3.0f
 
 
-const uint32_t mode_run_time_ms = 60000;
+const uint32_t mode_run_time_ms = 30000;
 const uint8_t  object_num = 4;
 
 // update the state of the sensor
@@ -111,15 +111,18 @@ void AP_Proximity_Dynamical_SITL::update(void)
 
             const AP_Proximity_Boundary_3D::Face face = boundary.get_face(angle_deg);
             const float distance_to_vehicle = (_objects_loc[i] - current_loc).length();
-            if ((distance_m <= distance_max()) && (distance_m >= distance_min())) {
-                 boundary.set_face_attributes(face, angle_deg, distance_m);
-                 // update OA database
-                database_push(angle_deg,0.0f,distance_m,vel_mag,vel_ang,PROXIMITY_OBJECT_RADIUS,false);
-            } else {
-                // invalidate distance of face
-                boundary.reset_face(face);
+            const float relative_to_angle   = wrap_360(angle_deg - current_bearing);
+
+            if (!ignore_reading(relative_to_angle, distance_to_vehicle)) {
+                if ((distance_to_vehicle <= distance_max()) && (distance_to_vehicle >= distance_min())) {
+                    boundary.set_face_attributes(face, relative_to_angle, distance_to_vehicle);
+                    // update OA database
+                    database_push(angle_deg,0.0f,distance_m,vel_mag,vel_ang,PROXIMITY_OBJECT_RADIUS,false);
+                } else {
+                    // invalidate distance of face
+                    boundary.reset_face(face);
+                }
             }
-            
         }
     }
 
