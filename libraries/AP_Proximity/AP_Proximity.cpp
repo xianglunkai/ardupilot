@@ -27,6 +27,7 @@
 #include "AP_Proximity_AirSimSITL.h"
 #include "AP_Proximity_Cygbot_D1.h"
 #include "AP_Proximity_ARS408_CAN.h"
+#include "AP_Proximity_Dynamical_SITL.h"
 
 extern const AP_HAL::HAL &hal;
 
@@ -365,6 +366,11 @@ void AP_Proximity::detect_instance(uint8_t instance)
         state[instance].instance = instance;
         drivers[instance] = new AP_Proximity_AirSimSITL(*this, state[instance]);
         return;
+    
+    case Type::DynamicalSITL:
+         state[instance].instance = instance;
+         drivers[instance] = new AP_Proximity_Dynamical_SITL(*this, state[instance]);
+    break;
 
 #endif
 
