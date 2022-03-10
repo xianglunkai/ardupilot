@@ -84,16 +84,17 @@ float AP_Proximity_Backend::correct_angle_for_orientation(float angle_degrees) c
 // angles should be in degrees and in the range of 0 to 360, distance should be in meteres
 bool AP_Proximity_Backend::ignore_reading(float pitch, float yaw, float distance_m, bool check_for_ign_area) const
 {
+     uint8_t instance = state.instance;
     // check if distances are supposed to be in a particular range
-    if (!is_zero(frontend._max_m)) {
-        if (distance_m > frontend._max_m) {
+    if (!is_zero(frontend.params[instance]._max_m)) {
+        if (distance_m > frontend.params[instance]._max_m) {
             // too far away
             return true;
         }
     }
 
-    if (!is_zero(frontend._min_m)) {
-        if (distance_m < frontend._min_m) {
+    if (!is_zero(frontend.params[instance]._min_m)) {
+        if (distance_m < frontend.params[instance]._min_m) {
             // too close
             return true;
         }
@@ -102,8 +103,8 @@ bool AP_Proximity_Backend::ignore_reading(float pitch, float yaw, float distance
     if (check_for_ign_area) {
         // check angle vs each ignore area
         for (uint8_t i=0; i < PROXIMITY_MAX_IGNORE; i++) {
-            if (frontend._ignore_width_deg[i] != 0) {
-                if (abs(yaw - frontend._ignore_angle_deg[i]) <= (frontend._ignore_width_deg[i]/2)) {
+            if (frontend.params[instance]._ignore_width_deg[i] != 0) {
+                if (abs(yaw - frontend.params[instance]._ignore_angle_deg[i]) <= (frontend.params[instance]._ignore_width_deg[i]/2)) {
                     return true;
                 }
             }
@@ -144,7 +145,8 @@ bool AP_Proximity_Backend::get_rangefinder_alt(float &alt_m) const
 // Check if Obstacle defined by body-frame yaw and pitch is near ground
 bool AP_Proximity_Backend::check_obstacle_near_ground(float pitch, float yaw, float distance) const
 {
-    if (!frontend._ign_gnd_enable) {
+    uint8_t instance = state.instance;
+    if (!frontend.params[instance]._ign_gnd_enable) {
         return false;
     }
     if (!hal.util->get_soft_armed()) {
@@ -232,7 +234,7 @@ void AP_Proximity_Backend::database_push(float angle, float pitch, float distanc
 
 // update Object Avoidance database with Earth-frame point
 // consider dynamical object velocity
-void AP_Proximity_Backend::database_push(float angle, float pitch,float distance, float vel_mag, float vel_angle, float radius,bool rel)
+void AP_Proximity_Backend::database_push(float angle, float pitch,float distance, float vel_mag, float vel_angle, float radius,bool relative)
 {
     Vector3f current_pos;
     Matrix3f body_to_ned;
@@ -247,7 +249,7 @@ void AP_Proximity_Backend::database_push(float angle, float pitch,float distance
         }
 
         // deal with absolute object velocity
-        if(!rel){
+        if(!relative){
             const Vector3f abs_vel{vel_mag * cosf(radians(vel_angle)),vel_mag * sinf(radians(vel_angle)),0};
             const Vector3f abs_pos{distance * cosf(radians(angle)),distance * sinf(radians(angle)),-current_pos.z};
              oaDb->queue_push(abs_pos, abs_vel,AP_HAL::millis(), distance,radius);
