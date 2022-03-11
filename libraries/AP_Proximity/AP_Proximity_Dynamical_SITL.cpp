@@ -12,7 +12,6 @@ extern const AP_HAL::HAL& hal;
 
 #define PROXIMITY_MAX_RANGE 200.0f
 #define PROXIMITY_ACCURACY 0.1f
-#define PROXIMITY_CENTER_OFFSET_DIST 30
 #define PROXIMITY_OBJECT_MAX_RANGE   30.0f
 #define PROXIMITY_OBJECT_MAX_VEL     2.0f
 #define PROXIMITY_OBJECT_RADIUS      3.0f
@@ -43,7 +42,6 @@ void AP_Proximity_Dynamical_SITL::update(void)
     {
     case Run_State::GET_CENTER:
         _center_loc =  current_loc;
-        _center_loc.offset_bearing(current_bearing,PROXIMITY_CENTER_OFFSET_DIST);
         _state = (_last_state == Run_State::CIRCLE_MODE) ?(Run_State::START_MODE):(Run_State::CIRCLE_MODE);
         _last_update_ms = AP_HAL::millis();
         _last_state = Run_State::GET_CENTER;
