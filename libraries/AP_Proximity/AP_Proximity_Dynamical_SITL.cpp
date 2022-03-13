@@ -12,7 +12,7 @@ extern const AP_HAL::HAL& hal;
 
 #define PROXIMITY_MAX_RANGE 200.0f
 #define PROXIMITY_ACCURACY 0.1f
-#define PROXIMITY_OBJECT_MAX_RANGE   50.0f
+#define PROXIMITY_OBJECT_MAX_RANGE   35.0f
 #define PROXIMITY_OBJECT_MAX_VEL     2.0f
 #define PROXIMITY_OBJECT_RADIUS      3.0f
 
@@ -84,13 +84,15 @@ void AP_Proximity_Dynamical_SITL::update(void)
         for(size_t i = 0; i < object_num; i++){
             const float vel_dir = wrap_2PI(i * del_ang);
 
-            _objects_vel[i].x =  PROXIMITY_OBJECT_MAX_VEL * cosf(vel_dir);
+            _objects_vel[i].x =  PROXIMITY_OBJECT_MAX_VEL * cosf(vel_dir + M_PI);
 
-            _objects_vel[i].y =  PROXIMITY_OBJECT_MAX_VEL * sinf(vel_dir);
+            _objects_vel[i].y =  PROXIMITY_OBJECT_MAX_VEL * sinf(vel_dir + M_PI);
 
-            _objects_loc[i].x =  _center_loc.x +  _objects_vel[i].x * eplase_time_start * 0.001f;
+            _objects_loc[i].x =  _center_loc.x + PROXIMITY_OBJECT_MAX_RANGE * cosf(vel_dir) +
+                                 _objects_vel[i].x * eplase_time_start * 0.001f;
 
-            _objects_loc[i].y =  _center_loc.y  +  _objects_vel[i].y * eplase_time_start * 0.001f;
+            _objects_loc[i].y =  _center_loc.y  + PROXIMITY_OBJECT_MAX_RANGE * sinf(vel_dir) +
+                                 _objects_vel[i].y * eplase_time_start * 0.001f;
         }
     }
         break;
