@@ -18,7 +18,7 @@ extern const AP_HAL::HAL& hal;
 
 
 const uint32_t mode_run_time_ms = 30000;
-const uint8_t  object_num = 4;
+const uint8_t  object_num = 6;
 
 // update the state of the sensor
 void AP_Proximity_Dynamical_SITL::update(void)
