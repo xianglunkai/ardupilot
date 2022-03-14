@@ -128,6 +128,16 @@ bool AP_OABendyRuler::update(const Location& current_loc, const Location& destin
         ground_course_deg = degrees(ground_speed_vec.angle());
     }
 
+    // Calculate groundspeed
+    float groundSpeed = ground_speed_vec.length();
+    _groundspeed_vector = {ground_speed_vec,0.0f};
+    if (groundSpeed < 0.1f) {
+        // use a small ground speed vector in the right direction,
+        // allowing us to use the compass heading at zero GPS velocity
+        groundSpeed = 0.1f;
+        _groundspeed_vector = Vector3f(cosf(AP::ahrs().yaw), sinf(AP::ahrs().yaw),0.0f) * groundSpeed;
+    }
+
     bool ret;
     switch (get_type()) {
         case OABendyType::OA_BENDY_VERTICAL:
@@ -718,8 +728,10 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
         if( oaDb->dynamical_object_enable() && !is_zero(_predict_time) && item.vel.length() > 0.5f){
             for(int k = 1;k < _predict_time / OA_BENDYRULER_PREDICT_TIME_DELTA; k ++){
                 const float t = OA_BENDYRULER_PREDICT_TIME_DELTA * k;
+                const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
+                const Vector3f origin_NEU =  start_NEU + desired_speed * t * 100.0f;
                 const Vector3f pre_pos = point_cm + item.vel * t * 100.0f;
-                const float pre_m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_NEU, pre_pos) * 0.01f - item.radius;
+                const float pre_m = Vector3f::closest_distance_between_line_and_point(origin_NEU, end_NEU, pre_pos) * 0.01f - item.radius;
                 if(pre_m < smallest_margin){
                     smallest_margin = pre_m;
                 }
