@@ -98,4 +98,5 @@ private:
     float _current_lookahead;       // distance (in meters) ahead of the vehicle we are looking for obstacles
     float _bearing_prev;            // stored bearing in degrees 
     Location _destination_prev;     // previous destination, to check if there has been a change in destination
+    Vector3f _groundspeed_vector;
 };
