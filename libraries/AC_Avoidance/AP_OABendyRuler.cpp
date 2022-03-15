@@ -193,8 +193,7 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
     for (uint8_t i = 0; i <= (170 / OA_BENDYRULER_BEARING_INC_XY); i++) {
         for (uint8_t bdir = 0; bdir <= 1; bdir++) {
             // skip duplicate check of bearing straight towards destination
-            // with COLREGs constrain
-            if (((i==0) && (bdir == 0)) || (_colregs.get() && (bdir == 0))) {
+            if ((i==0) && (bdir > 0)) {
                 continue;
             }
             // bearing that we are probing
@@ -724,13 +723,34 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
         // margin is distance between line segment and obstacle minus obstacle's radius
         const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_NEU, point_cm) * 0.01f - item.radius;
 
-        // add:: dynamical obstacle margin check
+        // calculate dynamical obstacle margin 
         if( oaDb->dynamical_object_enable() && !is_zero(_predict_time) && item.vel.length() > 0.5f){
             const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
+
             // calculate TCPA and DCPA
             float tcpa = MAX((point_cm - start_NEU) * (desired_speed - item.vel) * 0.01f /(sq((desired_speed - item.vel).length()) + 1e-6f),0.0f);
             tcpa = MIN(tcpa,_predict_time);
-            const float dcpa = ((start_NEU * 0.01f + desired_speed * tcpa) - (point_cm * 0.01f + item.vel * tcpa)).length() - item.radius;
+            float dcpa = ((start_NEU * 0.01f + desired_speed * tcpa) - (point_cm * 0.01f + item.vel * tcpa)).length() - item.radius;
+
+            // consider COLREGs contrain
+            if(_colregs && dcpa <= _lookahead && tcpa > 0){
+                 const float relative_heading = wrap_180(degrees(_groundspeed_vector.xy().angle() - item.vel.xy().angle()));
+                 const float desired_heading  = wrap_180(degrees(desired_speed.xy().angle() - _groundspeed_vector.xy().angle()));
+                 if(fabsf(wrap_180(180.0f  - relative_heading)) <= 15.0f && desired_heading < 0){
+                     dcpa  *= (1 + desired_heading/ 180.0f);
+                 }
+                 if(fabsf(relative_heading) <= 45.0f && desired_heading < 0){
+                     dcpa *= (1 + desired_heading /180.0f);
+                 }
+                 if(relative_heading > 45.0f && relative_heading < 135.0f && desired_heading < 0){
+                     dcpa *= (1 + desired_heading /180.0f);
+                 }
+
+                 if(relative_heading > -135.0f && relative_heading < -45.0f && desired_heading > 0){
+                     dcpa *= (1 - desired_heading /180.0f);
+                 }
+            }
+   
             if(dcpa < smallest_margin){
                 smallest_margin = dcpa;
             }
