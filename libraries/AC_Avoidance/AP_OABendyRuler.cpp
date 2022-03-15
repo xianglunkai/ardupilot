@@ -726,15 +726,13 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
 
         // add:: dynamical obstacle margin check
         if( oaDb->dynamical_object_enable() && !is_zero(_predict_time) && item.vel.length() > 0.5f){
-            for(int k = 1;k < _predict_time / OA_BENDYRULER_PREDICT_TIME_DELTA; k ++){
-                const float t = OA_BENDYRULER_PREDICT_TIME_DELTA * k;
-                const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
-                const Vector3f origin_NEU =  start_NEU + desired_speed * t * 100.0f;
-                const Vector3f pre_pos = point_cm + item.vel * t * 100.0f;
-                const float pre_m = Vector3f::closest_distance_between_line_and_point(origin_NEU, end_NEU, pre_pos) * 0.01f - item.radius;
-                if(pre_m < smallest_margin){
-                    smallest_margin = pre_m;
-                }
+            const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
+            // calculate TCPA and DCPA
+            float tcpa = MAX((point_cm - start_NEU) * (desired_speed - item.vel) * 0.01f /(sq((desired_speed - item.vel).length()) + 1e-6f),0.0f);
+            tcpa = MIN(tcpa,_predict_time);
+            const float dcpa = ((start_NEU * 0.01f + desired_speed * tcpa) - (point_cm * 0.01f + item.vel * tcpa)).length() - item.radius;
+            if(dcpa < smallest_margin){
+                smallest_margin = dcpa;
             }
         }
 
