@@ -31,7 +31,7 @@ const float OA_BENDYRULER_LOOKAHEAD_STEP2_RATIO = 1.0f; // step2's lookahead len
 const float OA_BENDYRULER_LOOKAHEAD_STEP2_MIN = 2.0f;   // step2 checks at least this many meters past step1's location
 const float OA_BENDYRULER_LOOKAHEAD_PAST_DEST = 2.0f;   // lookahead length will be at least this many meters past the destination
 const float OA_BENDYRULER_LOW_SPEED_SQUARED = (0.2f * 0.2f);    // when ground course is below this speed squared, vehicle's heading will be used
-const float OA_BENDYRULER_PREDICT_TIME_DELTA = 1.0f; // predict time unit 
+
 
 #define VERTICAL_ENABLED APM_BUILD_COPTER_OR_HELI
 
@@ -726,17 +726,17 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
         // calculate dynamical obstacle margin 
         if( oaDb->dynamical_object_enable() && !is_zero(_predict_time) && item.vel.length() > 0.5f){
             const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
+            const Vector3f rel_speed     = (desired_speed - item.vel);
+            const Vector3f rel_pre_pos   = start_NEU + rel_speed * _predict_time * 100.0f;
 
-            // calculate TCPA and DCPA
-            float tcpa = MAX((point_cm - start_NEU) * (desired_speed - item.vel) * 0.01f /(sq((desired_speed - item.vel).length()) + 1e-6f),0.0f);
-            tcpa = MIN(tcpa,_predict_time);
-            float dcpa = ((start_NEU * 0.01f + desired_speed * tcpa) - (point_cm * 0.01f + item.vel * tcpa)).length() - item.radius;
-
+            // calculate DCPA
+            float dcpa = MAX(Vector3f::closest_distance_between_line_and_point(start_NEU, rel_pre_pos, point_cm) * 0.01f - item.radius,0.0f);
+       
             // consider COLREGs contrain
-            if(_colregs && dcpa <= _lookahead && tcpa > 0){
+            if(_colregs.get()){
                  const float relative_heading = wrap_180(degrees(_groundspeed_vector.xy().angle() - item.vel.xy().angle()));
                  const float desired_heading  = wrap_180(degrees(desired_speed.xy().angle() - _groundspeed_vector.xy().angle()));
-                 if(fabsf(wrap_180(180.0f  - relative_heading)) <= 15.0f && desired_heading < 0){
+                 if(fabsf(wrap_180(180.0f  - fabsf(relative_heading))) <= 15.0f && desired_heading < 0){
                      dcpa  *= (1 + desired_heading/ 180.0f);
                  }
                  if(fabsf(relative_heading) <= 45.0f && desired_heading < 0){
@@ -750,7 +750,7 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
                      dcpa *= (1 - desired_heading /180.0f);
                  }
             }
-   
+
             if(dcpa < smallest_margin){
                 smallest_margin = dcpa;
             }
