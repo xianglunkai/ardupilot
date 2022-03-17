@@ -31,7 +31,8 @@ const float OA_BENDYRULER_LOOKAHEAD_STEP2_RATIO = 1.0f; // step2's lookahead len
 const float OA_BENDYRULER_LOOKAHEAD_STEP2_MIN = 2.0f;   // step2 checks at least this many meters past step1's location
 const float OA_BENDYRULER_LOOKAHEAD_PAST_DEST = 2.0f;   // lookahead length will be at least this many meters past the destination
 const float OA_BENDYRULER_LOW_SPEED_SQUARED = (0.2f * 0.2f);    // when ground course is below this speed squared, vehicle's heading will be used
-constexpr uint64_t TIME_DELAY_RESET = (uint64_t)3000 * 1000ULL; // delay 3s
+constexpr uint64_t OA_BENDYRULER_TIME_DELAY_RESET = (uint64_t)3000 * 1000ULL; // delay 3s
+constexpr uint16_t OA_BENDYRULER_TIME_PRED_TICK = 1.0f;
 
 #define VERTICAL_ENABLED APM_BUILD_COPTER_OR_HELI
 
@@ -89,7 +90,7 @@ AP_OABendyRuler::AP_OABendyRuler()
 { 
     AP_Param::setup_object_defaults(this, var_info); 
     _bearing_prev = FLT_MAX;
-    _avoidance_required.set_hysteresis_time_from(true,TIME_DELAY_RESET);
+    _avoidance_required.set_hysteresis_time_from(true,OA_BENDYRULER_TIME_DELAY_RESET);
 }
 
 // run background task to find best path and update avoidance_results
@@ -728,29 +729,41 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
         // calculate dynamical obstacle margin 
         if( oaDb->dynamical_object_enable() && !is_zero(_predict_time) && item.vel.length() > 0.5f){
             const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
-            const Vector3f rel_speed     = (desired_speed - item.vel);
-            const Vector3f rel_pre_pos   = start_NEU + rel_speed * _predict_time * 100.0f;
+            const float    desired_distance_cm = (end_NEU - start_NEU).length();
+            const Vector3f relative_speed_vec = (desired_speed - item.vel).normalized();
 
-            // calculate DCPA
-            float dcpa = MAX(Vector3f::closest_distance_between_line_and_point(start_NEU, rel_pre_pos, point_cm) * 0.01f - item.radius,0.0f);
-       
+            uint16_t pred_ind = 1;
+            float sum_dcpa = m,dcpa = 0.0f;
+            while(pred_ind < _predict_time.get()/OA_BENDYRULER_TIME_PRED_TICK){
+                const float pred_ts = OA_BENDYRULER_TIME_PRED_TICK * pred_ind;
+                // get pred_start and pred_end
+                const Vector3f pred_vehicle_pos_start_cm = start_NEU  + desired_speed * pred_ts * 100.0f;
+                const Vector3f pred_vehicle_pos_end_cm   = pred_vehicle_pos_start_cm  + relative_speed_vec * desired_distance_cm;
+                // get pred_obs
+                const Vector3f pred_obs_pos_cm     = point_cm   + item.vel * pred_ts * 100.0f;
+                // calculate dcpa
+                sum_dcpa += Vector3f::closest_distance_between_line_and_point(pred_vehicle_pos_start_cm,pred_vehicle_pos_end_cm,pred_obs_pos_cm) * 0.01f  - item.radius;
+                pred_ind ++;
+            }
+            dcpa = sum_dcpa / pred_ind;
+
+
             // consider COLREGs contrain
             if(_colregs.get()){
                  const float relative_heading = wrap_180(degrees(_groundspeed_vector.xy().angle() - item.vel.xy().angle()));
                  const float desired_heading  = wrap_180(degrees(desired_speed.xy().angle() - _groundspeed_vector.xy().angle()));
                  if(fabsf(wrap_180(180.0f  - fabsf(relative_heading))) <= 15.0f && desired_heading < 0){
-                    // dcpa  *= (1 + desired_heading/ 180.0f);
-                    dcpa = 
+                     dcpa  *= (1 + desired_heading/ 180.0f);
                  }
                  if(fabsf(relative_heading) <= 45.0f && desired_heading < 0){
-                    // dcpa *= (1 + desired_heading /180.0f);
+                     dcpa *= (1 + desired_heading /180.0f);
                  }
                  if(relative_heading > 45.0f && relative_heading < 135.0f && desired_heading < 0){
-                    // dcpa *= (1 + desired_heading /180.0f);
+                     dcpa *= (1 + desired_heading /180.0f);
                  }
 
                  if(relative_heading > -135.0f && relative_heading < -45.0f && desired_heading > 0){
-                    // dcpa *= (1 - desired_heading /180.0f);
+                     dcpa *= (1 - desired_heading /180.0f);
                  }
             }
 
