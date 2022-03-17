@@ -84,9 +84,9 @@ void AP_Proximity_Dynamical_SITL::update(void)
         for(size_t i = 0; i < object_num; i++){
             const float vel_dir = wrap_2PI(i * del_ang);
 
-            _objects_vel[i].x =  PROXIMITY_OBJECT_MAX_VEL * cosf(vel_dir + M_PI);
+            _objects_vel[i].x =  PROXIMITY_OBJECT_MAX_VEL * cosf(vel_dir + M_PI) * 0.5f;
 
-            _objects_vel[i].y =  PROXIMITY_OBJECT_MAX_VEL * sinf(vel_dir + M_PI);
+            _objects_vel[i].y =  PROXIMITY_OBJECT_MAX_VEL * sinf(vel_dir + M_PI) * 0.5f;
 
             _objects_loc[i].x =  _center_loc.x + PROXIMITY_OBJECT_MAX_RANGE * cosf(vel_dir) +
                                  _objects_vel[i].x * eplase_time_start * 0.001f;
