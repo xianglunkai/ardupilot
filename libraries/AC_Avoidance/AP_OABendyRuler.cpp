@@ -31,8 +31,8 @@ const float OA_BENDYRULER_LOOKAHEAD_STEP2_RATIO = 1.0f; // step2's lookahead len
 const float OA_BENDYRULER_LOOKAHEAD_STEP2_MIN = 2.0f;   // step2 checks at least this many meters past step1's location
 const float OA_BENDYRULER_LOOKAHEAD_PAST_DEST = 2.0f;   // lookahead length will be at least this many meters past the destination
 const float OA_BENDYRULER_LOW_SPEED_SQUARED = (0.2f * 0.2f);    // when ground course is below this speed squared, vehicle's heading will be used
-constexpr uint64_t OA_BENDYRULER_TIME_DELAY_RESET = (uint64_t)3000 * 1000ULL; // delay 3s
-constexpr uint16_t OA_BENDYRULER_TIME_PRED_TICK = 1.0f;
+const uint64_t OA_BENDYRULER_TIME_DELAY_RESET = (uint64_t)3000 * 1000ULL; // delay 3s
+const float OA_BENDYRULER_TIME_PRED_TICK = 1.0f;
 
 #define VERTICAL_ENABLED APM_BUILD_COPTER_OR_HELI
 
@@ -75,12 +75,17 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
     // @Description: BendyRuler will search for clear path along the direction defined by this parameter
     // @Values: 1:Horizontal search, 2:Vertical search
     // @User: Standard
-    AP_GROUPINFO_FRAME("COLREGs", 5, AP_OABendyRuler, _colregs, 0, AP_PARAM_FRAME_ROVER),
+  
 
     // @Param: PRE_TIME
     // @DisplayName: Predict time length
     // @User: Standard
     AP_GROUPINFO("PRD_TIME", 6, AP_OABendyRuler, _predict_time, 5),
+
+    // @Param: PRE_DIST
+    // @DisplayName: Predict distance length
+    // @User: Standard
+    AP_GROUPINFO("PRD_DIST", 7, AP_OABendyRuler, _predict_distance, 15),
 
 
     AP_GROUPEND
@@ -211,6 +216,15 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
 
             // calculate margin from obstacles for this scenario
             float margin = calc_avoidance_margin(current_loc, test_loc, proximity_only);
+            
+            // calculate margin from obstacles for dynamical scenario
+            if( AP::oadatabase()->dynamical_object_enable() && !is_zero(_predict_time)){
+                float dyn_margin = FLT_MAX;
+                if(calc_maring_from_dynamical_object(current_loc,test_loc,dyn_margin)){
+                    margin = MIN(margin,dyn_margin);
+                }
+            }
+
             if (margin > best_margin) {
                 best_margin_bearing = bearing_test;
                 best_margin = margin;
@@ -725,55 +739,67 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
         const Vector3f point_cm = item.pos * 100.0f;
         // margin is distance between line segment and obstacle minus obstacle's radius
         const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_NEU, point_cm) * 0.01f - item.radius;
-
-        // calculate dynamical obstacle margin 
-        if( oaDb->dynamical_object_enable() && !is_zero(_predict_time) && item.vel.length() > 0.5f){
-            const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
-            const float    desired_distance_cm = (end_NEU - start_NEU).length();
-            const Vector3f relative_speed_vec = (desired_speed - item.vel).normalized();
-
-            uint16_t pred_ind = 1;
-            float sum_dcpa = m,dcpa = 0.0f;
-            while(pred_ind < _predict_time.get()/OA_BENDYRULER_TIME_PRED_TICK){
-                const float pred_ts = OA_BENDYRULER_TIME_PRED_TICK * pred_ind;
-                // get pred_start and pred_end
-                const Vector3f pred_vehicle_pos_start_cm = start_NEU  + desired_speed * pred_ts * 100.0f;
-                const Vector3f pred_vehicle_pos_end_cm   = pred_vehicle_pos_start_cm  + relative_speed_vec * desired_distance_cm;
-                // get pred_obs
-                const Vector3f pred_obs_pos_cm     = point_cm   + item.vel * pred_ts * 100.0f;
-                // calculate dcpa
-                sum_dcpa += Vector3f::closest_distance_between_line_and_point(pred_vehicle_pos_start_cm,pred_vehicle_pos_end_cm,pred_obs_pos_cm) * 0.01f  - item.radius;
-                pred_ind ++;
-            }
-            dcpa = sum_dcpa / pred_ind;
-
-
-            // consider COLREGs contrain
-            if(_colregs.get()){
-                 const float relative_heading = wrap_180(degrees(_groundspeed_vector.xy().angle() - item.vel.xy().angle()));
-                 const float desired_heading  = wrap_180(degrees(desired_speed.xy().angle() - _groundspeed_vector.xy().angle()));
-                 if(fabsf(wrap_180(180.0f  - fabsf(relative_heading))) <= 15.0f && desired_heading < 0){
-                     dcpa  *= (1 + desired_heading/ 180.0f);
-                 }
-                 if(fabsf(relative_heading) <= 45.0f && desired_heading < 0){
-                     dcpa *= (1 + desired_heading /180.0f);
-                 }
-                 if(relative_heading > 45.0f && relative_heading < 135.0f && desired_heading < 0){
-                     dcpa *= (1 + desired_heading /180.0f);
-                 }
-
-                 if(relative_heading > -135.0f && relative_heading < -45.0f && desired_heading > 0){
-                     dcpa *= (1 - desired_heading /180.0f);
-                 }
-            }
-
-            if(dcpa < smallest_margin){
-                smallest_margin = dcpa;
-            }
-        }
-
         if (m < smallest_margin) {
             smallest_margin = m;
+        }
+    }
+
+    // return smallest margin
+    if (smallest_margin < FLT_MAX) {
+        margin = smallest_margin;
+        return true;
+    }
+
+    return false;
+}
+
+bool AP_OABendyRuler::calc_maring_from_dynamical_object(const Location &start,const Location &end,float &margin) const
+{
+    // exit immediately if db is empty
+    AP_OADatabase *oaDb = AP::oadatabase();
+    if (oaDb == nullptr || !oaDb->healthy()) {
+        return false;
+    }
+
+    // convert start and end to offsets (in cm) from EKF origin
+    Vector3f start_NEU,end_NEU;
+    if (!start.get_vector_from_origin_NEU(start_NEU) || !end.get_vector_from_origin_NEU(end_NEU)) {
+        return false;
+    }
+    if (start_NEU == end_NEU) {
+        return false;
+    }
+
+     // check each obstacle's distance from segment
+    float smallest_margin = FLT_MAX;
+    for (uint16_t i=0; i<oaDb->database_count(); i++) {
+        const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
+        const Vector3f point_cm = item.pos * 100.0f;
+        float dcpa = 0;
+    
+        // calculate dynamical obstacle margin 
+        const Vector3f desired_speed       =  (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
+        const Vector3f relative_speed      =  (desired_speed - item.vel);
+        const Vector3f relative_speed_vec  =  (desired_speed - item.vel).normalized();
+        const float    tcpa                =  (point_cm - start_NEU) * relative_speed_vec * 0.01f / (relative_speed.length() + FLT_EPSILON);
+        const float    predict_calc_time   =  MIN(_predict_time,tcpa);
+        const float    predict_distance_cm =  _predict_distance * 100.0f;
+
+        uint16_t pred_ind = 0;
+        while(pred_ind < predict_calc_time/OA_BENDYRULER_TIME_PRED_TICK){
+            const float pred_ts = OA_BENDYRULER_TIME_PRED_TICK * pred_ind;
+            // get pred_start and pred_end
+            const Vector3f pred_vehicle_pos_start_cm = start_NEU  + desired_speed * pred_ts * 100.0f;
+            const Vector3f pred_vehicle_pos_end_cm   = pred_vehicle_pos_start_cm  + relative_speed_vec * predict_distance_cm;
+            // get pred_obs
+            const Vector3f pred_obs_pos_cm     = point_cm   + item.vel * pred_ts * 100.0f;
+            // calculate dcpa
+            dcpa +=  Vector3f::closest_distance_between_line_and_point(pred_vehicle_pos_start_cm,pred_vehicle_pos_end_cm,pred_obs_pos_cm) * 0.01f  - item.radius;    
+            pred_ind ++;
+        }
+        dcpa = (pred_ind == 0)?(FLT_MAX):(dcpa/pred_ind);
+        if (dcpa < smallest_margin) {
+            smallest_margin = dcpa;
         }
     }
 
