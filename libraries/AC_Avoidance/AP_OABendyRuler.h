@@ -71,6 +71,10 @@ private:
     // on success returns true and updates margin
     bool calc_margin_from_object_database(const Location &start, const Location &end, float &margin) const;
 
+    // calculate minimum distance between a path and proximity sensor obstacles
+    // on success returns true and updates margin
+    bool calc_maring_from_dynamical_object(const Location &start,const Location &end,float &margin) const;
+
     // Logging function
     void Write_OABendyRuler(const uint8_t type, const bool active, const float target_yaw, const float target_pitch, const bool resist_chg, const float margin, const Location &final_dest, const Location &oa_dest) const;
 
@@ -91,8 +95,8 @@ private:
     AP_Float _bendy_ratio;          // object avoidance will avoid major directional change if change in margin ratio is less than this param
     AP_Int16 _bendy_angle;          // object avoidance will try avoding change in direction over this much angle
     AP_Int8  _bendy_type;           // Type of BendyRuler to run
-    AP_Int8  _colregs;              // COLREGs constrain to run
     AP_Float _predict_time;         // dynamical object prediction time in seconds
+    AP_Float _predict_distance;     // dynamical object prediction distance in meters
     
     // internal variables used by background thread
     bool  _abandon_wp{false};       // give up current destination or not
