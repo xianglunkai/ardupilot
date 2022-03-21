@@ -31,8 +31,7 @@ const float OA_BENDYRULER_LOOKAHEAD_STEP2_RATIO = 1.0f; // step2's lookahead len
 const float OA_BENDYRULER_LOOKAHEAD_STEP2_MIN = 2.0f;   // step2 checks at least this many meters past step1's location
 const float OA_BENDYRULER_LOOKAHEAD_PAST_DEST = 2.0f;   // lookahead length will be at least this many meters past the destination
 const float OA_BENDYRULER_LOW_SPEED_SQUARED = (0.2f * 0.2f);    // when ground course is below this speed squared, vehicle's heading will be used
-const uint64_t OA_BENDYRULER_TIME_DELAY_RESET = (uint64_t)1000 * 1000ULL; // delay 1s
-const float OA_BENDYRULER_TIME_PRED_TICK = 1.5f;
+const uint64_t OA_BENDYRULER_TIME_DELAY_RESET = (uint64_t)2000 * 1000ULL; // delay 2s
 
 #define VERTICAL_ENABLED APM_BUILD_COPTER_OR_HELI
 
@@ -70,17 +69,17 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
     // @User: Standard
     AP_GROUPINFO_FRAME("TYPE", 4, AP_OABendyRuler, _bendy_type, OA_BENDYRULER_TYPE_DEFAULT, AP_PARAM_FRAME_COPTER | AP_PARAM_FRAME_HELI | AP_PARAM_FRAME_TRICOPTER),
 
-    // @Param{Rover}: COLREGs
-    // @DisplayName:  COLREGs constrain
-    // @Description: BendyRuler will select avoidance direction satisfy colregs
+    // @Param{Rover}: DYOA_EN
+    // @DisplayName: DYOA_TYPE
+    // @Description: Disable or enable dynamical avoidance; 0: disable dynamical avoidance; 1: enable dynamical avoidance
     // @User: Standard
-  
+    AP_GROUPINFO_FRAME("DYOA_EN", 5, AP_OABendyRuler, _dyna_oa_enable, 0,AP_PARAM_FRAME_ROVER),
 
-    // @Param: PRE_TIME
-    // @DisplayName: Predict time length
+    // @Param{Rover}: DYOA_RANGE
+    // @DisplayName: DYOA_RANGE
+    // @Description: BendyRuler dynamical avoidance range
     // @User: Standard
-    AP_GROUPINFO("PRD_TIME", 6, AP_OABendyRuler, _predict_time, 5),
-
+    AP_GROUPINFO_FRAME("DYOA_RANGE", 6, AP_OABendyRuler, _dyna_oa_range, 20,AP_PARAM_FRAME_ROVER),
 
     AP_GROUPEND
 };
@@ -99,6 +98,7 @@ bool AP_OABendyRuler::update(const Location& current_loc, const Location& destin
 {
     // bendy ruler always sets origin to current_loc
     origin_new = current_loc;
+    _current_loc = current_loc;
 
     // init bendy_type returned
     bendy_type = OABendyType::OA_BENDY_DISABLED;
@@ -183,6 +183,7 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
         }
     }
 
+     
     // search in OA_BENDYRULER_BEARING_INC degree increments around the vehicle alternating left
     // and right. For each direction check if vehicle would avoid all obstacles
     float best_bearing = bearing_to_dest;
@@ -211,17 +212,11 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
             // calculate margin from obstacles for this scenario
             float margin = calc_avoidance_margin(current_loc, test_loc, proximity_only);
             
-            // calculate margin from obstacles for dynamical scenario
-            float dyn_margin = FLT_MAX;
-            if( AP::oadatabase()->dynamical_object_enable() && !is_zero(_predict_time)){
-                calc_maring_from_dynamical_object(current_loc,test_loc,dyn_margin);
-            }
-
             if (margin > best_margin) {
                 best_margin_bearing = bearing_test;
                 best_margin = margin;
             }
-            if (margin > _margin_max && dyn_margin >= _margin_max) {
+            if (margin > _margin_max) {
                 // this bearing avoids obstacles out to the lookahead_step1_dist
                 // now check in there is a clear path in three directions towards the destination
                 if (!have_best_bearing) {
@@ -475,6 +470,13 @@ float AP_OABendyRuler::calc_avoidance_margin(const Location &start, const Locati
         margin_min = MIN(margin_min, latest_margin);
     }
     
+    // calculate margin from obstacles for dynamical scenario
+    if( _dyna_oa_enable && AP::oadatabase()->dynamical_object_enable()){
+        if(calc_margin_from_dynamical_object(start,end,latest_margin)){
+            margin_min = MIN(margin_min, latest_margin);
+        }
+    }
+
     if (proximity_only) {
         // only need margin from proximity data
         return margin_min;
@@ -728,7 +730,7 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
     float smallest_margin = FLT_MAX;
     for (uint16_t i=0; i<oaDb->database_count(); i++) {
         const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
-        const Vector3f point_cm = item.pos * 100.0f;
+        const Vector3f point_cm = item.pos * 100.0f; 
         // margin is distance between line segment and obstacle minus obstacle's radius
         const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_NEU, point_cm) * 0.01f - item.radius;
         if (m < smallest_margin) {
@@ -745,7 +747,7 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
     return false;
 }
 
-bool AP_OABendyRuler::calc_maring_from_dynamical_object(const Location &start,const Location &end,float &margin) const
+bool AP_OABendyRuler::calc_margin_from_dynamical_object(const Location &start,const Location &end,float &margin) const
 {
     // exit immediately if db is empty
     AP_OADatabase *oaDb = AP::oadatabase();
@@ -754,8 +756,9 @@ bool AP_OABendyRuler::calc_maring_from_dynamical_object(const Location &start,co
     }
 
     // convert start and end to offsets (in cm) from EKF origin
-    Vector3f start_NEU,end_NEU;
-    if (!start.get_vector_from_origin_NEU(start_NEU) || !end.get_vector_from_origin_NEU(end_NEU)) {
+    Vector3f start_NEU,end_NEU,cur_NEU;
+    if (!start.get_vector_from_origin_NEU(start_NEU) || !end.get_vector_from_origin_NEU(end_NEU) ||
+        !_current_loc.get_vector_from_origin_NEU(cur_NEU)) {
         return false;
     }
     if (start_NEU == end_NEU) {
@@ -764,29 +767,22 @@ bool AP_OABendyRuler::calc_maring_from_dynamical_object(const Location &start,co
 
      // check each obstacle's distance from segment
     float smallest_margin = FLT_MAX;
+    const float eplase_time = (start_NEU - cur_NEU).length() / _groundspeed_vector.length();
+    const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
+
     for (uint16_t i=0; i<oaDb->database_count(); i++) {
         const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
         const Vector3f point_cm = item.pos * 100.0f;
-        
-        // calculate dynamical obstacle margin 
-        const Vector3f desired_speed       =  (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
-        const Vector3f relative_speed      =  (desired_speed - item.vel);
-        const float    tcpa                =  (point_cm - start_NEU) * relative_speed.normalized() * 0.01f / (relative_speed.length() + FLT_EPSILON);
-        const float    predict_calc_time   =  MIN(_predict_time,tcpa);
-
-        uint16_t pred_ind = 0;
-        while(pred_ind < predict_calc_time/OA_BENDYRULER_TIME_PRED_TICK){
-            const float pred_ts = OA_BENDYRULER_TIME_PRED_TICK * pred_ind;
-            // get pred_start and pred_end
-            const Vector3f pred_vehicle_pos_end_cm = end_NEU  + desired_speed * pred_ts * 100.0f;
-            // get pred_obs
-            const Vector3f pred_obs_pos_cm         = point_cm   + item.vel * pred_ts * 100.0f;
-            // calculate dcpa
-            const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, pred_vehicle_pos_end_cm, pred_obs_pos_cm) * 0.01f - item.radius;
-            if(m < smallest_margin){
-                 smallest_margin = m;
-             }
-            pred_ind ++;
+        const Vector3f point_pred_cm = point_cm + item.vel * eplase_time * 100.0f;
+        if(is_zero(item.vel.length())){
+            continue;
+        }    
+        // calculate closest distance on relative velocity
+        const Vector3f relative_vel =  (desired_speed - item.vel);
+        const Vector3f end_pred_NEU =  start_NEU + relative_vel.normalized() * _dyna_oa_range * 100.0f;
+        const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_pred_NEU, point_pred_cm) * 0.01f - item.radius;
+        if(m < smallest_margin){
+            smallest_margin = m;
         }
     }
 
@@ -798,7 +794,6 @@ bool AP_OABendyRuler::calc_maring_from_dynamical_object(const Location &start,co
 
     return false;
 }
-
 
 
 bool AP_OABendyRuler::calc_goal_margin_from_fence(const Location &start,const Location &end,float &margin) const
