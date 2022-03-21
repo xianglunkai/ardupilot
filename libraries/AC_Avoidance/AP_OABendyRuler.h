@@ -73,7 +73,7 @@ private:
 
     // calculate minimum distance between a path and proximity sensor obstacles
     // on success returns true and updates margin
-    bool calc_maring_from_dynamical_object(const Location &start,const Location &end,float &margin) const;
+    bool calc_margin_from_dynamical_object(const Location &start,const Location &end,float &margin) const;
 
     // Logging function
     void Write_OABendyRuler(const uint8_t type, const bool active, const float target_yaw, const float target_pitch, const bool resist_chg, const float margin, const Location &final_dest, const Location &oa_dest) const;
@@ -95,13 +95,15 @@ private:
     AP_Float _bendy_ratio;          // object avoidance will avoid major directional change if change in margin ratio is less than this param
     AP_Int16 _bendy_angle;          // object avoidance will try avoding change in direction over this much angle
     AP_Int8  _bendy_type;           // Type of BendyRuler to run
-    AP_Float _predict_time;         // dynamical object prediction time in seconds
+    AP_Int8  _dyna_oa_enable;           // dynamical avoidance enable 
+    AP_Float _dyna_oa_range;        // dynamical avoidance range
     
     // internal variables used by background thread
-    bool  _abandon_wp{false};       // give up current destination or not
     float _current_lookahead;       // distance (in meters) ahead of the vehicle we are looking for obstacles
     float _bearing_prev;            // stored bearing in degrees 
     Location _destination_prev;     // previous destination, to check if there has been a change in destination
-    Vector3f _groundspeed_vector;
-    Hysteresis _avoidance_required{true};
+    bool  _abandon_wp{false};       // give up current destination or not
+    Location _current_loc;          // stored curent location 
+    Vector3f _groundspeed_vector;   // current vehicle speed vector
+    Hysteresis _avoidance_required{true}; // switch avoidance requied
 };
