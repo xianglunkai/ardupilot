@@ -406,11 +406,13 @@ void AP_OADatabase::database_items_remove_all_expired()
 
     const uint32_t now_ms = AP_HAL::millis();
     const uint32_t expiry_ms = (uint32_t)_database_expiry_seconds * 1000;
+    const uint32_t dynamical_expiry_time = (uint32_t)1000 * MAX(_dynamical_object_life_time,0.2f);
     uint16_t index = 0;
     while (index < _database.count) {
+        
         const bool dynamical_object_expiry =  _dynamical_object_enable && 
                                               (_database.items[index].vel.length() > 0.5f) &&
-                                              (now_ms - _database.items[index].timestamp_ms > 1000 * _dynamical_object_life_time);
+                                              (now_ms - _database.items[index].timestamp_ms > dynamical_expiry_time);
 
         if (now_ms - _database.items[index].timestamp_ms > expiry_ms || dynamical_object_expiry){
             database_item_remove(index);
