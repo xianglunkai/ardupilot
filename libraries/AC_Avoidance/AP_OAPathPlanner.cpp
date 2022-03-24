@@ -212,8 +212,10 @@ AP_OAPathPlanner::OAPathPlannerUsed AP_OAPathPlanner::map_bendytype_to_pathplann
 AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location &current_loc,
                                          const Location &origin,
                                          const Location &destination,
+                                         const float &desired_speed,
                                          Location &result_origin,
                                          Location &result_destination,
+                                         float &result_desired_speed,
                                          OAPathPlannerUsed &path_planner_used)
 {
     // exit immediately if disabled or thread is not running from a failed init
@@ -228,6 +230,7 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
     avoidance_request.current_loc = current_loc;
     avoidance_request.origin = origin;
     avoidance_request.destination = destination;
+    avoidance_request.desired_speed = desired_speed;
     avoidance_request.ground_speed_vec = AP::ahrs().groundspeed_vector();
     avoidance_request.request_time_ms = now;
 
@@ -242,6 +245,7 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
         // we have a result from the thread
         result_origin = avoidance_result.origin_new;
         result_destination = avoidance_result.destination_new;
+        result_desired_speed = avoidance_result.desired_speed_new;
         path_planner_used = avoidance_result.path_planner_used;
         return avoidance_result.ret_state;
     }
@@ -288,6 +292,7 @@ void AP_OAPathPlanner::avoidance_thread()
 
         Location origin_new;
         Location destination_new;
+        float desired_speed_new;
         {
             WITH_SEMAPHORE(_rsem);
             if (now - avoidance_request.request_time_ms > OA_TIMEOUT_MS) {
@@ -301,6 +306,7 @@ void AP_OAPathPlanner::avoidance_thread()
             // store passed in origin and destination so we can return it if object avoidance is not required
             origin_new = avoidance_request.origin;
             destination_new = avoidance_request.destination;
+            desired_speed_new = avoidance_request.desired_speed;
         }
 
         // run background task looking for best alternative destination
@@ -430,6 +436,7 @@ void AP_OAPathPlanner::avoidance_thread()
             avoidance_result.destination = avoidance_request2.destination;
             avoidance_result.origin_new = (res == OA_SUCCESS) ? origin_new : avoidance_result.origin_new;
             avoidance_result.destination_new = (res == OA_SUCCESS) ? destination_new : avoidance_result.destination;
+            avoidance_result.desired_speed_new = (res == OA_SUCCESS) ? desired_speed_new : avoidance_request2.desired_speed;
             avoidance_result.result_time_ms = AP_HAL::millis();
             avoidance_result.path_planner_used = path_planner_used;
             avoidance_result.ret_state = res;
