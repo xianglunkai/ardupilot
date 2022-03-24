@@ -732,6 +732,9 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
     for (uint16_t i=0; i<oaDb->database_count(); i++) {
         const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
         const Vector3f point_cm = item.pos * 100.0f; 
+        if(!item.vel.is_zero()){
+            continue;
+        }
         // margin is distance between line segment and obstacle minus obstacle's radius
         const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_NEU, point_cm) * 0.01f - item.radius;
         if (m < smallest_margin) {
@@ -748,7 +751,8 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
     return false;
 }
 
-bool AP_OABendyRuler::calc_margin_from_dynamical_object(const Location &start,const Location &end,float &margin) const
+bool AP_OABendyRuler::
+calc_margin_from_dynamical_object(const Location &start,const Location &end,float &margin) const
 {
     // exit immediately if db is empty
     AP_OADatabase *oaDb = AP::oadatabase();
