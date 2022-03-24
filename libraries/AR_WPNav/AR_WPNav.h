@@ -160,6 +160,7 @@ private:
     bool _oa_active;                // true if we should use alternative destination to avoid obstacles
     Location _oa_origin;            // intermediate origin during avoidance
     Location _oa_destination;       // intermediate destination during avoidance
+    float    _oa_desired_speed;             // intermediate avoidance desired speed
     float _oa_distance_to_destination; // OA (object avoidance) distance from vehicle to _oa_destination in meters
     float _oa_wp_bearing_cd;        // OA adjusted heading to _oa_destination in centi-degrees
 };

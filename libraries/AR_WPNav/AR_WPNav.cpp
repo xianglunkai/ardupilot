@@ -130,7 +130,7 @@ void AR_WPNav::update(float dt)
     AP_OAPathPlanner *oa = AP_OAPathPlanner::get_singleton();
     if (oa != nullptr) {
         AP_OAPathPlanner::OAPathPlannerUsed path_planner_used;
-        const AP_OAPathPlanner::OA_RetState oa_retstate = oa->mission_avoidance(current_loc, _origin, _destination, _oa_origin, _oa_destination, path_planner_used);
+        const AP_OAPathPlanner::OA_RetState oa_retstate = oa->mission_avoidance(current_loc, _origin, _destination, _desired_speed,_oa_origin, _oa_destination, _oa_desired_speed,path_planner_used);
         switch (oa_retstate) {
         case AP_OAPathPlanner::OA_NOT_REQUIRED:
             _oa_active = false;
@@ -154,6 +154,7 @@ void AR_WPNav::update(float dt)
     if (!_oa_active) {
         _oa_origin = _origin;
         _oa_destination = _destination;
+        _oa_desired_speed = _desired_speed;
     }
 
     update_distance_and_bearing_to_destination();
@@ -210,6 +211,7 @@ bool AR_WPNav::set_desired_location(const struct Location& destination, float ne
     // initialise some variables
     _oa_origin = _origin;
     _oa_destination = _destination = destination;
+    _oa_desired_speed = _desired_speed;
     _orig_and_dest_valid = true;
     _reached_destination = false;
     update_distance_and_bearing_to_destination();
@@ -421,7 +423,7 @@ void AR_WPNav::update_desired_speed(float dt)
     }
 
     // accelerate desired speed towards max
-    float des_speed_lim = _atc.get_desired_speed_accel_limited(_reversed ? -_desired_speed : _desired_speed, dt);
+    float des_speed_lim = _atc.get_desired_speed_accel_limited(_reversed ? -_oa_desired_speed : _oa_desired_speed, dt);
 
     // reduce speed to limit overshoot from line between origin and destination
     // calculate number of degrees vehicle must turn to face waypoint
