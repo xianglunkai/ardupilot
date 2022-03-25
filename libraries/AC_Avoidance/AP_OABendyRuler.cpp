@@ -467,7 +467,6 @@ float AP_OABendyRuler::calc_avoidance_margin(const Location &start, const Locati
 
     float latest_margin;
     
-
     // calculate margin from obstacles for dynamical scenario
     if( _dyna_oa_enable && AP::oadatabase()->dynamical_object_enable()){
         if(calc_margin_from_dynamical_object(start,end,latest_margin)){
