@@ -75,12 +75,6 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
     // @User: Standard
     AP_GROUPINFO_FRAME("DYOA_EN", 5, AP_OABendyRuler, _dyna_oa_enable, 0,AP_PARAM_FRAME_ROVER),
 
-    // @Param{Rover}: DYOA_RANGE
-    // @DisplayName: DYOA_RANGE
-    // @Description: BendyRuler dynamical avoidance range
-    // @User: Standard
-    AP_GROUPINFO_FRAME("DYOA_RANGE", 6, AP_OABendyRuler, _dyna_oa_range, 20,AP_PARAM_FRAME_ROVER),
-
     AP_GROUPEND
 };
 
@@ -776,7 +770,7 @@ bool AP_OABendyRuler::calc_margin_from_dynamical_object(const Location &start,co
         const Vector3f point_pred_cm = point_cm + item.vel * eplase_time * 100.0f;
         // calculate closest distance on relative velocity
         const Vector3f relative_vel =  (desired_speed - item.vel);
-        const Vector3f end_pred_NEU =  start_NEU + relative_vel.normalized() * _dyna_oa_range * 100.0f;
+        const Vector3f end_pred_NEU =  start_NEU + relative_vel.normalized() * (end_NEU - start_NEU).length();
         const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_pred_NEU, point_pred_cm) * 0.01f - item.radius;
         if(m < smallest_margin){
             smallest_margin = m;
