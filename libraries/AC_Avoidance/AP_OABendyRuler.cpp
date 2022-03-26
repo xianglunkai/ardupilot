@@ -75,12 +75,6 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
     // @User: Standard
     AP_GROUPINFO_FRAME("DYOA_EN", 5, AP_OABendyRuler, _dyna_oa_enable, 0,AP_PARAM_FRAME_ROVER),
 
-    // @Param{Rover}: DYOA_RANGE
-    // @DisplayName: DYOA_RANGE
-    // @Description: BendyRuler dynamical avoidance range
-    // @User: Standard
-    AP_GROUPINFO_FRAME("DYOA_RANGE", 6, AP_OABendyRuler, _dyna_oa_range, 20,AP_PARAM_FRAME_ROVER),
-
     AP_GROUPEND
 };
 
