@@ -1,10 +1,9 @@
 #include "AP_Proximity_Dynamical_SITL.h"
 
 #if HAL_PROXIMITY_ENABLED
-#include <AP_HAL/AP_HAL.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-#include <AP_Param/AP_Param.h>
+#include <AP_HAL/AP_HAL.h>
 #include <AP_AHRS/AP_AHRS.h>
 #include <stdio.h>
 
