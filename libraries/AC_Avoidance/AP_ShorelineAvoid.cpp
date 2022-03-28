@@ -65,7 +65,7 @@ const AP_Param::GroupInfo AP_ShorelineAvoid::var_info[] = {
     // @Range: 0 360
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("SCAN_ANG", 5, AP_ShorelineAvoid, _shoreline_scan_max_angle, 180),
+    AP_GROUPINFO("SCAN_ANG", 5, AP_ShorelineAvoid, _shoreline_scan_max_angle, 359),
 
     // @Param: DPT_MIN
     // @DisplayName: Water depth minimum

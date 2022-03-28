@@ -261,8 +261,8 @@ void AP_Proximity::detect_instance(uint8_t instance)
     case Type::DynamicalSITL:
          state[instance].instance = instance;
          drivers[instance] = new AP_Proximity_Dynamical_SITL(*this, state[instance]);
+         return;
     break;
-
 #endif
 
 #if HAL_MAX_CAN_PROTOCOL_DRIVERS

@@ -63,7 +63,9 @@ public:
         CYGBOT_D1 = 13,
 
         ARS408_CAN = 20,
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
         DynamicalSITL = 21,
+#endif
 
     };
 

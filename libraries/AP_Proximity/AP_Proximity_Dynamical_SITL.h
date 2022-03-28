@@ -1,9 +1,10 @@
 #pragma once
 
-#include "AP_Proximity.h"
+
+#include "AP_Proximity_Backend.h"
 
 #if HAL_PROXIMITY_ENABLED
-#include "AP_Proximity_Backend.h"
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #include <SITL/SITL.h>
 #include <AP_Common/Location.h>
