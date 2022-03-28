@@ -36,30 +36,7 @@ public:
     AP_AIS(const AP_AIS &other) = delete;
     AP_AIS &operator=(const AP_AIS&) = delete;
 
-    // return true if AIS is enabled
-    bool enabled() const { return AISType(_type.get()) != AISType::NONE; }
-
-    // Initialize the AIS object and prepare it for use
-    void init();
-
-    // update AIS, expected to be called at 20hz
-    void update();
-
-    // send mavlink AIS message
-    void send(mavlink_channel_t chan);
-
-    // parameter block
-    static const struct AP_Param::GroupInfo var_info[];
-
-private:
-
-    // parameters
-    AP_Int8 _type;             // type of AIS receiver
-    AP_Int16 _max_list;        // maximum number of vessels to track at once
-    AP_Int16 _time_out;        // time in seconds that a vessel will be dropped from the list
-    AP_Int16 _log_options;     // logging options bitmask
-
-    enum class AISType {
+     enum class AISType {
         NONE   = 0,
         NMEA   = 1,
     };
@@ -84,6 +61,38 @@ private:
         uint32_t last_update_ms; // last time this was refreshed, allows timeouts
         uint32_t last_send_ms; // last time this message was sent via mavlink, stops us spamming the link
     };
+
+   // return true if AIS is enabled
+    bool enabled() const { return AISType(_type.get()) != AISType::NONE; }
+
+    // Initialize the AIS object and prepare it for use
+    void init();
+
+    // update AIS, expected to be called at 20hz
+    void update();
+
+    // send mavlink AIS message
+    void send(mavlink_channel_t chan);
+
+    // get vessel numbers
+    uint16_t get_vessel_numbers(void) const { return _list.max_items(); }
+
+    // get vessel location
+    Location get_location(const ais_vehicle_t &vehicle) const;
+
+    // request vessel information
+    bool get_vessel_info(uint16_t i,ais_vehicle_t &obstacle);
+
+    // parameter block
+    static const struct AP_Param::GroupInfo var_info[];
+
+private:
+
+    // parameters
+    AP_Int8 _type;             // type of AIS receiver
+    AP_Int16 _max_list;        // maximum number of vessels to track at once
+    AP_Int16 _time_out;        // time in seconds that a vessel will be dropped from the list
+    AP_Int16 _log_options;     // logging options bitmask
 
     // list of the vessels that are being tracked
     AP_ExpandingArray<ais_vehicle_t> _list {8};
