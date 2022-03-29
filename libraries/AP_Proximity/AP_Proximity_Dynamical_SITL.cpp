@@ -39,68 +39,68 @@ void AP_Proximity_Dynamical_SITL::update(void)
 
     switch (_state)
     {
-    case Run_State::GET_CENTER:
-        _center_loc =  current_loc;
-        _state = (_last_state == Run_State::CIRCLE_MODE) ?(Run_State::START_MODE):(Run_State::CIRCLE_MODE);
-        _last_update_ms = AP_HAL::millis();
-        _last_state = Run_State::GET_CENTER;
-        break;
-    case Run_State::CIRCLE_MODE:
-    {
-         const uint32_t eplase_time_circle = AP_HAL::millis() - _last_update_ms ;
-         _last_state = Run_State::CIRCLE_MODE;
-        if(eplase_time_circle > mode_run_time_ms){
-            _state = Run_State::GET_CENTER;
-            return;
+        case Run_State::GET_CENTER:
+            _center_loc =  current_loc;
+            _state = (_last_state == Run_State::CIRCLE_MODE) ?(Run_State::START_MODE):(Run_State::CIRCLE_MODE);
+            _last_update_ms = AP_HAL::millis();
+            _last_state = Run_State::GET_CENTER;
+            break;
+        case Run_State::CIRCLE_MODE:
+        {
+            const uint32_t eplase_time_circle = AP_HAL::millis() - _last_update_ms ;
+            _last_state = Run_State::CIRCLE_MODE;
+            if(eplase_time_circle > mode_run_time_ms){
+                _state = Run_State::GET_CENTER;
+                return;
+            }
+            for (size_t i = 0; i < object_num; i++) {
+            
+                _objects_vel[i].x = -PROXIMITY_OBJECT_MAX_RANGE * 
+                                    sinf(i * del_ang +  PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE * eplase_time_circle * 0.001f) * 
+                                    PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE;
+
+                _objects_vel[i].y = PROXIMITY_OBJECT_MAX_RANGE *
+                                    cosf(i * del_ang +  PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE * eplase_time_circle * 0.001f) * 
+                                    PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE;   
+
+                _objects_loc[i].x = _center_loc.x +  PROXIMITY_OBJECT_MAX_RANGE *
+                                    cosf( i * del_ang +  PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE * eplase_time_circle * 0.001f) ;
+
+                _objects_loc[i].y = _center_loc.y + PROXIMITY_OBJECT_MAX_RANGE * 
+                                    sinf( i * del_ang + PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE * eplase_time_circle * 0.001f) ;
+            }
         }
-        for(size_t i = 0; i < object_num; i++){
-           
-            _objects_vel[i].x = -PROXIMITY_OBJECT_MAX_RANGE * 
-                                sinf(i * del_ang +  PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE * eplase_time_circle * 0.001f) * 
-                                PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE;
+            break;
+        case Run_State::START_MODE:
+        {
+            const uint32_t eplase_time_start = AP_HAL::millis() - _last_update_ms ;
+            // update last state
+            _last_state = Run_State::START_MODE;
+            if (eplase_time_start> mode_run_time_ms) {
+                _state = Run_State::GET_CENTER;
+                return;
+            }
+            for (size_t i = 0; i < object_num; i++) {
+                const float vel_dir = wrap_2PI(i * del_ang);
 
-            _objects_vel[i].y = PROXIMITY_OBJECT_MAX_RANGE *
-                                 cosf(i * del_ang +  PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE * eplase_time_circle * 0.001f) * 
-                                PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE;   
+                _objects_vel[i].x =  PROXIMITY_OBJECT_MAX_VEL * cosf(vel_dir + M_PI) * 0.5f;
 
-            _objects_loc[i].x = _center_loc.x +  PROXIMITY_OBJECT_MAX_RANGE *
-                                cosf( i * del_ang +  PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE * eplase_time_circle * 0.001f) ;
+                _objects_vel[i].y =  PROXIMITY_OBJECT_MAX_VEL * sinf(vel_dir + M_PI) * 0.5f;
 
-            _objects_loc[i].y = _center_loc.y + PROXIMITY_OBJECT_MAX_RANGE * 
-                                sinf( i * del_ang + PROXIMITY_OBJECT_MAX_VEL / PROXIMITY_OBJECT_MAX_RANGE * eplase_time_circle * 0.001f) ;
+                _objects_loc[i].x =  _center_loc.x + 1.5f * PROXIMITY_OBJECT_MAX_RANGE * cosf(vel_dir) +
+                                    _objects_vel[i].x * eplase_time_start * 0.001f;
+
+                _objects_loc[i].y =  _center_loc.y  + 1.5f * PROXIMITY_OBJECT_MAX_RANGE * sinf(vel_dir) +
+                                    _objects_vel[i].y * eplase_time_start * 0.001f;
+            }
         }
-    }
-        break;
-    case Run_State::START_MODE:
-    {
-        const uint32_t eplase_time_start = AP_HAL::millis() - _last_update_ms ;
-        // update last state
-        _last_state = Run_State::START_MODE;
-        if(eplase_time_start> mode_run_time_ms){
-            _state = Run_State::GET_CENTER;
-            return;
-        }
-        for(size_t i = 0; i < object_num; i++){
-            const float vel_dir = wrap_2PI(i * del_ang);
-
-            _objects_vel[i].x =  PROXIMITY_OBJECT_MAX_VEL * cosf(vel_dir + M_PI) * 0.5f;
-
-            _objects_vel[i].y =  PROXIMITY_OBJECT_MAX_VEL * sinf(vel_dir + M_PI) * 0.5f;
-
-            _objects_loc[i].x =  _center_loc.x + PROXIMITY_OBJECT_MAX_RANGE * cosf(vel_dir) +
-                                 _objects_vel[i].x * eplase_time_start * 0.001f;
-
-            _objects_loc[i].y =  _center_loc.y  + PROXIMITY_OBJECT_MAX_RANGE * sinf(vel_dir) +
-                                 _objects_vel[i].y * eplase_time_start * 0.001f;
-        }
-    }
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
 
     // send proximity data into OA 
-    if(_last_state != Run_State::GET_CENTER){
+    if (_last_state != Run_State::GET_CENTER) {
         set_status(AP_Proximity::Status::Good);
         for(size_t i = 0; i< object_num; i++){
             const float angle_deg   = wrap_360(degrees(_objects_loc[i].angle()));
