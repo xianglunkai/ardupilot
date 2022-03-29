@@ -31,7 +31,7 @@ const AP_Param::GroupInfo AP_OAVelocityObstacle::var_info[] = {
     // @Description: VO will search for clear path along the direction defined by this parameter
     // @Values: 0:disable 1:noly speed regulator 2: only heading regulator 3: speed and heading regulator at same time
     // @User: Standard
-    AP_GROUPINFO_FLAGS("TYPE", 4, AP_OAVelocityObstacle, _vo_type, 0,AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO("TYPE", 1, AP_OAVelocityObstacle, _vo_type, 3),
 
     // @Param: LOOKAHEAD
     // @DisplayName: Object Avoidance look ahead distance maximum
@@ -40,7 +40,7 @@ const AP_Param::GroupInfo AP_OAVelocityObstacle::var_info[] = {
     // @Range: 1 100
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("LOOKAHEAD", 1, AP_OAVelocityObstacle, _lookahead, 15.0f),
+    AP_GROUPINFO("LOOKAHEAD", 2, AP_OAVelocityObstacle, _lookahead, 15.0f),
 
     // @Param: BR_DEV_MAX
     // @DisplayName: Object Avoidance deviate angle maximum
@@ -49,7 +49,7 @@ const AP_Param::GroupInfo AP_OAVelocityObstacle::var_info[] = {
     // @Range: 0 180
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("BR_DEV_MAX", 2, AP_OAVelocityObstacle, _bearing_deviate_max, 20.0f),
+    AP_GROUPINFO("BRDEV_MAX", 3, AP_OAVelocityObstacle, _bearing_deviate_max, 20.0f),
 
     // @Param: SP_DEV_MAX
     // @DisplayName: Object Avoidance deviate speed maximum
@@ -58,7 +58,7 @@ const AP_Param::GroupInfo AP_OAVelocityObstacle::var_info[] = {
     // @Range: 0 1
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("SP_DEV_MAX", 3, AP_OAVelocityObstacle, _speed_deviate_max, 1.0f),
+    AP_GROUPINFO("SPDEV_MAX", 4, AP_OAVelocityObstacle, _speed_deviate_max, 1.0f),
 
     AP_GROUPEND
 };
@@ -72,7 +72,7 @@ AP_OAVelocityObstacle::AP_OAVelocityObstacle()
 
 // run background task to find best path and update avoidance_results
 // returns true and populates origin_new and destination_new if OA is required.  returns false if OA is not required
-bool AP_OAVelocityObstacle::update(const Location& current_loc, const Location& destination, const float &desired_speed,const Vector2f &ground_speed_vec, Location &origin_new,Location &destination_new, float &desired_speed_new,bool proximity_only)
+bool AP_OAVelocityObstacle::update(const Location& current_loc, const Location& destination, const Vector2f &ground_speed_vec, Location &origin_new, Location &destination_new, float &desired_speed_new, bool proximity_only)
 {
     // VO always sets origin to current_loc
     origin_new = current_loc;

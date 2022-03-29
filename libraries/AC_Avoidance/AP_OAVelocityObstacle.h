@@ -23,9 +23,11 @@ public:
 
     // run background task to find best path and update avoidance_results
     // returns true and populates origin_new and destination_new if OA is required.  returns false if OA is not required
-    bool update(const Location& current_loc, const Location& destination, const float &desired_speed, const Vector2f &ground_speed_vec, Location &origin_new, Location &destination_new, float &desired_speed_new, bool proximity_only);
+    bool update(const Location& current_loc, const Location& destination, const Vector2f &ground_speed_vec, Location &origin_new, Location &destination_new, float &desired_speed_new, bool proximity_only);
 
     bool abandon_waypoint() const { return _abandon_wp; }
+
+    static const struct AP_Param::GroupInfo var_info[];
 
 private:
 
@@ -38,8 +40,6 @@ private:
     // calculate minimum angle between a path and proximity sensor obstacles
     // on success returns true and updates margin
     bool calc_margin_from_object_database(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, const float &delta_bearing, const float &delta_speed, float &margin) const;
-
-    static const struct AP_Param::GroupInfo var_info[];
 
 private:
 
