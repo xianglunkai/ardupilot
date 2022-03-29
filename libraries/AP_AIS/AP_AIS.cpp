@@ -240,6 +240,8 @@ Location AP_AIS::get_location(const ais_vehicle_t &vehicle) const
         vehicle.info.lon,
         0.0f,
         Location::AltFrame::ABSOLUTE);
+        
+    return loc;
 }
 
 // request vessel information

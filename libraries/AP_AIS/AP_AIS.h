@@ -17,6 +17,7 @@
 #include <AP_Param/AP_Param.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_Common/AP_ExpandingArray.h>
+#include <AP_Common/Location.h>
 
 #ifndef HAL_AIS_ENABLED
 #define HAL_AIS_ENABLED !HAL_MINIMIZE_FEATURES
