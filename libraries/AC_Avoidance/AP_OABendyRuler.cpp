@@ -177,7 +177,6 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
         }
     }
 
-     
     // search in OA_BENDYRULER_BEARING_INC degree increments around the vehicle alternating left
     // and right. For each direction check if vehicle would avoid all obstacles
     float best_bearing = bearing_to_dest;
@@ -764,21 +763,13 @@ bool AP_OABendyRuler::calc_margin_from_dynamical_object(const Location &start,co
     float smallest_margin = FLT_MAX;
     const float eplase_time = (start_NEU - cur_NEU).length() / _groundspeed_vector.length();
     const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
-<<<<<<< HEAD
-
-=======
->>>>>>> sf_usv
     for (uint16_t i=0; i<oaDb->database_count(); i++) {
         const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
         const Vector3f point_cm = item.pos * 100.0f;
         const Vector3f point_pred_cm = point_cm + item.vel * eplase_time * 100.0f;
         // calculate closest distance on relative velocity
         const Vector3f relative_vel =  (desired_speed - item.vel);
-<<<<<<< HEAD
-        const Vector3f end_pred_NEU =  start_NEU + relative_vel.normalized() * _dyna_oa_range * 100.0f;
-=======
         const Vector3f end_pred_NEU =  start_NEU + relative_vel.normalized() * (end_NEU - start_NEU).length();
->>>>>>> sf_usv
         const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_pred_NEU, point_pred_cm) * 0.01f - item.radius;
         if(m < smallest_margin){
             smallest_margin = m;
