@@ -30,7 +30,7 @@ public:
 private:
 
     // search for path in XY direction and speed
-    bool search_xy_path(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, float &delta_bearing, float &delta_speed, bool proximity_only);
+    bool search_xy_path(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, float ground_course_deg,float &desired_bearing, float &desired_speed, bool proximity_only);
 
     // calculate minimum distance between a path and any obstacle
     float calc_avoidance_margin(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, const float &delta_bearing, const float &delta_speed, bool proximity_only) const;
