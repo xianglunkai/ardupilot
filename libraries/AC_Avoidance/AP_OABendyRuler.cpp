@@ -31,7 +31,7 @@ const float OA_BENDYRULER_LOOKAHEAD_STEP2_RATIO = 1.0f; // step2's lookahead len
 const float OA_BENDYRULER_LOOKAHEAD_STEP2_MIN = 2.0f;   // step2 checks at least this many meters past step1's location
 const float OA_BENDYRULER_LOOKAHEAD_PAST_DEST = 2.0f;   // lookahead length will be at least this many meters past the destination
 const float OA_BENDYRULER_LOW_SPEED_SQUARED = (0.2f * 0.2f);    // when ground course is below this speed squared, vehicle's heading will be used
-const uint64_t OA_BENDYRULER_TIME_DELAY_RESET = (uint64_t)1000 * 1000ULL; // delay 2s
+const uint64_t OA_BENDYRULER_TIME_DELAY_RESET = (uint64_t)2000 * 1000ULL; // delay 2s
 
 #define VERTICAL_ENABLED APM_BUILD_COPTER_OR_HELI
 
