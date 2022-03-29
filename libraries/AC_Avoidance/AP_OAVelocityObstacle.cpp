@@ -21,8 +21,8 @@
 
 // parameter defaults
 const float OA_VO_LOW_SPEED_SQUARED = (0.2f * 0.2f);    // when ground course is below this speed squared, vehicle's heading will be used
-const int16_t OA_VO_BEARING_INC_XY = 1;                 // check every 5 degrees around vehicle
-const int16_t OA_VO_SPEED_INC_XY = 0.2;                 // check every 0.2 m/s around vehicle
+const float OA_VO_BEARING_INC_XY = 1;                 // check every 5 degrees around vehicle
+const float OA_VO_SPEED_INC_XY = 0.2;                 // check every 0.2 m/s around vehicle
 
 const AP_Param::GroupInfo AP_OAVelocityObstacle::var_info[] = {
 
@@ -78,7 +78,7 @@ bool AP_OAVelocityObstacle::update(const Location& current_loc, const Location& 
     origin_new = current_loc;
 
     // calculate bearing and distance to final destination
-    const float bearing_to_dest = current_loc.get_bearing_to(destination) * 0.01f;
+    //const float bearing_to_dest = current_loc.get_bearing_to(destination) * 0.01f;
     const float distance_to_dest = current_loc.get_distance(destination);
 
     // make sure user has set a meaningful value for _lookahead
@@ -103,7 +103,7 @@ bool AP_OAVelocityObstacle::update(const Location& current_loc, const Location& 
     vehicle_pos = vehicle_pos * 0.01f;
 
     float desired_bearing = 0;
-    bool ret;
+    bool ret = true;
     switch ((VO_TYPE)_vo_type.get())
     {
         case VO_TYPE::NONE:
@@ -187,6 +187,8 @@ float AP_OAVelocityObstacle::calc_avoidance_margin(const Vector3f &vehicle_pos, 
         // only need margin from proximity data
         return margin_min;
     }
+
+    return margin_min;
 }
 
 // calculate minimum angle between a path and proximity sensor obstacles
