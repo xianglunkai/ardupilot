@@ -106,20 +106,6 @@ struct PACKED log_OD_Visgraph {
   int32_t Lon;
 };
 
-struct PACKED log_OARTAstar {
-    LOG_PACKET_HEADER;
-    uint64_t time_us;
-    uint8_t state;
-    uint8_t error_id;
-    int32_t next_lat;
-    int32_t next_lng;
-    uint64_t nodes_time;
-    uint64_t visgraph_time;
-    uint64_t path_time;
-    uint64_t total_time;
-};
-
-
 #define LOG_STRUCTURE_FROM_AVOIDANCE \
     { LOG_OA_BENDYRULER_MSG, sizeof(log_OABendyRuler), \
       "OABR","QBBHHHBfLLiLLi","TimeUS,Type,Act,DYaw,Yaw,DP,RChg,Mar,DLt,DLg,DAlt,OLt,OLg,OAlt", "s-bddd-mDUmDUm", "F-------GGBGGB" , true }, \
@@ -128,4 +114,4 @@ struct PACKED log_OARTAstar {
     { LOG_SIMPLE_AVOID_MSG, sizeof(log_SimpleAvoid), \
       "SA",  "QBffffffB","TimeUS,State,DVelX,DVelY,DVelZ,MVelX,MVelY,MVelZ,Back", "sbnnnnnnb", "F--------", true }, \
     { LOG_OD_VISGRAPH_MSG, sizeof(log_OD_Visgraph), \
-      "OAVG", "QBBLL", "TimeUS,version,point_num,Lat,Lon", "s--DU", "F--GG", true}
+      "OAVG", "QBBLL", "TimeUS,version,point_num,Lat,Lon", "s--DU", "F--GG", true},
