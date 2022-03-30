@@ -6,7 +6,6 @@
     LOG_OA_BENDYRULER_MSG, \
     LOG_OA_DIJKSTRA_MSG, \
     LOG_SIMPLE_AVOID_MSG, \
-    LOG_OA_RTASTAR_MSG, \
     LOG_OD_VISGRAPH_MSG
 
 // @LoggerMessage: OABR
@@ -129,6 +128,4 @@ struct PACKED log_OARTAstar {
     { LOG_SIMPLE_AVOID_MSG, sizeof(log_SimpleAvoid), \
       "SA",  "QBffffffB","TimeUS,State,DVelX,DVelY,DVelZ,MVelX,MVelY,MVelZ,Back", "sbnnnnnnb", "F--------", true }, \
     { LOG_OD_VISGRAPH_MSG, sizeof(log_OD_Visgraph), \
-      "OAVG", "QBBLL", "TimeUS,version,point_num,Lat,Lon", "s--DU", "F--GG", true},\
-    { LOG_OA_RTASTAR_MSG, sizeof(log_OARTAstar), \
-      "OARA", "QBBLLQQQQ","TimeUS,State,Err,NextLat,NextLng,NT,VT,PT,TT", "sbbDUssss", "F--GGFFFF", true },
+      "OAVG", "QBBLL", "TimeUS,version,point_num,Lat,Lon", "s--DU", "F--GG", true}
