@@ -78,7 +78,7 @@ bool AP_OAVelocityObstacle::update(const Location& current_loc, const Location& 
     origin_new = current_loc;
 
     // calculate bearing and distance to final destination
-    //const float bearing_to_dest = current_loc.get_bearing_to(destination) * 0.01f;
+    const float bearing_to_dest = current_loc.get_bearing_to(destination) * 0.01f;
     const float distance_to_dest = current_loc.get_distance(destination);
 
     // make sure user has set a meaningful value for _lookahead
@@ -116,7 +116,7 @@ bool AP_OAVelocityObstacle::update(const Location& current_loc, const Location& 
             break;
         case VO_TYPE::BEARING_SPEED_REGULATOR:
         // regulator speed and bearing at same time
-            ret = search_xy_path(vehicle_pos,speed_vec,ground_course_deg,desired_bearing,desired_speed_new,proximity_only);
+            ret = search_xy_path(vehicle_pos,speed_vec,ground_course_deg,desired_bearing,desired_speed_new,bearing_to_dest,distance_to_dest,proximity_only);
             destination_new = current_loc;
             destination_new.offset_bearing(desired_bearing,MIN(_lookahead,distance_to_dest));
             break;
@@ -128,11 +128,14 @@ bool AP_OAVelocityObstacle::update(const Location& current_loc, const Location& 
 }
 
 
-bool AP_OAVelocityObstacle::search_xy_path(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, float ground_course_deg,float &desired_bearing, float &desired_speed, bool proximity_only)
+bool AP_OAVelocityObstacle::search_xy_path(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, float ground_course_deg,float &desired_bearing, float &desired_speed, float bearing_to_dest, float distance_to_dest, bool proximity_only)
 {
     // search in OA_BENDYRULER_BEARING_INC degree increments around the vehicle alternating left
     // and right. For each direction check if vehicle would avoid all obstacles
-    
+    float best_margin = -FLT_MAX;
+    float best_margin_bearing = ground_course_deg;
+    float best_margin_speed = desired_speed;
+
     for (uint16_t i = 0; i <= (_bearing_deviate_max / OA_VO_BEARING_INC_XY); i++) {
         for (uint16_t bdir = 0; bdir <= 1; bdir++) {
             // skip duplicate check of bearing straight towards destination
@@ -141,6 +144,7 @@ bool AP_OAVelocityObstacle::search_xy_path(const Vector3f &vehicle_pos, const Ve
             }
             // bearing that we are probing
             const float bearing_delta = i * OA_VO_BEARING_INC_XY * (bdir == 0 ? -1.0f : 1.0f);
+            const float bearing_test = wrap_360(ground_course_deg + bearing_delta);
 
             // probing speed change 
             for (uint16_t j = 0; j <= (_speed_deviate_max / OA_VO_SPEED_INC_XY); j++) {
@@ -150,36 +154,43 @@ bool AP_OAVelocityObstacle::search_xy_path(const Vector3f &vehicle_pos, const Ve
                         continue;
                     }
                     const float speed_delta = j * OA_VO_SPEED_INC_XY * (sdir == 0 ? -1.0f : 1.0f);
+                    const float speed_test  = constrain_float(vehicle_speed.length() + speed_delta,1.0f,3.0f);
 
                     // calculate margin from obstacle for this scenario
-                    float margin = calc_avoidance_margin(vehicle_pos,vehicle_speed,bearing_delta,speed_delta,proximity_only);
-                    const float test_speed = speed_delta + vehicle_speed.length();
+                    float margin = calc_avoidance_margin(vehicle_pos, vehicle_speed, bearing_test, speed_test, proximity_only);
+                    if (margin > best_margin) {
+                        best_margin = margin;
+                        best_margin_bearing = bearing_test;
+                        best_margin_speed = speed_test;
+                    }
 
-                    if (margin > 0.0f && test_speed > 1.0f) {
-                        const bool active = (!i == 0 || !j ==0);
-                        desired_bearing = wrap_360(ground_course_deg + bearing_delta);
-                        desired_speed = test_speed;
-                        return active;
+                    if(margin > _margin_max && i == 0 && j == 0){
+                        return false;
                     }
                 }
             } 
         }
     }
 
-    desired_speed = 0.0f;
-    desired_bearing = ground_course_deg;
+    if (best_margin > _margin_max) {
+        desired_bearing = best_margin_bearing;
+        desired_speed   = best_margin_speed;
+    }else{
+        desired_bearing = bearing_to_dest;
+        desired_speed = 0.0f;
+    }
 
     return true;
 }
 
 // calculate minimum distance between a path and any obstacle
-float AP_OAVelocityObstacle::calc_avoidance_margin(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, const float &delta_bearing, const float &delta_speed, bool proximity_only) const
+float AP_OAVelocityObstacle::calc_avoidance_margin(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, const float &test_bearing, const float &test_speed, bool proximity_only) const
 {
     float margin_min = FLT_MAX;
     
     float latest_margin;
 
-    if (calc_margin_from_object_database(vehicle_pos, vehicle_speed, delta_bearing, delta_speed, latest_margin)) {
+    if (calc_margin_from_object_database(vehicle_pos, vehicle_speed, test_bearing, test_speed, latest_margin)) {
         margin_min = MIN(margin_min, latest_margin);
     }
     
@@ -193,7 +204,7 @@ float AP_OAVelocityObstacle::calc_avoidance_margin(const Vector3f &vehicle_pos, 
 
 // calculate minimum angle between a path and proximity sensor obstacles
 // on success returns true and updates margin
- bool AP_OAVelocityObstacle::calc_margin_from_object_database(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, const float &delta_bearing, const float &delta_speed, float &margin) const
+ bool AP_OAVelocityObstacle::calc_margin_from_object_database(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, const float &test_bearing, const float &test_speed, float &margin) const
  {
     // exit immediately if db is empty
     AP_OADatabase *oaDb = AP::oadatabase();
@@ -201,21 +212,14 @@ float AP_OAVelocityObstacle::calc_avoidance_margin(const Vector3f &vehicle_pos, 
         return false;
     }
 
+    const Vector3f test_ground_speed_vec  = Vector3f{cosf(radians(test_bearing)),sinf(radians(test_bearing)),0.0f} * test_speed;
     float smallest_margin = FLT_MAX;
     for (uint16_t i = 0; i< oaDb->database_count();i++) {
         const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
-        const Vector3f rel_pos = item.pos - vehicle_pos;
-        const Vector3f rel_vel = vehicle_speed - item.vel;
-        // only obstacles in the designated area shall be considered
-        if(rel_pos.length() > _lookahead + item.radius || rel_pos.is_zero()){
-            continue;
-        }
-        // determine whether they will meet in the furture
-        const float mu = asinf((item.radius + _margin_max)/rel_pos.length());
-        const float gama = wrap_PI(rel_vel.xy().angle() - rel_pos.xy().angle());
-        const float fai = wrap_PI(vehicle_speed.xy().angle() - rel_vel.xy().angle());
-        const float m = fabsf((-sinf(fai) * delta_speed + vehicle_speed.length() * cosf(fai) * radians(delta_bearing))/(rel_vel.length() + FLT_EPSILON) +
-                    gama) - mu;
+        // calculate closest distance on relative velocity
+        const Vector3f relative_vel =  (test_ground_speed_vec - item.vel);
+        const Vector3f end_pred_NEU =  vehicle_pos + relative_vel.normalized() * _lookahead;
+        const float m = Vector3f::closest_distance_between_line_and_point(vehicle_pos, end_pred_NEU, item.pos) - item.radius;
         if(m < smallest_margin){
             smallest_margin = m;
         }
