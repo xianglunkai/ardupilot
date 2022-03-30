@@ -108,11 +108,12 @@ void AP_Proximity_Dynamical_SITL::update(void)
             const float vel_mag     = _objects_vel[i].length();
             const float vel_ang     =  wrap_360(degrees(_objects_vel[i].angle()));
 
-            const AP_Proximity_Boundary_3D::Face face = boundary.get_face(angle_deg);
             const float distance_to_vehicle = (_objects_loc[i] - current_loc).length();
-            const float relative_to_angle   = wrap_360(angle_deg - current_bearing);
+            const float direction_to_obstacle = degrees((_objects_loc[i] - current_loc).angle());
+            const float relative_to_angle   = wrap_360(direction_to_obstacle - current_bearing);
 
-            if (!ignore_reading(relative_to_angle, distance_to_vehicle)) {
+            const AP_Proximity_Boundary_3D::Face face = boundary.get_face(relative_to_angle);
+            if (!ignore_reading(relative_to_angle, distance_to_vehicle,false)) {
                 if ((distance_to_vehicle <= distance_max()) && (distance_to_vehicle >= distance_min())) {
                     boundary.set_face_attributes(face, relative_to_angle, distance_to_vehicle);
                     // update OA database
