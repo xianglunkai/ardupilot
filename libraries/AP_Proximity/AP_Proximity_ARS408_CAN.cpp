@@ -357,11 +357,10 @@ void AP_Proximity_ARS408_CAN::handle_frame(AP_HAL::CANFrame &frame)
                         const float rel_vel_mag = norm(rel_lat_vel,rel_lon_vel);
                         const float rel_vel_angle = wrap_360(degrees(-atan2f(rel_lat_vel,rel_lon_vel)));
 
-
                         if (!ignore_reading(angle_deg, distance_m)) {
                             const AP_Proximity_Boundary_3D::Face face = boundary.get_face(angle_deg);
                             if ((distance_m <= distance_max()) && (distance_m >= distance_min())) {
-                            boundary.set_face_attributes(face, angle_deg, distance_m);
+                                boundary.set_face_attributes(face, angle_deg, distance_m,false);
                                 // update OA database
                                 database_push(angle_deg,0.0f,distance_m,rel_vel_mag,rel_vel_angle,obj_radius);
                             } else {
