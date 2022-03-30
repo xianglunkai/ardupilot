@@ -222,7 +222,9 @@ public:
     // normalizes this vector
     void normalize()
     {
-        *this /= length();
+        if(!::is_zero(length())){
+            *this /= length();
+        }
     }
 
     // zero the vector
@@ -234,7 +236,7 @@ public:
     // returns the normalized version of this vector
     Vector3<T> normalized() const
     {
-        return *this/length();
+        return ::is_zero(length()) ? *this: *this/length();
     }
 
     // reflects this vector about n
