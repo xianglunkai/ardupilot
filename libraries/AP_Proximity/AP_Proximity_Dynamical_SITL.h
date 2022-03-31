@@ -30,20 +30,18 @@ public:
 private:
 
     enum class Run_State{
-        GET_CENTER = 0,
+        INIT_MODE = 0,
         CIRCLE_MODE = 1,
         START_MODE = 2,
+        PP_MODE  = 3,
     };
 
     // initial state
-    Run_State _state{Run_State::GET_CENTER};
-    Run_State _last_state{Run_State::GET_CENTER};
-
+    Run_State _state{Run_State::INIT_MODE};
     // mode center postion
     Vector2f _center_loc;
-
     // last running time
-    uint32_t _last_update_ms{0};
+    uint32_t _last_update_ms[3];
 
 };
 #endif // CONFIG_HAL_BOARD
