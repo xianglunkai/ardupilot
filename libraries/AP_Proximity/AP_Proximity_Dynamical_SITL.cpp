@@ -91,7 +91,6 @@ void AP_Proximity_Dynamical_SITL::update(void)
                 _objects_vel[i] = Vector2f{0, 1} * sign * PROXIMITY_OBJECT_MAX_VEL;
                 _objects_loc[i] = _center_loc + Vector2f{0.5f * PROXIMITY_OBJECT_MAX_RANGE * (i+1) * sign, -PROXIMITY_OBJECT_MAX_RANGE * sign} + _objects_vel[i] * eplase_time_start * 0.001f;
             }
-
             break;
         }
         default:
