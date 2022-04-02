@@ -134,7 +134,7 @@ bool AP_OAVelocityObstacle::search_xy_path(const Vector3f &vehicle_pos, const Ve
     // and right. For each direction check if vehicle would avoid all obstacles
     float best_margin = -FLT_MAX;
     float best_margin_bearing = ground_course_deg;
-    float best_margin_speed = desired_speed;
+    float best_margin_speed = 0;
 
     for (uint16_t i = 0; i <= (_bearing_deviate_max / OA_VO_BEARING_INC_XY); i++) {
         for (uint16_t bdir = 0; bdir <= 1; bdir++) {
@@ -154,7 +154,7 @@ bool AP_OAVelocityObstacle::search_xy_path(const Vector3f &vehicle_pos, const Ve
                         continue;
                     }
                     const float speed_delta = j * OA_VO_SPEED_INC_XY * (sdir == 0 ? -1.0f : 1.0f);
-                    const float speed_test  = constrain_float(vehicle_speed.length() + speed_delta,1.0f,3.0f);
+                    const float speed_test  = desired_speed + speed_delta;
 
                     // calculate margin from obstacle for this scenario
                     float margin = calc_avoidance_margin(vehicle_pos, vehicle_speed, bearing_test, speed_test, proximity_only);
@@ -163,7 +163,6 @@ bool AP_OAVelocityObstacle::search_xy_path(const Vector3f &vehicle_pos, const Ve
                         best_margin_bearing = bearing_test;
                         best_margin_speed = speed_test;
                     }
-
                     if(margin > _margin_max && i == 0 && j == 0){
                         return false;
                     }
@@ -172,7 +171,7 @@ bool AP_OAVelocityObstacle::search_xy_path(const Vector3f &vehicle_pos, const Ve
         }
     }
 
-    if (best_margin > _margin_max) {
+    if (best_margin > _margin_max && best_margin_speed > 1.0f) {
         desired_bearing = best_margin_bearing;
         desired_speed   = best_margin_speed;
     }else{
