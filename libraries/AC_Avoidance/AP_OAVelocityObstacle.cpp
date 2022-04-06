@@ -212,13 +212,18 @@ float AP_OAVelocityObstacle::calc_avoidance_margin(const Vector3f &vehicle_pos, 
     }
 
     const Vector3f test_ground_speed_vec  = Vector3f{cosf(radians(test_bearing)),sinf(radians(test_bearing)),0.0f} * test_speed;
+    const float eplase_time = (test_ground_speed_vec - vehicle_speed).length() / OA_VO_SPEED_INC_XY;
+    const float moved_distance = fabsf(test_ground_speed_vec.length_squared() - vehicle_speed.length_squared())/(2.0f * OA_VO_SPEED_INC_XY);
     float smallest_margin = FLT_MAX;
     for (uint16_t i = 0; i< oaDb->database_count();i++) {
         const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
+        // predict obstacle new postion and vehicle new postion
+        const Vector3f vehicle_pred_NEU = vehicle_pos  + vehicle_speed.normalized() * moved_distance;
+        const Vector3f point_pred_NEU = item.pos + item.vel * eplase_time;
         // calculate closest distance on relative velocity
         const Vector3f relative_vel =  (test_ground_speed_vec - item.vel);
-        const Vector3f end_pred_NEU =  vehicle_pos + relative_vel.normalized() * _lookahead;
-        const float m = Vector3f::closest_distance_between_line_and_point(vehicle_pos, end_pred_NEU, item.pos) - item.radius;
+        const Vector3f end_pred_NEU =  vehicle_pred_NEU + relative_vel * eplase_time;
+        const float m = Vector3f::closest_distance_between_line_and_point(vehicle_pred_NEU, end_pred_NEU, point_pred_NEU) - item.radius;
         if(m < smallest_margin){
             smallest_margin = m;
         }
