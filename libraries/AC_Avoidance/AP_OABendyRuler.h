@@ -78,12 +78,15 @@ private:
     // Logging function
     void Write_OABendyRuler(const uint8_t type, const bool active, const float target_yaw, const float target_pitch, const bool resist_chg, const float margin, const Location &final_dest, const Location &oa_dest) const;
 
-
     // calculate minimum distance between goal and any obstacle
-    bool calc_goal_margin_from_fence(const Location &start,const Location &end,float &margin) const;
+    bool calc_goal_margin_from_fence(const Location &start, const Location &end, float &margin) const;
+
     bool calc_goal_margin_from_object_database(const Location &start, const Location &end, float &margin) const;
+
     bool calc_goal_margin_from_circular_fence(const Location &start, const Location &end, float &margin) const;
+
     bool calc_goal_margin_from_inclusion_and_exclusion_polygons(const Location &start, const Location &end, float &margin) const;
+    
     bool calc_goal_margin_from_inclusion_and_exclusion_circles(const Location &start, const Location &end, float &margin) const;
 
 
