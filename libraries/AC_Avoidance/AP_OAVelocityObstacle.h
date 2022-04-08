@@ -39,7 +39,7 @@ private:
 
     // calculate minimum angle between a path and proximity sensor obstacles
     // on success returns true and updates margin
-    bool calc_margin_from_object_database(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, const float &test_bearing, const float &test_speed, float &margin) const;
+    bool calc_margin_from_object_database(const Vector3f &vehicle_pos, const Vector3f &vehicle_speed, const float &test_bearing, const float &test_speed, float &margin,float pred_time) const;
 
 private:
 
