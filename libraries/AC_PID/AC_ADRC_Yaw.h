@@ -4,7 +4,7 @@
 #include <AP_Param/AP_Param.h>
 #include <stdlib.h>
 #include <cmath>
-#include <AP_Logger/AP_Logger.h>
+#include "AP_PIDInfo.h"
 
 class AC_ADRC_YAW{
     public:
@@ -30,7 +30,7 @@ class AC_ADRC_YAW{
             flags_.reset_filter_ = true;
         }
 
-        const AP_Logger::PID_Info& get_debug_info(void) const { return _debug_info; }
+        const AP_PIDInfo& get_debug_info(void) const { return _debug_info; }
 
         // parameter var table
          static const struct AP_Param::GroupInfo var_info[];
@@ -61,5 +61,5 @@ class AC_ADRC_YAW{
         float v2_{0.0f};
 
 
-        AP_Logger::PID_Info _debug_info;
+        AP_PIDInfo _debug_info;
 };
