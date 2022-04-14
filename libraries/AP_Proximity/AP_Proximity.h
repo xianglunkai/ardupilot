@@ -178,12 +178,12 @@ public:
 
     // set alt as read from downward facing rangefinder. Tilt is already adjusted for
     void set_rangefinder_alt(bool use, bool healthy, float alt_cm);
-protected:
-    AP_Proximity_Params params[PROXIMITY_MAX_INSTANCES];
 
     // method called by vehicle to have AP_Proximity write onboard log
     // messages:
     void log();
+protected:
+    AP_Proximity_Params params[PROXIMITY_MAX_INSTANCES];
 
 private:
     static AP_Proximity *_singleton;
