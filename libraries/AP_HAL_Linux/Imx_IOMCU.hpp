@@ -84,7 +84,7 @@ public:
 		const uint32_t now = AP_HAL::millis();
 		static uint32_t last = 0;
 		static uint32_t dt_min = 20;
-		const uint32_t dt = is_zero(last) ? 20:(now - last);
+		const uint32_t dt = last == 0 ? dt_min:(now - last);
 		dt_min = MIN(dt_min,dt);
 		bool res =  uart_send_packet(fd, PACKET_RECV_SET_PWM_DUTY, packet, packet2, 13 * 4);
 		printf("p1:%d,p2:%d,p3:%d,p4:%d,success:%d,dt_min:%d\n",packet[1],packet[2],packet[3],packet[4],res,dt_min);
