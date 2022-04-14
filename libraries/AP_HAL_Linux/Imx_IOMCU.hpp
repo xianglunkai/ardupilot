@@ -81,13 +81,25 @@ public:
 			packet[i + 1] = duty[i];
 		}
 
-		return uart_send_packet(fd, PACKET_RECV_SET_PWM_DUTY, packet, packet2, 13 * 4);
+		const uint32_t now = AP_HAL::millis();
+		static uint32_t last = 0;
+		static uint32_t dt_min = 20;
+		const uint32_t dt = is_zero(last) ? 20:(now - last);
+		dt_min = MIN(dt_min,dt);
+		bool res =  uart_send_packet(fd, PACKET_RECV_SET_PWM_DUTY, packet, packet2, 13 * 4);
+		printf("p1:%d,p2:%d,p3:%d,p4:%d,success:%d,dt_min:%d\n",packet[1],packet[2],packet[3],packet[4],res,dt_min);
+		last = now;
+		return res;
 	}
 	bool read_adc(int32_t *adc_pc0_data, int32_t *adc_pc1_data)
 	{
 		int poll_ret = poll(&poll_fd, 1, 0);
 		if (poll_ret <= 0)
 			return false;
+
+		if (buf_used > 4096 || buf_used < 0) {
+			buf_used = 0;
+		}
 
 		int read_len = read(fd, &uart_buf[buf_used], 4096 - buf_used);
 		if (read_len <= 0)
@@ -117,6 +129,7 @@ private:
 	uint8_t uart_buf[4096];
 	int buf_used;
 	struct pollfd poll_fd;
+
 
 	int set_uart_baudrate(const int _fd, unsigned int baud)
 	{
@@ -197,8 +210,8 @@ private:
 			newbuf[i * 2 + 8] = oldbuf[i];
 			newbuf[i * 2 + 9] = 0;
 		}
-
-		int write_bytes = write(_fd, newbuf, newbuf_len);
+		
+		int write_bytes = ::write(_fd, newbuf, newbuf_len);
 		if (write_bytes != newbuf_len)
 			return false;
 
