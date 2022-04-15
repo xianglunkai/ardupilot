@@ -112,6 +112,8 @@ void AP_Vehicle::setup()
 
     load_parameters();
 
+    printf("Load parameters success!\n");
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     if (AP_BoardConfig::get_sdcard_slowdown() != 0) {
         // user wants the SDcard slower, we need to remount
@@ -126,6 +128,7 @@ void AP_Vehicle::setup()
     uint32_t log_bit;
     get_scheduler_tasks(tasks, task_count, log_bit);
     AP::scheduler().init(tasks, task_count, log_bit);
+    printf("Scheduler initialization success!\n");
 
     // time per loop - this gets updated in the main loop() based on
     // actual loop rate
@@ -218,6 +221,7 @@ void AP_Vehicle::setup()
     custom_rotations.init();
 
     gcs().send_text(MAV_SEVERITY_INFO, "ArduPilot Ready");
+    ::printf("ArduPilot Ready\n");
 }
 
 void AP_Vehicle::loop()
