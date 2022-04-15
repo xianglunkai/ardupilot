@@ -9,8 +9,14 @@
 #include <stdio.h>
 #include <poll.h>
 
-#define PACKET_HEADER 0x11
+#define DEBUG 1
+#if DEBUG
+#define debug(fmt, args...) ::printf(fmt "\n", ##args)
+#else
+#define debug(fmt, args...)
+#endif
 
+#define PACKET_HEADER 0x11
 #define PACKET_SEND_ADC_VALUE 1
 #define PACEET_RECV_SET_PWM_FREQ 101
 #define PACKET_RECV_SET_PWM_DUTY 102
@@ -40,6 +46,7 @@ public:
 			buf_used = 0;
 			poll_fd.fd = -1;
 		}
+		debug("Imx class deleted!");
 	}
 	int init(const char *uart_name, unsigned int baud = 115200)
 	{
@@ -81,14 +88,14 @@ public:
 			packet[i + 1] = duty[i];
 		}
 
-		const uint32_t now = AP_HAL::millis();
-		static uint32_t last = 0;
-		static uint32_t dt_min = 20;
-		const uint32_t dt = last == 0 ? dt_min:(now - last);
-		dt_min = MIN(dt_min,dt);
+		// const uint32_t now = AP_HAL::millis();
+		// static uint32_t last = 0;
+		// static uint32_t dt_min = 20;
+		// const uint32_t dt = last == 0 ? dt_min:(now - last);
+		// dt_min = MIN(dt_min,dt);
 		bool res =  uart_send_packet(fd, PACKET_RECV_SET_PWM_DUTY, packet, packet2, 13 * 4);
-		printf("p1:%d,p2:%d,p3:%d,p4:%d,success:%d,dt_min:%d\n",packet[1],packet[2],packet[3],packet[4],res,dt_min);
-		last = now;
+		// printf("p1:%d,p2:%d,p3:%d,p4:%d,success:%d,dt_min:%d\n",packet[1],packet[2],packet[3],packet[4],res,dt_min);
+		// last = now;
 		return res;
 	}
 	bool read_adc(int32_t *adc_pc0_data, int32_t *adc_pc1_data)
@@ -212,8 +219,10 @@ private:
 		}
 		
 		int write_bytes = ::write(_fd, newbuf, newbuf_len);
-		if (write_bytes != newbuf_len)
+		if (write_bytes != newbuf_len) {
+			debug("TX ERROR: ret: %d, errno: %d", write_bytes, errno);
 			return false;
+		}
 
 		return true;
 	}
