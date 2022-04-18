@@ -776,13 +776,19 @@ float AR_AttitudeControl::get_steering_out_course(float heading_rad,float rate_m
     float ground_course_deg;
     Vector2f ground_speed_vec = AP::ahrs().groundspeed_vector();
     const float ground_speed_dir = degrees(ground_speed_vec.angle());
-    if (ground_speed_vec.length() < AR_ATTCONTROL_STEER_SPEED_MIN) {
+
+    // consider relative heading error betwwen desired heading and ground speed direction
+    const float speed_dir_abs_err = fabsf(wrap_180(degrees(heading_rad) - ground_speed_dir));
+
+    // calculate current crouse feedback
+    if (ground_speed_vec.length() < AR_ATTCONTROL_STEER_SPEED_MIN || speed_dir_abs_err > 90.0f) {
         // with zero ground speed use vehicle's heading
         ground_course_deg = AP::ahrs().yaw_sensor * 0.01f;
     } else {
         ground_course_deg = ground_speed_dir;
     }
     ground_course_deg =  wrap_360(ground_course_deg);
+
 
     // select controller
     if(_steer_angle_ctl_type == Controller_type::ADRC){
