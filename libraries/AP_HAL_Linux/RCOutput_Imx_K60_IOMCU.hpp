@@ -44,7 +44,7 @@ namespace Linux
 		}
 		void disable_ch(uint8_t ch) override
 		{
-			write(ch, 1);
+			// write(ch, 1);
 		}
 		void write(uint8_t ch, uint16_t period_us) override
 		{
