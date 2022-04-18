@@ -689,11 +689,7 @@ float RangeFinder::distance_orient(enum Rotation orientation,bool filt) const
 
 uint16_t RangeFinder::distance_cm_orient(enum Rotation orientation,bool filt) const
 {
-    AP_RangeFinder_Backend *backend = find_instance(orientation);
-    if (backend == nullptr) {
-        return 0;
-    }
-    return (filt == true)?backend->distance_cm_filt():backend->distance_cm();
+    return distance_orient(orientation, filt) * 100.0;
 }
 
 int16_t RangeFinder::max_distance_cm_orient(enum Rotation orientation) const
