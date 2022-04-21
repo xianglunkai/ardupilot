@@ -245,7 +245,6 @@ float AP_Proximity_ARS408_CAN::distance_min() const
 // handler for incoming frames
 void AP_Proximity_ARS408_CAN::handle_frame(AP_HAL::CANFrame &frame)
 {
-    
     uint32_t msg_id = frame.id;
     switch(CAN_ID(msg_id)){
         // 0x60A
@@ -257,12 +256,12 @@ void AP_Proximity_ARS408_CAN::handle_frame(AP_HAL::CANFrame &frame)
                 set_status(AP_Proximity::Status::NoData);
              }
 
-            // Empty obj_general_list_ \obj_quality_list_\obj_extended_list_
+            // clear contian list
             obj_general_list_.clear();
             obj_quality_list_.clear();
             obj_extended_list_.clear();
 
-             break;
+            break;
         }
 
         // 0x60B
@@ -357,21 +356,34 @@ void AP_Proximity_ARS408_CAN::handle_frame(AP_HAL::CANFrame &frame)
                         const float rel_vel_mag = norm(rel_lat_vel,rel_lon_vel);
                         const float rel_vel_angle = wrap_360(degrees(-atan2f(rel_lat_vel,rel_lon_vel)));
 
-                        if (!ignore_reading(angle_deg, distance_m)) {
-                            const AP_Proximity_Boundary_3D::Face face = boundary.get_face(angle_deg);
-                            if ((distance_m <= distance_max()) && (distance_m >= distance_min())) {
-                                boundary.set_face_attributes(face, angle_deg, distance_m);
-                                // update OA database
-                                database_push(angle_deg,0.0f,distance_m,rel_vel_mag,rel_vel_angle,obj_radius);
-                            } else {
-                                // invalidate distance of face
-                                boundary.reset_face(face);
-                            }
+                        const bool range_check = (distance_m > distance_max()) || (distance_m < distance_min());
+                        if (range_check || ignore_reading(angle_deg, distance_m)) {
+                          return;
                         }
-                    }else{
+                        const AP_Proximity_Boundary_3D::Face face = boundary.get_face(angle_deg);
+                        if (face != _last_face) {
+                          // distance is for a new face, the previous one can be updated now
+                          if (_last_distance_valid) {
+                              boundary.set_face_attributes(_last_face, _last_angle_deg, _last_distance_m);
+                          } else {
+                              // reset distance from last face
+                              boundary.reset_face(face);
+                          }
+                          // initialize the new face
+                          _last_face = face;
+                          _last_distance_valid = false;
+                        } 
+
+                        // update shortest distance
+                        if (!_last_distance_valid || (distance_m < _last_distance_m)) {
+                            _last_distance_m = distance_m;
+                            _last_distance_valid = true;
+                            _last_angle_deg = angle_deg;
+                        }
+                        // update OA database
+                        database_push(angle_deg,0.0f,distance_m,rel_vel_mag,rel_vel_angle,obj_radius);
                     }
                 }
-            }else{
             }
 
             break;

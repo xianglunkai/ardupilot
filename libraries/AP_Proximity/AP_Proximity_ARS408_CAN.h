@@ -284,12 +284,12 @@ private:
     bool initialized_{false};
 
 private:
-    // face related variables
-    float _last_angle_deg;
-    float _last_distance_m;
-    bool _last_distance_valid; 
-    AP_Proximity_Boundary_3D::Face _last_face;
     uint32_t _last_reading_ms;
+    // variables to calculate closest angle and distance for each face
+    AP_Proximity_Boundary_3D::Face _last_face;///< last face requested
+    float _last_angle_deg;                    ///< yaw angle (in degrees) of _last_distance_m
+    float _last_distance_m;                   ///< shortest distance for _last_face
+    bool _last_distance_valid;                ///< true if _last_distance_m is valid
 };
 #endif //HAL_MAX_CAN_PROTOCOL_DRIVERS
 
