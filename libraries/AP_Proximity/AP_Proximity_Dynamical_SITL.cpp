@@ -106,7 +106,7 @@ void AP_Proximity_Dynamical_SITL::update(void)
         // reset this  boundary to fill with new data
         boundary.reset();
         set_status(AP_Proximity::Status::Good);
-        for(size_t i = 0; i< object_num; i++){
+        for (size_t i = 0; i< object_num; i++) {
 
             // get absolute postion,velocity and heading
             const float angle_deg   = wrap_360(degrees(_objects_loc[i].angle()));
@@ -147,7 +147,7 @@ void AP_Proximity_Dynamical_SITL::update(void)
             }
 
             // update object avoidance database with warth-frame point
-            database_push(angle_deg,0.0f,distance_m,vel_mag,vel_ang,PROXIMITY_OBJECT_RADIUS,false);
+            database_push(angle_deg, 0.0f, distance_m, vel_mag, vel_ang, PROXIMITY_OBJECT_RADIUS, false);
         }
         // process the last face
         if (face_distance_valid) {
