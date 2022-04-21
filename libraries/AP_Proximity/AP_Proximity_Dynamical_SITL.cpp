@@ -97,30 +97,63 @@ void AP_Proximity_Dynamical_SITL::update(void)
             break;
     }
 
-    // send proximity data into OA 
+    // variables to calculate closest angle and distance for each face
+    AP_Proximity_Boundary_3D::Face face;
+    float face_distance = FLT_MAX;
+    float face_yaw_deg = 0.0f;
+    bool face_distance_valid = false;
     if (_state != Run_State::INIT_MODE) {
+        // reset this  boundary to fill with new data
+        boundary.reset();
         set_status(AP_Proximity::Status::Good);
         for(size_t i = 0; i< object_num; i++){
+
             // get absolute postion,velocity and heading
             const float angle_deg   = wrap_360(degrees(_objects_loc[i].angle()));
             const float distance_m  = _objects_loc[i].length();
             const float vel_mag     = _objects_vel[i].length();
             const float vel_ang     =  wrap_360(degrees(_objects_vel[i].angle()));
+
             // get relative distance and heading
             const float distance_to_vehicle = (_objects_loc[i] - current_loc).length();
             const float direction_to_obstacle = degrees((_objects_loc[i] - current_loc).angle());
             const float relative_to_angle   = wrap_360(direction_to_obstacle - current_bearing);
-            const AP_Proximity_Boundary_3D::Face face = boundary.get_face(relative_to_angle);
-            if (!ignore_reading(relative_to_angle, distance_to_vehicle,false)) {
-                if ((distance_to_vehicle <= distance_max()) && (distance_to_vehicle >= distance_min())) {
-                    boundary.set_face_attributes(face, relative_to_angle, distance_to_vehicle);
-                    // update OA database
-                    database_push(angle_deg,0.0f,distance_m,vel_mag,vel_ang,PROXIMITY_OBJECT_RADIUS,false);
+
+            // check validation
+            const bool range_check = distance_to_vehicle > distance_max() || distance_to_vehicle < distance_min()
+            if (range_check || ignore_reading(relative_to_angle, distance_to_vehicle,false)) {
+                continue;
+            }
+
+            // get face for this latest reading
+            const AP_Proximity_Boundary_3D::Face latest_face = boundary.get_face(relative_to_angle);
+            if (latest_face != face) {
+                // store previous face
+                if (face_distance_valid) {
+                    boundary.set_face_attributes(face, face_yaw_deg, face_distance);
                 } else {
-                    // invalidate distance of face
                     boundary.reset_face(face);
                 }
+                // init for latest face
+                face = latest_face;
+                face_distance_valid = false;
             }
+
+            // update minimum distance found so far
+            if (!face_distance_valid || (distance_to_vehicle < face_distance)) {
+                face_yaw_deg = relative_to_angle;
+                face_distance = distance_to_vehicle;
+                face_distance_valid = true;
+            }
+
+            // update object avoidance database with warth-frame point
+            database_push(angle_deg,0.0f,distance_m,vel_mag,vel_ang,PROXIMITY_OBJECT_RADIUS,false);
+        }
+        // process the last face
+        if (face_distance_valid) {
+            boundary.set_face_attributes(face, face_yaw_deg, face_distance);
+        } else {
+            boundary.reset_face(face);
         }
     }
 
