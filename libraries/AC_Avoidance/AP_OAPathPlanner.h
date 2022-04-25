@@ -9,7 +9,6 @@
 #include "AP_OADatabase.h"
 #include "AP_ShorelineAvoid.h"
 #include "AP_ShallowAvoid.h"
-#include "AP_OAVelocityObstacle.h"
 
 /*
  * This class provides path planning around fence, stay-out zones and moving obstacles
@@ -49,7 +48,6 @@ public:
         BendyRulerHorizontal,
         BendyRulerVertical,
         Dijkstras,
-        VelocityObstacle,
     };
 
     // provides an alternative target location if path planning around obstacles is required
@@ -70,7 +68,6 @@ public:
         OA_PATHPLAN_BENDYRULER = 1,
         OA_PATHPLAN_DIJKSTRA = 2,
         OA_PATHPLAN_DJIKSTRA_BENDYRULER = 3,
-        OA_PATHPLAN_VO = 4
     };
 
     // enumeration for _OPTION parameter
@@ -124,7 +121,6 @@ private:
     bool _thread_created;           // true once background thread has been created
     AP_OABendyRuler *_oabendyruler; // Bendy Ruler algorithm
     AP_OADijkstra *_oadijkstra;     // Dijkstra's algorithm
-    AP_OAVelocityObstacle *_oavo;   // Velocity Obstacle algorithm
     AP_OADatabase _oadatabase;      // Database of dynamic objects to avoid
     uint32_t avoidance_latest_ms;   // last time Dijkstra's or BendyRuler algorithms ran
 

@@ -77,10 +77,6 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     AP_SUBGROUPINFO(_oashallow, "SO_", 9, AP_OAPathPlanner, AP_ShallowAvoid),
    #endif
 
-    // @Group: VO_
-    // @Path: AP_VelocityObstacle.cpp
-    AP_SUBGROUPPTR(_oavo, "VO_", 10, AP_OAPathPlanner, AP_OAVelocityObstacle),
-
     AP_GROUPEND
 };
 
@@ -120,12 +116,6 @@ void AP_OAPathPlanner::init()
             AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
         }
         break;
-    case OA_PATHPLAN_VO:
-        if (_oavo == nullptr) {
-            _oavo = new AP_OAVelocityObstacle();
-            AP_Param::load_object_from_eeprom(_oavo, AP_OAVelocityObstacle::var_info);
-        }
-        break;
     }
 
     _oadatabase.init();
@@ -155,12 +145,6 @@ bool AP_OAPathPlanner::pre_arm_check(char *failure_msg, uint8_t failure_msg_len)
     case OA_PATHPLAN_DJIKSTRA_BENDYRULER:
         if(_oadijkstra == nullptr || _oabendyruler == nullptr) {
             hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
-            return false;
-        }
-        break;
-    case OA_PATHPLAN_VO:
-        if (_oavo == nullptr) {
-            hal.util->snprintf(failure_msg, failure_msg_len, "Velocity Obstacle OA requires reboot");
             return false;
         }
         break;
@@ -394,21 +378,6 @@ void AP_OAPathPlanner::avoidance_thread()
                 break;
             }
             path_planner_used = OAPathPlannerUsed::Dijkstras;
-            break;
-        }
-        case OA_PATHPLAN_VO: {
-            if (_oavo == nullptr) {
-                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
-                continue;
-            }
-            _oavo->set_config(_margin_max);
-            if (_oavo->update(avoidance_request2.current_loc, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, desired_speed_new, false)) {
-                res = OA_SUCCESS;
-            }else if(_oavo->abandon_waypoint()){
-                res = OA_ABANDON;
-            }
-            path_planner_used = OAPathPlannerUsed::VelocityObstacle;
-            
             break;
         }
 
