@@ -24,10 +24,9 @@ class AP_ShallowAvoid{
         // Paramter group info
         static const struct AP_Param::GroupInfo var_info[];
 
-
         // Return true if shallows detected and can not reach destination 
         // Return false if destination could arrivalable temporarily.
-        bool update(const Location &current_loc,const Location& origin,const Location& destination,const Vector2f &ground_speed_vec,const float dt) WARN_IF_UNUSED;
+        bool update(const Location &current_loc, const Location& origin, const Location& destination, const Vector2f &ground_speed_vec, const float dt) WARN_IF_UNUSED;
     
     private:
         static AP_ShallowAvoid *_singleton;
