@@ -31,7 +31,7 @@ class AP_ShorelineAvoid{
         // Run background task to find shoreline and update avoidance result
         // Return true if shoreline detected and can not reach destination 
         // Return false if destination could arrivalable temporarily.
-        bool update(const Location &current_loc,const Location& origin,const Location& destination);
+        bool update(const Location &current_loc, const Location& origin, const Location& destination);
 
 #if OA_SHORELINE_DEBUG_ENABLE
          void send_debug_info(mavlink_channel_t chan, uint16_t interval_ms);
@@ -66,8 +66,8 @@ class AP_ShorelineAvoid{
          // Common functions
         bool is_active() const;
         float calc_shoreline_len(const std::vector<Vector2f> &lines) const;
-        bool update_avoidance(const Vector2f& current_ne,const Vector2f& origin_ne,const Vector2f& destination_ne) WARN_IF_UNUSED;
-        bool update_shoreline(const Vector2f& current_ne,const Vector2f& destination_ne) WARN_IF_UNUSED;
+        bool update_avoidance(const Vector2f& current_ne, const Vector2f& origin_ne, const Vector2f& destination_ne) WARN_IF_UNUSED;
+        bool update_shoreline(const Vector2f& current_ne, const Vector2f& destination_ne) WARN_IF_UNUSED;
 };
 
 namespace AP {
