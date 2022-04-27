@@ -120,7 +120,7 @@ void AP_Proximity_Dynamical_SITL::update(void)
             const float relative_to_angle   = wrap_360(direction_to_obstacle - current_bearing);
 
             // check validation
-            const bool range_check = distance_to_vehicle > distance_max() || distance_to_vehicle < distance_min()
+            const bool range_check = distance_to_vehicle > distance_max() || distance_to_vehicle < distance_min();
             if (range_check || ignore_reading(relative_to_angle, distance_to_vehicle,false)) {
                 continue;
             }
