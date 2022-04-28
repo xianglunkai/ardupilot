@@ -386,12 +386,12 @@ void AP_OAPathPlanner::avoidance_thread()
 #if APM_BUILD_TYPE(APM_BUILD_Rover)
         // shoreline avoidance
         bool shoreline_detect = _oashoreline.update(avoidance_request2.current_loc,
-                                                           avoidance_request2.origin,avoidance_request2.destination);
+                                                    avoidance_request2.origin, avoidance_request2.destination);
         // shallow avoidance
         bool shallow_detect   = _oashallow.update(avoidance_request2.current_loc,
-                                                avoidance_request2.origin,avoidance_request2.destination,
-                                                avoidance_request2.ground_speed_vec,
-                                                0.001f * OA_UPDATE_MS);
+                                                  avoidance_request2.origin, avoidance_request2.destination,
+                                                  avoidance_request2.ground_speed_vec,
+                                                  0.001f * OA_UPDATE_MS);
         if(shoreline_detect || shallow_detect){
             res = OA_ABANDON;
         }
