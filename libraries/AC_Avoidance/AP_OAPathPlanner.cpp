@@ -67,6 +67,10 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     // @Path: AP_OABendyRuler.cpp
     AP_SUBGROUPPTR(_oabendyruler, "BR_", 6, AP_OAPathPlanner, AP_OABendyRuler),
 
+    // @Group: SP_
+    // @Path: AP_SpeedDecider.cpp
+    AP_SUBGROUPPTR(_speed_decider, "SP_", 7, AP_OAPathPlanner, AP_SpeedDecider),
+
     #if APM_BUILD_TYPE(APM_BUILD_Rover)
     // @Group: SL_
     // @Path: AP_ShorelineAvoid.cpp
@@ -116,6 +120,13 @@ void AP_OAPathPlanner::init()
             AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
         }
         break;
+
+    case OA_SPEED_DECIDER:
+        if (_speed_decider == nullptr) {
+            _speed_decider = new AP_SpeedDecider();
+            AP_Param::load_object_from_eeprom(_speed_decider, AP_SpeedDecider::var_info);
+        }
+        break;
     }
 
     _oadatabase.init();
@@ -146,6 +157,11 @@ bool AP_OAPathPlanner::pre_arm_check(char *failure_msg, uint8_t failure_msg_len)
         if(_oadijkstra == nullptr || _oabendyruler == nullptr) {
             hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
             return false;
+        }
+        break;
+    case OA_SPEED_DECIDER:
+        if (_speed_decider == nullptr) {
+            hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
         }
         break;
     }
@@ -378,6 +394,22 @@ void AP_OAPathPlanner::avoidance_thread()
                 break;
             }
             path_planner_used = OAPathPlannerUsed::Dijkstras;
+            break;
+        }
+        
+        case OA_SPEED_DECIDER: {
+            if (_speed_decider == nullptr) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
+                continue;
+            }
+            _speed_decider->set_config(_margin_max);
+
+            if (_speed_decider->update(avoidance_request2.current_loc, 
+                                       avoidance_request2.origin, avoidance_request2.destination, 
+                                       avoidance_request2.ground_speed_vec, desired_speed_new, 0.001f * OA_UPDATE_MS)) {
+                res = OA_SUCCESS;
+            }
+            path_planner_used = OAPathPlannerUsed::SpeedDecider;
             break;
         }
 
