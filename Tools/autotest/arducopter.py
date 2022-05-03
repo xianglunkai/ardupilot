@@ -7399,6 +7399,33 @@ class AutoTestCopter(AutoTest):
         self.drain_mav()
         self.assert_prearm_failure("Check MOT_PWM_MIN/MAX")
 
+    def SensorErrorFlags(self):
+        self.reboot_sitl()
+
+        for (param_names, param_value, expected_subsys, expected_ecode, desc) in [
+                (['SIM_BARO_DISABLE', 'SIM_BAR2_DISABLE'], 1, 18, 4, 'unhealthy'),
+                (['SIM_BARO_DISABLE', 'SIM_BAR2_DISABLE'], 0, 18, 0, 'healthy'),
+                (['SIM_MAG1_FAIL', 'SIM_MAG2_FAIL', 'SIM_MAG3_FAIL'], 1, 3, 4, 'unhealthy'),
+                (['SIM_MAG1_FAIL', 'SIM_MAG2_FAIL', 'SIM_MAG3_FAIL'], 0, 3, 0, 'healthy'),
+        ]:
+            sp = dict()
+            for name in param_names:
+                sp[name] = param_value
+            self.set_parameters(sp)
+            self.delay_sim_time(1)
+            mlog = self.dfreader_for_current_onboard_log()
+            success = False
+            while True:
+                m = mlog.recv_match(type='ERR')
+                print("Got (%s)" % str(m))
+                if m is None:
+                    break
+                if m.Subsys == expected_subsys and m.ECode == expected_ecode:  # baro / ecode
+                    success = True
+                    break
+            if not success:
+                raise NotAchievedException("Did not find %s log message" % desc)
+
     def test_alt_estimate_prearm(self):
         self.context_push()
         ex = None
