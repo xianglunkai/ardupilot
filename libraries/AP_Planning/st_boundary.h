@@ -35,7 +35,7 @@ public:
     // default destructor
     ~STBoundary() = default;
 
-    bool is_empty() const { return _lower_point.empty(); }
+    bool is_empty() const { return _lower_points.empty(); }
 
     bool get_unblock_srange(const float curr_time, float* s_upper, float* s_lower);
 
@@ -48,8 +48,8 @@ public:
     float max_s() const;
     float max_t() const;
 
-    std::vector<STPoint> upper_points() const { return _upper_point; }
-    std::vector<STPoint> lower_points() const { return _lower_point; }
+    std::vector<STPoint> upper_points() const { return _upper_points; }
+    std::vector<STPoint> lower_points() const { return _lower_points; }
 
     // use bu st-optimizer
     bool is_point_in_boundary(const STPoint& st_point) const;
@@ -73,8 +73,8 @@ private:
     bool get_index_range(const std::vector<STPoint>& points, const float t, size_t* left, size_t* right) const;
 
 private:
-    std::vector<STPoint> _upper_point;
-    std::vector<STPoint> _lower_point;
+    std::vector<STPoint> _upper_points;
+    std::vector<STPoint> _lower_points;
 
     float _min_s = std::numeric_limits<float>::max();
     float _max_s = std::numeric_limits<float>::lowest();
