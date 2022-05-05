@@ -6,7 +6,7 @@
 
 namespace planning {
 
-class STPoint : Vec2d {
+class STPoint : public Vec2d {
 public:
     STPoint() = default;
     STPoint(const float s, const float t);
