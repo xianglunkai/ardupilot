@@ -210,7 +210,7 @@ float STBoundary::max_t() const
 // use bu st-optimizer
 bool STBoundary::is_point_in_boundary(const STPoint& st_point) const
 {
-    if (st_point.t() <= _min_t || st_point.t() >= _max_t) {
+    if (st_point.t() < _min_t || st_point.t() > _max_t) {
         return false;
     }
     size_t left = 0;
