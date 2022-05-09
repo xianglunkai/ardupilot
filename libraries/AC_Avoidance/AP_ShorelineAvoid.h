@@ -20,11 +20,6 @@ class AP_ShorelineAvoid{
          /* Do not allow copies */
         CLASS_NO_COPY(AP_ShorelineAvoid);
 
-        // Get singleton instance
-        static AP_ShorelineAvoid *get_singleton(){
-            return _singleton;
-        }
-
         // Paramter group info
         static const struct AP_Param::GroupInfo var_info[];
 
@@ -38,9 +33,8 @@ class AP_ShorelineAvoid{
 #endif
 
     private:
-         static AP_ShorelineAvoid *_singleton;
-
          // Parameters
+         AP_Int8 _enable;
          AP_Float _shoreline_link_dist;
          AP_Float _shoreline_min_length;
          AP_Float _shoreline_safe_dist;
@@ -68,8 +62,4 @@ class AP_ShorelineAvoid{
         float calc_shoreline_len(const std::vector<Vector2f> &lines) const;
         bool update_avoidance(const Vector2f& current_ne, const Vector2f& origin_ne, const Vector2f& destination_ne) WARN_IF_UNUSED;
         bool update_shoreline(const Vector2f& current_ne, const Vector2f& destination_ne) WARN_IF_UNUSED;
-};
-
-namespace AP {
-    AP_ShorelineAvoid *shoreline_avoid();
 };

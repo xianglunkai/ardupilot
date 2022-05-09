@@ -5,22 +5,20 @@
 #include <AP_RangeFinder/AP_RangeFinder.h>
 #include <AP_RangeFinder/AP_RangeFinder_Backend.h>
 
-
-// singleton instance
-AP_ShorelineAvoid *AP_ShorelineAvoid::_singleton;
-namespace AP {
-    AP_ShorelineAvoid *shoreline_avoid()
-    {
-        return AP_ShorelineAvoid::get_singleton();
-    }
-}
-
 #define SHORE_SONAR_AVOID_ENABLE 1
 const float OA_DETECT_BEARING_INC_XY   = 1;      // deg
 
 extern const AP_HAL::HAL &hal;
 
 const AP_Param::GroupInfo AP_ShorelineAvoid::var_info[] = {
+
+    // @Param: ENABLE
+    // @DisplayName: Enable
+    // @Description: Enable SpeedDecider
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    // @RebootRequired: True
+    AP_GROUPINFO_FLAGS("ENABLE", 0, AP_ShorelineAvoid, _enable, 0, AP_PARAM_FLAG_ENABLE),
 
     // @Param: LIK_DST
     // @DisplayName: Shoreline Avoidance link distance 
@@ -92,11 +90,6 @@ AP_ShorelineAvoid::AP_ShorelineAvoid()
 {
     // load default parameters from eeprom
     AP_Param::setup_object_defaults(this, var_info); 
-
-    if (_singleton != nullptr) {
-        AP_HAL::panic("AP_OADetect must be singleton");
-    }
-    _singleton = this;
 }
 
 
@@ -112,6 +105,10 @@ bool AP_ShorelineAvoid::is_active() const
 // Return false if destination could arrivalable temporarily.
 bool AP_ShorelineAvoid::update(const Location &current_loc, const Location& origin, const Location& destination)
 {
+    if (!_enable) {
+        return false;
+    }
+
     // convert location with lat-lng to offsets from ekf orgin
     Vector2f current_ne,origin_ne,destination_ne;
     if (!current_loc.get_vector_xy_from_origin_NE(current_ne) ||

@@ -6,18 +6,18 @@
 #include <AP_Math/curve_fitting.h>
 #include "AP_ShallowAvoid.h"
 
-// singleton instance
-AP_ShallowAvoid *AP_ShallowAvoid::_singleton;
-namespace AP {
-    AP_ShallowAvoid *shallow_avoid()
-    {
-        return AP_ShallowAvoid::get_singleton();
-    }
-}
-
 extern const AP_HAL::HAL &hal;
 
 const AP_Param::GroupInfo AP_ShallowAvoid::var_info[] = {
+
+    // @Param: ENABLE
+    // @DisplayName: Enable
+    // @Description: Enable SpeedDecider
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    // @RebootRequired: True
+    AP_GROUPINFO_FLAGS("ENABLE", 0, AP_ShallowAvoid, _enable, 0, AP_PARAM_FLAG_ENABLE),
+
     // @Param: SAM_DST
     // @DisplayName: Shallow avoidance sample distance in real time
     // @Description: Shallow avoidance will sample this many meters for model in real time
@@ -79,17 +79,16 @@ AP_ShallowAvoid::AP_ShallowAvoid()
 {
     // load default parameters from eeprom
     AP_Param::setup_object_defaults(this, var_info); 
-
-    if (_singleton != nullptr) {
-        AP_HAL::panic("AP_OASonar must be singleton");
-    }
-    _singleton = this;
 }
 
 
 // Return true if shallow detected and can't reach destination 
 bool AP_ShallowAvoid::update(const Location &current_loc, const Location& origin, const Location& destination, const Vector2f &ground_speed_vec, const float dt)
 {
+    if (!_enable) {
+        return false;
+    }
+
     // get ground course
     float ground_course_deg;
     if (ground_speed_vec.length_squared() < sq(0.2f)) {
