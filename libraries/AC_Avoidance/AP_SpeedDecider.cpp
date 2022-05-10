@@ -110,7 +110,7 @@ const AP_Param::GroupInfo AP_SpeedDecider::var_info[] = {
   // @Units: s
   // @Range: 1 10
   // @User: Standard
-  AP_GROUPINFO("OBS_TIME", 8, AP_SpeedDecider, _obs_pred_t, 10.0f),
+  AP_GROUPINFO("OBS_TIME", 8, AP_SpeedDecider, _obs_pred_t, 8.0f),
 
   // @Param: OBS_WGH
   // @Description: Obstacle avoidance penalty factor
