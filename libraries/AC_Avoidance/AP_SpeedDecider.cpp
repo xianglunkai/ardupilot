@@ -180,7 +180,7 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
 
     // get current speed 
     _curr_speed = MAX(groundspeed_vector * projected_line_unit, 0.0f);
-    _planning_prediod_s = dt;
+    _planning_period = dt;
     Vector2f mp = current_ne + ground_speed_vec * dt;
 
     // determine planning start position
@@ -293,7 +293,7 @@ bool AP_SpeedDecider::compute_obstacle_st_boundary(const Vector2f& vehicle_start
                                                    std::vector<planning::STPoint>& upper_points)
 {
    // predict obstacle position with current velocity and time t, and mapping ST boundary lower points and upper points
-  for (float curr_t = _planning_prediod_s; curr_t <= _obs_pred_t; curr_t += unit_t) {
+  for (float curr_t = _planning_period; curr_t <= _obs_pred_t; curr_t += _planning_period) {
     const auto obstalce_pos_t = obs_pos + obs_vel * curr_t;
     // get distance of obstacle from reference line
     const auto ref_unit = (vehicle_end - vehicle_start).normalized();

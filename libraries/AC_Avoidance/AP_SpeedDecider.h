@@ -147,44 +147,43 @@ private:
 
 private:
     // parameters
-    AP_Int8 _enable;
-    AP_Float _acc_max;
-    AP_Float _dec_max;
-    AP_Float _speed_max;
-    AP_Float _vehicle_radius;
-    AP_Float _cruise_speed;
-    AP_Float _total_t;
-    AP_Float _total_s;
-    AP_Float _obs_pred_t;
-    AP_Float _obstacle_weight;
-    AP_Float _accel_penalty;
-    AP_Float _decel_penalty;
+    AP_Int8 _enable;             // enable or disable alogorithm
+    AP_Float _acc_max;           // acceleration maximumum value ,set must >= 0
+    AP_Float _dec_max;           // deceleration maximum value, set must >= 0
+    AP_Float _speed_max;         // speed maximum value
+    AP_Float _vehicle_radius;    // vehicle shape size
+    AP_Float _cruise_speed;      // vehicle cruise speed
+    AP_Float _total_t;           // planning time with unit seconds
+    AP_Float _total_s;           // planning distance with unit meters
+    AP_Float _obs_pred_t;        // obstacle trajectory prediction time with seconds
+    AP_Float _obstacle_weight;   // avoidance obstacle collision penalty factor
+    AP_Float _accel_penalty;     // acceleration variation penalty
+    AP_Float _decel_penalty;     // deceleration variation penalty
 
-    float _margin_max;
-    bool _use_st_drivable_boundary{false};
-    bool _enable_dp_reference_speed{true};
+    float _margin_max;           // avoidance margin with meters
+    bool _use_st_drivable_boundary{false};  // use drivable boundary 
+    bool _enable_dp_reference_speed{true};  // enable reference speed deviation penalty 
 private:
-    std::vector<planning::STBoundary> _st_boundaries;
-    std::array<float, 200> _accel_cost;
-    std::array<float, 400> _jerk_cost;
+    std::vector<planning::STBoundary> _st_boundaries;  // ST graph 
+    std::array<float, 200> _accel_cost;                // acceleration cost list
+    std::array<float, 400> _jerk_cost;                 // deceleration cost list
     
     std::vector<float> _speed_limit_by_index;
     std::vector<float> _spatial_distance_by_index;
 
+    // ST graph dimension
     uint32_t _dimension_t{0};
     uint32_t _dense_dimension_s{101};
     uint32_t _sparse_dimension_s{0};
     uint32_t _dimension_s{0};
 
-
     // cost_table_[t][s]
     // row: s, col: t --- NOTICE: Please do NOT change.
     std::vector<std::vector<planning::StGraphPoint>> _cost_table;
-
 private:
     // store current state
-    float    _planning_prediod_s;
-    float    _curr_speed;
-    Vector2f _curr_start;
-    Vector2f _curr_end;
+    float    _planning_period;  // planing module period with seconds
+    float    _curr_speed;       // planning module init speed projected reference
+    Vector2f _curr_start;       // planning module start position projected reference
+    Vector2f _curr_end;         // planning module end position projected reference
 };
