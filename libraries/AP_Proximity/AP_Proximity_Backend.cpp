@@ -268,8 +268,8 @@ void AP_Proximity_Backend::database_push(float angle, float pitch,float distance
 
         // Calculate the absolute velocity from origin
         const Vector3f angular_speed = AP::ahrs().get_gyro();
-        const Vector3f local_pos{distance * cosf(radians(angle)),distance * sinf(radians(angle)),0};
-        const Vector3f local_vel{vel_mag * cosf(radians(vel_angle)),vel_mag * sinf(radians(vel_angle)),0};
+        const Vector3f local_pos{distance * cosf(radians(angle)), distance * sinf(radians(angle)), 0};
+        const Vector3f local_vel{vel_mag * cosf(radians(vel_angle)), vel_mag * sinf(radians(vel_angle)), 0};
         const Vector3f angular_trans_speed = angular_speed % local_pos;
         const Vector3f world_vel = body_to_ned * (local_vel  + angular_trans_speed);
 
@@ -283,7 +283,7 @@ void AP_Proximity_Backend::database_push(float angle, float pitch,float distance
             groundSpeed = 0.5f;
             _groundspeed_vector = Vector2f(cosf(heading), sinf(heading)) * groundSpeed;
         }
-        Vector3f vehicle_speed = {_groundspeed_vector,0};
+        Vector3f vehicle_speed = {_groundspeed_vector, 0};
         Vector3f vel = world_vel + vehicle_speed;
         //Convert the vector to a NEU frame from NED
         vel.z = vel.z * -1.0f;
@@ -293,7 +293,7 @@ void AP_Proximity_Backend::database_push(float angle, float pitch,float distance
             vel.zero();
         }
 
-        oaDb->queue_push(temp_pos, vel,AP_HAL::millis(), distance,radius);
+        oaDb->queue_push(temp_pos, vel,AP_HAL::millis(), distance, radius);
     }
 }
 
