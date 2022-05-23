@@ -36,7 +36,7 @@ const AP_Param::GroupInfo AP_ShorelineAvoid::var_info[] = {
     // @Range: 1 100
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("LEN_MIN", 2, AP_ShorelineAvoid, _shoreline_min_length, 30),
+    AP_GROUPINFO("SHLEN_MIN", 2, AP_ShorelineAvoid, _shoreline_min_length, 30),
 
     // @Param: SAFE_DST
     // @DisplayName: Shoreline Avoidance safe distance minimum
@@ -54,7 +54,7 @@ const AP_Param::GroupInfo AP_ShorelineAvoid::var_info[] = {
     // @Range: 1 100
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("RADIUS_MIN", 4, AP_ShorelineAvoid, _min_radius, 3),
+    AP_GROUPINFO("POINT_SIZE", 4, AP_ShorelineAvoid, _min_radius, 3),
 
     // @Param: SCAN_ANG
     // @DisplayName: Shoreline Avoidance scan angle maximum
@@ -84,7 +84,7 @@ const AP_Param::GroupInfo AP_ShorelineAvoid::var_info[] = {
     AP_GROUPINFO("DELAY_DST", 7, AP_ShorelineAvoid, _shollow_move_dist, 5.0),
 
     AP_GROUPEND
-    };
+};
 
 AP_ShorelineAvoid::AP_ShorelineAvoid()
 {
@@ -137,10 +137,11 @@ bool AP_ShorelineAvoid::update(const Location &current_loc, const Location& orig
        _destination_prev = destination;
        _intersect_point.zero();
 
- #if SHORE_SONAR_AVOID_ENABLE == 1
+#if SHORE_SONAR_AVOID_ENABLE == 1
        _sonar_avoid_loc = current_ne;
        _close_to_shoreline = false;
 #endif
+
        _mission_lock = true;
    }
 
@@ -302,8 +303,6 @@ bool AP_ShorelineAvoid::update_shoreline(const Vector2f& current_ne, const Vecto
 
         int32_t id = degrees(rel_bearing)/OA_DETECT_BEARING_INC_XY;
         if(id < 0 || id >= resolution){
-        //  GCS_SEND_TEXT(MAV_SEVERITY_INFO, "id:%d,resolution:%d",id,resolution);
-         //   return false; 
          continue;
         }
 
@@ -336,8 +335,8 @@ bool AP_ShorelineAvoid::update_shoreline(const Vector2f& current_ne, const Vecto
         const float point_cur_radius = _boundary_set[i].z;
         const float point_prev_radius = _boundary_set[i-1].z;
 
-        const float clozet_distance = (point_cur - point_prev).length() - point_cur_radius - point_prev_radius;
-        if (clozet_distance <= _shoreline_link_dist) {
+        const float closet_distance = (point_cur - point_prev).length() - point_cur_radius - point_prev_radius;
+        if (closet_distance <= _shoreline_link_dist) {
             shoreline_item.second.emplace_back(point_cur);
         } else {
             if(!shoreline_item.second.empty()){
