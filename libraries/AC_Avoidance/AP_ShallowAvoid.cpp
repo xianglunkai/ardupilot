@@ -6,6 +6,8 @@
 #include <AP_Math/curve_fitting.h>
 #include "AP_ShallowAvoid.h"
 
+const float OA_SHALLOW_TIMEOUT_MS = 3000;      // 3s
+
 extern const AP_HAL::HAL &hal;
 
 const AP_Param::GroupInfo AP_ShallowAvoid::var_info[] = {
@@ -179,7 +181,7 @@ bool AP_ShallowAvoid::update(const Location &current_loc, const Location& origin
 // true if update has been called recently
 bool AP_ShallowAvoid::is_active() const
 {
-    return ((AP_HAL::millis() - _last_update_ms) < 1000);
+    return ((AP_HAL::millis() - _last_update_ms) < OA_SHALLOW_TIMEOUT_MS);
 }
 
 
