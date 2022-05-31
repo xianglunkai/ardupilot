@@ -6,7 +6,8 @@
 #include <AP_RangeFinder/AP_RangeFinder_Backend.h>
 
 #define SHORE_SONAR_AVOID_ENABLE 1
-const float OA_DETECT_BEARING_INC_XY   = 1;      // deg
+const float OA_DETECT_BEARING_INC_XY   = 1;      // 1deg
+const float OA_SHORELINE_TIMEOUT_MS = 3000;      // 3s
 
 extern const AP_HAL::HAL &hal;
 
@@ -96,7 +97,7 @@ AP_ShorelineAvoid::AP_ShorelineAvoid()
 // true if update has been called recently
 bool AP_ShorelineAvoid::is_active() const
 {
-    return ((AP_HAL::millis() - _last_update_ms) < 1000);
+    return ((AP_HAL::millis() - _last_update_ms) < OA_SHORELINE_TIMEOUT_MS);
 }
 
 
@@ -147,7 +148,7 @@ bool AP_ShorelineAvoid::update(const Location &current_loc, const Location& orig
 
    _last_update_ms = AP_HAL::millis();
    if(!is_active()){
-       _last_avoid_flag = false;
+    _last_avoid_flag = false;
    }
 
     // special consideration if two waypoints close 
