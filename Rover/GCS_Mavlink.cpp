@@ -51,6 +51,12 @@ MAV_MODE GCS_MAVLINK_Rover::base_mode() const
 
 uint32_t GCS_Rover::custom_mode() const
 {
+    #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+    // this information is reported if permission is obtained from the controller remote control
+    if (is_zero(hal.analogin->channel(0)->read_latest() - 2)) {
+        return 0xfe;
+    }
+    #endif
     return rover.control_mode->mode_number();
 }
 

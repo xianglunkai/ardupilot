@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <poll.h>
+#include <AP_Vehicle/AP_Vehicle.h>
 
 namespace Imx_K60{
 
@@ -184,6 +185,11 @@ public:
 		report[5].data = 0; 
 		report[5].id = 5;
 
+		// siwtch to manual mode if K60 get the control root
+		if (padc_value->root == 2) {
+			AP::vehicle()->set_mode(0, ModeReason::RC_COMMAND);
+		}
+		
 		return true;
 	}
 
