@@ -53,7 +53,6 @@ uint32_t GCS_Rover::custom_mode() const
 {
     #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
     // this information is reported if permission is obtained from the controller remote control
-    //_control_root->set_pin(0);
     if (is_zero(_control_root->voltage_average() - 2)) {
         return 0xfe;
     }
