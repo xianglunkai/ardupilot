@@ -36,6 +36,9 @@ public:
     // get desired lateral acceleration (for reporting purposes only because will be zero during pivot turns)
     float get_lat_accel() const { return _desired_lat_accel; }
 
+    // get avoidance state
+    float oa_active() const { return _oa_active; }
+
     // set desired location
     // next_leg_bearing_cd should be heading to the following waypoint (used to slow the vehicle in order to make the turn)
     bool set_desired_location(const struct Location& destination, float next_leg_bearing_cd = AR_WPNAV_HEADING_UNKNOWN)  WARN_IF_UNUSED;
