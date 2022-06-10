@@ -118,7 +118,8 @@ void GCS_MAVLINK_Rover::send_nav_controller_output() const
         control_mode->nav_bearing(),
         control_mode->wp_bearing(),
         MIN(control_mode->get_distance_to_destination(), UINT16_MAX),
-        0,
+        // default 0,the obstacle avoidance status is temporarily filled airspeed error
+        control_mode->oa_active(), 
         control_mode->speed_error(),
         control_mode->crosstrack_error());
 }
