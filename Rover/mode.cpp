@@ -245,6 +245,16 @@ float Mode::get_desired_lat_accel() const
     return g2.wp_nav.get_lat_accel();
 }
 
+// return avoidance state 
+float Mode::oa_active() const
+{
+    if (!is_autopilot_mode()) {
+        return 0.0f;
+    }
+    return g2.wp_nav.oa_active();
+}
+
+
 // set desired location
 bool Mode::set_desired_location(const struct Location& destination, float next_leg_bearing_cd)
 {

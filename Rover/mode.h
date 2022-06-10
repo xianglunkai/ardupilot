@@ -96,6 +96,7 @@ public:
     virtual float nav_bearing() const;
     virtual float crosstrack_error() const;
     virtual float get_desired_lat_accel() const;
+    virtual float oa_active() const;
 
     // get speed error in m/s, not currently supported
     float speed_error() const { return 0.0f; }
