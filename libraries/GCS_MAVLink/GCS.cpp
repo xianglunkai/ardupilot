@@ -49,6 +49,9 @@ const MAV_MISSION_TYPE GCS_MAVLINK::supported_mission_types[] = {
 void GCS::init()
 {
     mavlink_system.sysid = sysid_this_mav();
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+      _control_root = hal.analogin->channel(0);
+#endif
 }
 
 /*

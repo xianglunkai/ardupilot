@@ -1132,6 +1132,11 @@ protected:
     uint8_t _num_gcs;
     GCS_MAVLINK *_chan[MAVLINK_COMM_NUM_BUFFERS];
 
+
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+      AP_HAL::AnalogSource *_control_root;
+#endif
+
 private:
 
     static GCS *_singleton;
