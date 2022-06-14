@@ -356,6 +356,7 @@
     #define HAL_BOARD_TERRAIN_DIRECTORY "/home/root/ardupilot/terrain"
     #define HAL_BOARD_STORAGE_DIRECTORY "/home/root/ardupilot/storage"
     #define HAL_NUM_CAN_IFACES 2
+    #define HAL_BORAD_MCU_V2   0
 
     #define HAL_BARO_PROBE1 PROBE_BARO_I2C(BMP388, 2, 0x76)
     #define HAL_BARO_PROBE2 PROBE_BARO_I2C(MS56XX, 2, 0x77, AP_Baro_MS56XX::BARO_MS5611)
