@@ -39,6 +39,13 @@ struct adc_value_s
 
     uint16_t AIVal[MAX_AI_CHN_NUM];   
     uint16_t DIVal;   
+
+#if HAL_BORAD_MCU_V2 == 1
+	uint16_t BMS_Total_V;			//单位10mV
+	int16_t  BMS_Total_C;			//单位10mA 充电为正,放电为负
+	uint16_t BMS_Remnant_Capacity;	//剩余容量
+	uint16_t Reserve[5];
+#endif
 }__attribute__((packed));
 
 
@@ -134,9 +141,8 @@ public:
 		return uart_send_packet(fd, PACKET_RECV_SET_IO, packet, packet2, 2 * 4);
 	}
 
-	bool read_adc(adc_report_s *report,unsigned len){
-		float temperature=0;
-		float voltage_battery;
+	bool read_adc(adc_report_s *report,unsigned len)
+	{
 	
 		int poll_ret = poll(&poll_fd, 1, 0);
 		if (poll_ret <= 0)
@@ -162,12 +168,68 @@ public:
 
 		adc_value_s *padc_value = (adc_value_s *)packet;
 
-		// printf("g_DIGroupVal = %x\r\n",padc_value->DIVal);
+	#if HAL_BORAD_MCU_V2 == 1
+		if(len < 1 || len > 24){return false;}
 
-		temperature		 = 4096000/padc_value->AIVal[10]-1000;
-		temperature 	 = -0.00004*temperature*temperature+0.2118*temperature-147.53;
+		// manul fill 
+		report[0].data = padc_value->root; 
+		report[0].id = 0;
+		report[1].data = padc_value->PORT_speed; 
+		report[1].id = 1;
+		report[2].data = padc_value->STBD_speed;
+		report[2].id = 2;
+		report[3].data =padc_value->AIVal[10]*0.01;// temperature 0.01;
+		report[3].id = 3;
+		report[4].data = padc_value->AIVal[7]*0.01; //DC24v
+		report[4].id = 4;
 
-		voltage_battery  = padc_value->AIVal[6]*36.3/4096.0+0.3;
+		report[5].data = padc_value->AIVal[8]*0.01; //DC3.3
+		report[5].id = 5;
+
+		report[6].data = padc_value->AIVal[9]*0.01; //DC4.2
+		report[6].id = 6;
+
+		report[7].data = padc_value->AIVal[0]*0.01; //reference voltage
+		report[7].id = 7;
+
+		report[8].data = padc_value->AIVal[1]*0.01; //AIN2
+		report[8].id = 8;
+		report[9].data = padc_value->AIVal[2]*0.01; //AIN1
+		report[9].id = 9;
+		report[10].data = padc_value->AIVal[3]*0.01; //AIN4
+		report[10].id = 10;
+		report[11].data = padc_value->AIVal[4]*0.01; //AIN3
+		report[11].id = 11;
+		report[12].data = padc_value->AIVal[5]*0.1; //Rt2
+		report[12].id = 12;	
+		report[13].data = padc_value->AIVal[6]*0.1; //Rt1
+		report[13].id = 13;	
+		report[14].data = padc_value->AIVal[11]*0.01; //AD Reserve
+		report[14].id = 14;	
+
+		report[15].data = padc_value->DIVal; //DI
+		report[15].id = 15;	
+
+		report[16].data = padc_value->BMS_Total_V*0.01; //
+		report[16].id = 16;	
+		report[17].data = padc_value->BMS_Total_C*0.01; //
+		report[17].id = 17;	
+		report[18].data = padc_value->BMS_Remnant_Capacity*0.01; //
+		report[18].id = 18;	
+		report[19].data = padc_value->Reserve[0]*0.01; //Reserve
+		report[19].id = 19;	
+		report[20].data = padc_value->Reserve[1]*0.01; //
+		report[20].id = 20;	
+		report[21].data = padc_value->Reserve[2]*0.01; //
+		report[21].id = 21;	
+		report[22].data = padc_value->Reserve[3]*0.01; //
+		report[22].id = 22;	
+		report[23].data = padc_value->Reserve[4]*0.01; //
+		report[23].id = 23;	
+	#else
+		float temperature = 4096000/padc_value->AIVal[10]-1000;
+		temperature = -0.00004*temperature*temperature+0.2118*temperature-147.53;
+		float voltage_battery  = padc_value->AIVal[6]*36.3/4096.0+0.3;
 
 		if(len < 1 || len > 6){return false;}
 
@@ -184,6 +246,7 @@ public:
 		report[4].id = 4;
 		report[5].data = 0; 
 		report[5].id = 5;
+	#endif
 
 		// siwtch to manual mode if K60 get the control root
 		if (padc_value->root == 2) {
@@ -195,10 +258,8 @@ public:
 
 	bool read_adc(int32_t *adc_pc0_data, int32_t *adc_pc1_data)
 	{
-		//int i=0;
 		float temperature=0;
 		float voltage_battery;
-		//float voltage_4_2,voltage_3_3,voltage_5_0;
 		int poll_ret = poll(&poll_fd, 1, 0);
 		if (poll_ret <= 0)
 			return false;
@@ -222,8 +283,6 @@ public:
 			return false;
 
 		adc_value_s *padc_value = (adc_value_s *)packet;
-
-		// printf("g_DIGroupVal = %x\r\n",padc_value->DIVal);
 
 		temperature		 = 4096000/padc_value->AIVal[10]-1000;
 		temperature 	 = -0.00004*temperature*temperature+0.2118*temperature-147.53;
@@ -340,12 +399,6 @@ private:
 					first_hit = true;
 					continue; 
 				}
-				// else if(first_hit == true&&_uart_buf[i] == BSKLINK_MSG_HEAD_2)
-				// {
-				// 	found_header = true;
-				// 	i--;
-				// 	break;
-				// }
 			}else if(first_hit == true&&_uart_buf[i] == BSKLINK_MSG_HEAD_2)
 			{
 				found_header = true;

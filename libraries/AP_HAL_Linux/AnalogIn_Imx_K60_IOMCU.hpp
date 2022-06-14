@@ -4,7 +4,12 @@
 #include "Imx_K60_IOMCU.hpp"
 
 extern const AP_HAL::HAL &hal;
+
+#if HAL_BORAD_MCU_V2 == 1
+#define IMXK60_ADC_MAX_CHANNELS 24
+#else
 #define IMXK60_ADC_MAX_CHANNELS 6
+#endif
 
 class AnalogSource_Imx_K60_IOMCU : public AP_HAL::AnalogSource {
 public:
@@ -65,14 +70,7 @@ public:
 	{
 		 WITH_SEMAPHORE(_semaphore);
 
-		// for (uint8_t j = 0; j < IMXK60_ADC_MAX_CHANNELS; j++) {
-		// 	if (_channels[j] == nullptr) {
-		// 		_channels[j] = new AnalogSource_Imx_K60_IOMCU(pin);
-		// 		return _channels[j];
-		// 	}
-		// }
-
-		if(pin >= 0 && pin <IMXK60_ADC_MAX_CHANNELS){
+		if(pin >= 0 && pin < IMXK60_ADC_MAX_CHANNELS) {
 			if(_channels[pin] == nullptr) {
 				_channels[pin] = new AnalogSource_Imx_K60_IOMCU(pin);
 				return _channels[pin];
@@ -94,21 +92,9 @@ private:
 		}
 
 		Imx_K60::adc_report_s reports[IMXK60_ADC_MAX_CHANNELS];
-		// if(mcu->read_adc(reports,IMXK60_ADC_MAX_CHANNELS)){
-		// 	for(uint8_t i = 0;i < IMXK60_ADC_MAX_CHANNELS; i++){
-		// 		 for(uint8_t j = 0;j < IMXK60_ADC_MAX_CHANNELS; j++){
 
-		// 			AnalogSource_Imx_K60_IOMCU *source = _channels[i];
-		// 			if (source != nullptr && source->_pin ==reports[i].id ){
-		// 				source->_value = reports[i].data;
-		// 				// printf("data=%f\n",source->_value);
-		// 			}
-		// 		 }
-		// 	}
-		// }
-
-		if(mcu->read_adc(reports,IMXK60_ADC_MAX_CHANNELS)){
-			for(uint8_t i =0;i <IMXK60_ADC_MAX_CHANNELS; i++){
+		if(mcu->read_adc(reports, IMXK60_ADC_MAX_CHANNELS)) {
+			for(uint8_t i =0;i < IMXK60_ADC_MAX_CHANNELS; i++) {
 				AnalogSource_Imx_K60_IOMCU *source = _channels[i];
 				if(source != nullptr){
 					uint8_t pin = source->_pin;
