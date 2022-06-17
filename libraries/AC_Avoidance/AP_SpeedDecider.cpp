@@ -302,13 +302,13 @@ bool AP_SpeedDecider::compute_obstacle_st_boundary(const Vector2f& vehicle_start
     // determine whether the obstalce is outside both ends of the reference line
     if (distance_to_ref <= _vehicle_radius + radius) {
       // determine ST-boundary
-      const float lower_s = projected_to_ref - radius;
-      const float upper_s = projected_to_ref + radius;
+      const float lower_s = projected_to_ref - radius - _vehicle_radius;
+      const float upper_s = projected_to_ref + radius + _vehicle_radius;
       lower_points.emplace_back(lower_s, curr_t);
       upper_points.emplace_back(upper_s, curr_t);
     }
   }
-  return lower_points.size() > 1;
+  return lower_points.size() > 0;
 }
 
 void AP_SpeedDecider::update_obstacle_st_boundary()
