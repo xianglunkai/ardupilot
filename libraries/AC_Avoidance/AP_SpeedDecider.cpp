@@ -372,7 +372,7 @@ float AP_SpeedDecider::get_obstacle_cost(const planning::StGraphPoint& point)
 
   for (auto& boundary : _st_boundaries) {
     // check invalid
-    if (boundary.min_s() > 150.0f) {
+    if (boundary.min_s() > _total_s) {
       continue;
     }
     if (t < boundary.min_t() || t > boundary.max_t()) {
