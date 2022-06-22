@@ -82,7 +82,7 @@ AP_OABendyRuler::AP_OABendyRuler()
 { 
     AP_Param::setup_object_defaults(this, var_info); 
     _bearing_prev = FLT_MAX;
-    _avoidance_required.set_hysteresis_time_from(true,OA_BENDYRULER_TIME_DELAY_RESET);
+    _avoidance_required.set_hysteresis_time_from(true, OA_BENDYRULER_TIME_DELAY_RESET);
 }
 
 // run background task to find best path and update avoidance_results
@@ -159,24 +159,33 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
 
     // check goal and current location near obstacles
     _abandon_wp = false;
-    float near_fence_margin = FLT_MAX;
-    float near_obstacle_margin = FLT_MAX;
-    if(calc_goal_margin_from_fence(current_loc,destination,near_fence_margin)){
-        if(distance_to_dest <=  _lookahead && near_fence_margin <= _margin_max){
-            GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OA:: Goal close fence");
-            _abandon_wp = true;
-            return false;
-        }
+    const float check_margin = _lookahead + _margin_max;
+    
+    if (check_unreachable_from_object_database(current_loc, destination, check_margin)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"BR:: goal close obstacle");
+        _abandon_wp = true;
+        return false;
     }
 
-    if(calc_goal_margin_from_object_database(current_loc,destination,near_obstacle_margin)){
-         if(distance_to_dest <=  _lookahead && near_obstacle_margin <= _margin_max){
-            GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OA:: Goal close obstacle");
-            _abandon_wp = true;
-            return false;
-        }
+    if (check_unreachable_from_home_fence(current_loc, destination, check_margin)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"BR:: goal close home fence");
+        _abandon_wp = true;
+        return false;
     }
 
+    if (check_unreachable_from_inclusion_and_exclusion_polygons(current_loc, destination, check_margin)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"BR:: goal close polygons fence");
+        _abandon_wp = true;
+        return false;
+    }
+
+    if (check_unreachable_from_inclusion_and_exclusion_circles(current_loc, destination, check_margin)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"BR:: goal close circle fence");
+        _abandon_wp = true;
+        return false;
+    }
+
+  
     // search in OA_BENDYRULER_BEARING_INC degree increments around the vehicle alternating left
     // and right. For each direction check if vehicle would avoid all obstacles
     float best_bearing = bearing_to_dest;
@@ -786,33 +795,7 @@ bool AP_OABendyRuler::calc_margin_from_dynamical_object(const Location &start,co
 }
 
 
-bool AP_OABendyRuler::calc_goal_margin_from_fence(const Location &start,const Location &end,float &margin) const
-{
-    float margin_min = FLT_MAX;
-    float latest_margin;
-    bool ret = false;
-    
-    if (calc_goal_margin_from_circular_fence(start, end, latest_margin)) {
-        margin_min = MIN(margin_min, latest_margin);
-        ret = true;
-    }
-    
-    if (calc_goal_margin_from_inclusion_and_exclusion_polygons(start, end, latest_margin)) {
-        margin_min = MIN(margin_min, latest_margin);
-        ret = true;
-    }
-
-    if (calc_goal_margin_from_inclusion_and_exclusion_circles(start, end, latest_margin)) {
-        margin_min = MIN(margin_min, latest_margin);
-        ret = true;
-    }
-
-    // return smallest margin from any obstacle
-    margin = margin_min;
-    return ret;
-}
-
-bool AP_OABendyRuler::calc_goal_margin_from_object_database(const Location &start, const Location &end, float &margin) const
+bool AP_OABendyRuler::check_unreachable_from_object_database(const Location &curr, const Location &end, const float margin) const
 {
     // exit immediately if db is empty
     AP_OADatabase *oaDb = AP::oadatabase();
@@ -821,32 +804,27 @@ bool AP_OABendyRuler::calc_goal_margin_from_object_database(const Location &star
     }
 
     // convert start and end to offsets (in cm) from EKF origin
-    Vector3f start_NEU,end_NEU;
-    if (!start.get_vector_from_origin_NEU(start_NEU) || !end.get_vector_from_origin_NEU(end_NEU)) {
+    Vector3f cur_NEU,end_NEU;
+    if (!curr.get_vector_from_origin_NEU(cur_NEU) || !end.get_vector_from_origin_NEU(end_NEU)) {
         return false;
     }
     
     // check each obstacle's distance from goal
-    float smallest_margin = FLT_MAX;
     for(uint16_t i = 0; i < oaDb ->database_count(); i++){
         const AP_OADatabase::OA_DbItem& item = oaDb ->get_item(i);
         const Vector3f point_cm = item.pos * 100.0f;
         // margin is distance between goal point and obstacle edge
         const float m = (point_cm - end_NEU).length() * 0.01f - item.radius;
-        if(m < smallest_margin){
-            smallest_margin = m;
+        const float n = (point_cm - cur_NEU).length() * 0.01f - item.radius;
+        if(m < margin && n < margin){
+            return true;
         }
-    }
-
-    if(smallest_margin < FLT_MAX){
-        margin = smallest_margin;
-        return true;
     }
 
     return false;
 }
 
-bool AP_OABendyRuler::calc_goal_margin_from_circular_fence(const Location &start, const Location &end, float &margin) const
+bool AP_OABendyRuler::check_unreachable_from_home_fence(const Location &cur, const Location &end, const float margin) const
 {
     // exit immediately if polygon fence is not enabled
     const AC_Fence *fence = AC_Fence::get_singleton();
@@ -860,14 +838,19 @@ bool AP_OABendyRuler::calc_goal_margin_from_circular_fence(const Location &start
     // calculate goal point's distance from home
     const Location &ahrs_home = AP::ahrs().get_home();
     const float end_dist_sq = ahrs_home.get_distance_NE(end).length_squared();
+    const float cur_dist_sq = ahrs_home.get_distance_NE(cur).length_squared();
 
     // margin is fence radius minus the longer of start or end distance
-    margin = fence->get_radius() - sqrtf(end_dist_sq) - fence->get_margin();;
+    const float m = fence->get_radius() - sqrtf(end_dist_sq);
+    const float n = fence->get_radius() - sqrtf(cur_dist_sq);
+    if (m < margin && n < margin) {
+        return true;
+    }
 
     return true;
 }
 
-bool AP_OABendyRuler::calc_goal_margin_from_inclusion_and_exclusion_polygons(const Location &start, const Location &end, float &margin) const
+bool AP_OABendyRuler::check_unreachable_from_inclusion_and_exclusion_polygons(const Location &cur, const Location &end, const float margin) const
 {
     const AC_Fence *fence = AC_Fence::get_singleton();
     if (fence == nullptr) {
@@ -887,29 +870,28 @@ bool AP_OABendyRuler::calc_goal_margin_from_inclusion_and_exclusion_polygons(con
     }
 
     // convert start and end to offsets from EKF origin
-    Vector2f start_NE, end_NE;
-    if (!start.get_vector_xy_from_origin_NE(start_NE) || !end.get_vector_xy_from_origin_NE(end_NE)) {
+    Vector2f cur_NE, end_NE;
+    if (!cur.get_vector_xy_from_origin_NE(cur_NE) || !end.get_vector_xy_from_origin_NE(end_NE)) {
         return false;
     }
 
-    // get fence margin
-    const float fence_margin = fence->get_margin();
-
     // iterate through inclusion polygons and calculate minimum distance
-    bool margin_updated = false;
     for (uint8_t i = 0; i < num_inclusion_polygons; i++) {
         uint16_t num_points;
         const Vector2f* boundary = fence->polyfence().get_inclusion_polygon(i, num_points);
 
         // if outside the fence margin is the closest distance but with negative sign
-        const float sign = Polygon_outside(end_NE, boundary, num_points) ? -1.0f : 1.0f;
+        const float end_sign = Polygon_outside(end_NE, boundary, num_points) ? -1.0f : 1.0f;
+        const float cur_sign = Polygon_outside(cur_NE, boundary, num_points) ? -1.0f : 1.0f;
 
         // calculate min distance (in meters) from line to polygon
-        float margin_new = sign * Polygon_closest_distance_point(boundary,num_points,end_NE) * 0.01f - fence_margin;
-        if (!margin_updated || (margin_new < margin)) {
-            margin_updated = true;
-            margin = margin_new;
+        const float m = end_sign * Polygon_closest_distance_point(boundary,num_points,end_NE) * 0.01f;
+        const float n = cur_sign * Polygon_closest_distance_point(boundary,num_points,cur_NE) * 0.01f;
+
+        if ( m < margin && n < margin) {
+            return true;
         }
+       
     }
 
     // iterate through exclusion polygons and calculate minimum margin
@@ -918,21 +900,22 @@ bool AP_OABendyRuler::calc_goal_margin_from_inclusion_and_exclusion_polygons(con
         const Vector2f* boundary = fence->polyfence().get_exclusion_polygon(i, num_points);
 
         // if outside the fence margin is the closest distance but with negative sign
-        const float sign = Polygon_outside(end_NE, boundary, num_points) ? 1.0f : -1.0f;
+        const float end_sign = Polygon_outside(end_NE, boundary, num_points) ? 1.0f : -1.0f;
+        const float cur_sign = Polygon_outside(cur_NE, boundary,num_points) ? 1.0f : -1.0f;
 
         // calculate min distance (in meters) from line to polygon
-        float margin_new = sign * Polygon_closest_distance_point(boundary,num_points,end_NE) * 0.01f - fence_margin;
-        if (!margin_updated || (margin_new < margin)) {
-            margin_updated = true;
-            margin = margin_new;
+        const float m = end_sign * Polygon_closest_distance_point(boundary,num_points,end_NE) * 0.01f;
+        const float n = cur_sign * Polygon_closest_distance_point(boundary,num_points,cur_NE) * 0.01f;
+
+        if ( m < margin && n < margin) {
+            return true;
         }
     }
 
-     return margin_updated;
-
+     return false;
 }
 
-bool AP_OABendyRuler::calc_goal_margin_from_inclusion_and_exclusion_circles(const Location &start, const Location &end, float &margin) const
+bool AP_OABendyRuler::check_unreachable_from_inclusion_and_exclusion_circles(const Location &cur, const Location &end, const float margin) const
 {
      // exit immediately if fence is not enabled
     const AC_Fence *fence = AC_Fence::get_singleton();
@@ -953,30 +936,27 @@ bool AP_OABendyRuler::calc_goal_margin_from_inclusion_and_exclusion_circles(cons
     }
 
     // convert start and end to offsets from EKF origin
-    Vector2f start_NE, end_NE;
-    if (!start.get_vector_xy_from_origin_NE(start_NE) || !end.get_vector_xy_from_origin_NE(end_NE)) {
+    Vector2f cur_NE, end_NE;
+    if (!cur.get_vector_xy_from_origin_NE(cur_NE) || !end.get_vector_xy_from_origin_NE(end_NE)) {
         return false;
     }
 
-    // get fence margin
-    const float fence_margin = fence->get_margin();
-
     // iterate through inclusion circles and calculate minimum margin
-    bool margin_updated = false;
     for (uint8_t i = 0; i < num_inclusion_circles; i++) {
         Vector2f center_pos_cm;
         float radius;
         if (fence->polyfence().get_inclusion_circle(i, center_pos_cm, radius)) {
 
             const float end_dist_sq = (end_NE - center_pos_cm).length_squared();
+            const float cur_dist_sq = (cur_NE - center_pos_cm).length_squared();
 
             // margin is fence radius minus the longer of start or end distance
-            const float margin_new = radius + fence_margin - sqrtf(end_dist_sq) * 0.01f;
+            const float m = radius - sqrtf(end_dist_sq) * 0.01f;
+            const float n = radius - sqrtf(cur_dist_sq) * 0.01f;
 
             // update margin with lowest value so far
-            if (!margin_updated || (margin_new < margin)) {
-                margin_updated = true;
-                margin = margin_new;
+            if (m < margin && n < margin) {
+                return true;
             }
         }
     }
@@ -987,19 +967,19 @@ bool AP_OABendyRuler::calc_goal_margin_from_inclusion_and_exclusion_circles(cons
         float radius;
         if (fence->polyfence().get_exclusion_circle(i, center_pos_cm, radius)) {
 
-            // first calculate distance between circle's center and segment
-            const float dist_cm = (end_NE - center_pos_cm).length();
+            const float end_dist_sq = (end_NE - center_pos_cm).length_squared();
+            const float cur_dist_sq = (cur_NE - center_pos_cm).length_squared();
 
-            // margin is distance to the center minus the radius
-            const float margin_new = (dist_cm * 0.01f) - (radius + fence_margin);
+            // margin is fence radius minus the longer of start or end distance
+            const float m = sqrtf(end_dist_sq) * 0.01f - radius;
+            const float n = sqrtf(cur_dist_sq) * 0.01f - radius;
 
             // update margin with lowest value so far
-            if (!margin_updated || (margin_new < margin)) {
-                margin_updated = true;
-                margin = margin_new;
+            if (m < margin && n < margin) {
+                return true;
             }
         }
     }
 
-    return margin_updated;
+    return false;
 }
