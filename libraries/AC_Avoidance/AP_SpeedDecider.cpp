@@ -38,7 +38,8 @@ namespace {
     // other constant parameters
     static constexpr float kfloatEpsilon = 1.0e-6f;
     static constexpr float kInf = std::numeric_limits<float>::infinity();
-    static constexpr float gap_dist_err = 1.0f;
+    static constexpr float track_err_max = 2.0f;
+    static constexpr float planning_length_min = 15.0f;
 }  // namespace
 
 #define debug 1
@@ -150,7 +151,7 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
      return false;
    }
 
-    Vector2f current_ne, origin_ne, destination_ne,projected_line_unit;
+    Vector2f current_ne, origin_ne, destination_ne, projected_line_unit;
     // convert location with lat-lng to offsets from ekf orgin
     if (!current_loc.get_vector_xy_from_origin_NE(current_ne) ||
         !origin.get_vector_xy_from_origin_NE(origin_ne) ||
@@ -194,7 +195,7 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
     const float angle_to_line = wrap_180(ground_course_deg - degrees(projected_line_unit.angle()));
 
     // could not speed planning, then return not required
-    if (distance_to_line > gap_dist_err || distance_to_end  < gap_dist_err  || fabsf(angle_to_line) > 45.0f) {
+    if (distance_to_line > track_err_max || distance_to_end  < planning_length_min  || fabsf(angle_to_line) > 30.0f) {
       return false;
     }
 
