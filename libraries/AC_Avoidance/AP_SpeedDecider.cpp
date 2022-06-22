@@ -7,7 +7,7 @@
 #include <GCS_MAVLink/GCS.h>
 
 namespace {
-    static constexpr float unit_t = 1.0f;
+    static constexpr float unit_t = 3.0f;
     static constexpr float dense_unit_s = 0.1f;
     static constexpr float sparse_unit_s = 1.0f;
 
@@ -116,7 +116,7 @@ const AP_Param::GroupInfo AP_SpeedDecider::var_info[] = {
   // @Description: Obstacle avoidance penalty factor
   // @Range: 1 1e10
   // @User: Standard
-  AP_GROUPINFO("OBS_WGH", 9, AP_SpeedDecider, _obstacle_weight, 1000.0f),
+  AP_GROUPINFO("OBS_WGH", 9, AP_SpeedDecider, _obstacle_weight, 1.0f),
 
   // @Param: ACC_WGH
   // @Description: Acceleration penalty factor
@@ -187,6 +187,7 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
     _curr_start = Vector2f::closest_point(mp, origin_ne, destination_ne);
     const float distance_to_line = (_curr_start - mp).length();
     const float distance_to_end  = MIN((_curr_start - destination_ne).length(), _total_s);
+    _planning_length = distance_to_end;
 
     // determine planning end position
     _curr_end = _curr_start +  projected_line_unit * distance_to_end;
@@ -199,6 +200,12 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
 
     // update obstacle st boundary
     update_obstacle_st_boundary();
+
+    #if debug
+    for (auto sl: _st_boundaries) {
+      std::cout << "tmin:" << sl.min_t() << " tmax:" << sl.max_t() << " smin:" << sl.min_s() << " smax:" << sl.max_s() << std::endl;
+    }
+    #endif
 
     // search speed time graph
     planning::SpeedData speed_data;
@@ -304,11 +311,14 @@ bool AP_SpeedDecider::compute_obstacle_st_boundary(const Vector2f& vehicle_start
       // determine ST-boundary
       const float lower_s = projected_to_ref - radius - _vehicle_radius;
       const float upper_s = projected_to_ref + radius + _vehicle_radius;
+      if ((lower_s < 0 && upper_s < 0) || (lower_s > _planning_length && upper_s > _planning_length)) {
+        continue;
+      }
       lower_points.emplace_back(lower_s, curr_t);
       upper_points.emplace_back(upper_s, curr_t);
     }
   }
-  return lower_points.size() > 0;
+  return lower_points.size() > 1;
 }
 
 void AP_SpeedDecider::update_obstacle_st_boundary()
@@ -372,7 +382,7 @@ float AP_SpeedDecider::get_obstacle_cost(const planning::StGraphPoint& point)
 
   for (auto& boundary : _st_boundaries) {
     // check invalid
-    if (boundary.min_s() > _total_s) {
+    if (boundary.min_s() > _planning_length) {
       continue;
     }
     if (t < boundary.min_t() || t > boundary.max_t()) {
@@ -616,7 +626,7 @@ bool AP_SpeedDecider::init_cost_table()
   _dimension_t = static_cast<uint32_t>(std::ceil(_total_t / static_cast<float>(unit_t))) + 1;
 
    float sparse_length_s =
-      _total_s - static_cast<float>(_dense_dimension_s - 1) * dense_unit_s;
+      _planning_length - static_cast<float>(_dense_dimension_s - 1) * dense_unit_s;
 
   _sparse_dimension_s =
       sparse_length_s > std::numeric_limits<float>::epsilon()
@@ -625,7 +635,7 @@ bool AP_SpeedDecider::init_cost_table()
   _dense_dimension_s =
       sparse_length_s > std::numeric_limits<float>::epsilon()
           ? _dense_dimension_s
-          : static_cast<uint32_t>(std::ceil(_total_s / dense_unit_s)) +
+          : static_cast<uint32_t>(std::ceil(_planning_length / dense_unit_s)) +
                 1;
   _dimension_s = _dense_dimension_s + _sparse_dimension_s;
 
@@ -635,6 +645,10 @@ bool AP_SpeedDecider::init_cost_table()
     return false;
   }
 
+  // reinitialisze
+  _accel_cost.fill(-1.0);
+  _jerk_cost.fill(-1.0);
+  _cost_table.clear();
   _cost_table = std::vector<std::vector<planning::StGraphPoint>>(_dimension_t, std::vector<planning::StGraphPoint>(_dimension_s, planning::StGraphPoint()));
 
   float curr_t = 0.0f;

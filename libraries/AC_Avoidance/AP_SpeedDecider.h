@@ -160,6 +160,7 @@ private:
     AP_Float _accel_penalty;     // acceleration variation penalty
     AP_Float _decel_penalty;     // deceleration variation penalty
 
+    float _planning_length;
     float _margin_max;           // avoidance margin with meters
     bool _use_st_drivable_boundary{false};  // use drivable boundary 
     bool _enable_dp_reference_speed{true};  // enable reference speed deviation penalty 
