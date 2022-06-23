@@ -138,7 +138,7 @@ bool STBoundary::get_boundary_srange(const float curr_time, float* s_upper, floa
     *s_lower = _lower_points[left].s() +
                 r * (_lower_points[right].s() - _lower_points[left].s());
 
-    *s_upper = std::fmin(*s_upper, 150.0f);
+    *s_upper = std::fmin(*s_upper, 1000.0f);
     *s_lower = std::fmax(*s_lower, 0.0);
     return true;
 }
