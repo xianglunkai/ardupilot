@@ -64,6 +64,7 @@ public:
         // 9 was Driver_Type_MPPT_PacketDigital
         Driver_Type_Scripting = 10,
         Driver_Type_Benewake = 11,
+        Driver_Type_Scripting2 = 12,
 
         Driver_Type_ARS408 = 20,
         Driver_Type_KXD_CAN = 21,
