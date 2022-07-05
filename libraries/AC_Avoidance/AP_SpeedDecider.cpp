@@ -168,7 +168,7 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
 
     // projecting current speed into AB 
     float groundSpeed = ground_speed_vec.length();
-    float ground_course_deg = degrees(ground_speed_vec.angle());
+    //float ground_course_deg = degrees(ground_speed_vec.angle());
     Vector2f groundspeed_vector = ground_speed_vec;
     if (groundSpeed < 0.1f) {
       // use a small ground speed vector in the right direction,
@@ -176,7 +176,7 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
       groundSpeed = 0.1f;
       groundspeed_vector = Vector2f(cosf(AP::ahrs().yaw), sinf(AP::ahrs().yaw)) * groundSpeed;
       // with zero ground speed use vehicle's heading
-      ground_course_deg = AP::ahrs().yaw_sensor * 0.01f;
+     // ground_course_deg = AP::ahrs().yaw_sensor * 0.01f;
     }
 
     // get current speed 
