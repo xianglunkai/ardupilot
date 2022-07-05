@@ -186,16 +186,16 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
 
     // determine planning start position
     _curr_start = Vector2f::closest_point(mp, origin_ne, destination_ne);
-    const float distance_to_line = (_curr_start - mp).length();
+   // const float distance_to_line = (_curr_start - mp).length();
     const float distance_to_end  = MIN((_curr_start - destination_ne).length(), _total_s);
     _planning_length = distance_to_end;
 
     // determine planning end position
     _curr_end = _curr_start +  projected_line_unit * distance_to_end;
-    const float angle_to_line = wrap_180(ground_course_deg - degrees(projected_line_unit.angle()));
+   // const float angle_to_line = wrap_180(ground_course_deg - degrees(projected_line_unit.angle()));
 
     // could not speed planning, then return not required
-    if (distance_to_line > track_err_max || distance_to_end  < planning_length_min  || fabsf(angle_to_line) > 30.0f) {
+    if (/*distance_to_line > track_err_max ||*/ distance_to_end  < planning_length_min  /*|| fabsf(angle_to_line) > 30.0f*/) {
       return false;
     }
 
