@@ -420,7 +420,11 @@ public:
     AP_AIS ais;
 #endif
 
+    // navigation type
     AP_Int8 mis_nav_type;
+
+    // Rover options
+    AP_Int32 manual_options;
 };
 
 extern const AP_Param::Info var_info[];

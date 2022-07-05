@@ -667,6 +667,13 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("MIS_NAV_TYP", 60, ParametersG2, mis_nav_type, 0),
 
+    // @Param: MANUAL_OPTIONS
+    // @DisplayName: Manual mode options
+    // @Description: Manual mode specific options
+    // @Bitmask: 0:Enable steering speed scaling
+    // @User: Advanced
+    AP_GROUPINFO("MANUAL_OPTIONS", 53, ParametersG2, manual_options, 0),
+
     AP_GROUPEND
 };
 
