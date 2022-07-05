@@ -8,7 +8,6 @@
 
 const float OA_SHALLOW_TIMEOUT_MS = 3000;      // 3s
 const float OA_SHALLOW_SAMP_DIST_MIN = 5.0f;
-const float OA_SHALLOW_PRED_DIST_MIN = 5.0f;
 
 extern const AP_HAL::HAL &hal;
 
@@ -170,8 +169,7 @@ bool AP_ShallowAvoid::update(const Location &current_loc, const Location& origin
     _coef = std::move(LeastSquare(_sample_points, dt, &error_square));
     
    // Predict and shallow check
-   const float predict_dist = (water_depth_m < _min_water_depth) ? OA_SHALLOW_PRED_DIST_MIN : _predict_distance;
-   const float predict_time = dt * nw + MAX(predict_dist / speed ,1.0f);
+   const float predict_time = dt * nw + MAX(_predict_distance / speed ,1.0f);
    const float predict_depth = EvaluatePolynomial(_coef, predict_time);
    if (predict_depth <= _min_water_depth && _coef[1] <= -tanf(radians(_min_water_slope))) {
         _last_avoid_flag = true;
