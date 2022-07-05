@@ -84,7 +84,7 @@ STBoundary STBoundary::create_instance_accurate(const std::vector<STPoint>& lowe
 
 bool STBoundary::get_unblock_srange(const float curr_time, float* s_upper, float* s_lower)
 {
-    *s_upper = 150.0f;
+    *s_upper = 1500.0f;
     *s_lower = 0.0;
     if (curr_time < _min_t || curr_time > _max_t) {
         return true;
