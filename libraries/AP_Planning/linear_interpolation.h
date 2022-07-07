@@ -6,6 +6,11 @@
 #pragma once
 
 #include <cmath>
+#include <limits>
+#include <type_traits>
+#include <utility>
+#include <vector>
+#include <array>
 
 namespace planning {
 
@@ -43,6 +48,12 @@ T lerp(const T& x0, const float t0, const T& x1, const float t1,
  */
 float slerp(const float a0, const float t0, const float a1, const float t1,
              const float t);
+
+
+template<int N>
+std::array<float, N> linspace(const float start, const float end);
+
+std::vector<float> linspace(const float start, const float end, const int16_t count);
 
 }  // namespace planning
 
