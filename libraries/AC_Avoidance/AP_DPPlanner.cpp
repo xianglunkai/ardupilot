@@ -69,18 +69,19 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
         // OA is not required
         return false;
     }
+    return true;
 }
 
 // get collision cost
 float AP_DPPlanner::get_collision_cost(StateIndex parent_ind, StateIndex current_ind)
 {
-    
+    return 0.0f;
 }
 
 // get total cost
 std::pair<float, float> AP_DPPlanner::get_total_cost(StateIndex parent_ind, StateIndex cur_ind)
 {
-
+    return std::make_pair(0,0);
 }
 
 // get lateral offset
@@ -117,5 +118,4 @@ std::vector<planning::Vec2d> AP_DPPlanner::interpolate_linearly(const float pare
     }
 
     return result;
-
 }

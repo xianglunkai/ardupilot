@@ -29,24 +29,22 @@ public:
 
 private:
     // define some constance
-    static const float INF_MAX = std::numeric_limits<float>::max();
-    static const float INF_MIN = std::numeric_limits<float>::min();
     static const int NT = 5;
     static const int NS = 7;
     static const int NL = 10;
 
     // state node content
     struct StateCell {
-        float cost = INF_MAX;
-        float current_s = INF_MIN;
+        float cost = std::numeric_limits<float>::max();
+        float current_s = std::numeric_limits<float>::min();
         int16_t parent_s_ind = -1;
         int16_t parent_l_ind = -1;
 
         StateCell() = default;
 
-        StateCell(double cost, double cur_s, int parent_s_ind, int parent_l_ind): 
-                 cost(cost), current_s(cur_s),
-                 parent_s_ind(parent_s_ind), parent_l_ind(parent_l_ind) {}
+        StateCell(double cost0, double cur_s0, int parent_s_ind0, int parent_l_ind0): 
+                 cost(cost0), current_s(cur_s0),
+                 parent_s_ind(parent_s_ind0), parent_l_ind(parent_l_ind0) {}
     };
 
     // state node index
@@ -116,5 +114,8 @@ private:
     AP_Float _longitudinal_vel_change_weight;                // Cost of longitudinal velocity change, ds/dt
 
     // internal variables used by background thread
+
+private:
+    // discretized
     
 };
