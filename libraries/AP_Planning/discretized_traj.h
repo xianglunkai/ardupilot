@@ -28,7 +28,7 @@ class DiscretizedTraj {
     public:
         DiscretizedTraj() = default;
 
-        DiscretizedTraj(const DiscretizedTraj &rhs, size_t begin, size_t end = -1);
+        DiscretizedTraj(const DiscretizedTraj &rhs, int16_t begin, int16_t end = -1);
 
         explicit DiscretizedTraj(Trajectory points) : _data(std::move(points)) {}
 

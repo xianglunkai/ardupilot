@@ -26,7 +26,7 @@ TrajPoint linear_interpolate_trajectory(const TrajPoint &p0, const TrajPoint &p1
 }
 
 
-DiscretizedTraj::DiscretizedTraj(const DiscretizedTraj &rhs, size_t begin, size_t end)
+DiscretizedTraj::DiscretizedTraj(const DiscretizedTraj &rhs, int16_t begin, int16_t end)
 {
     if (end < 0) {
         end = rhs._data.size();
@@ -46,8 +46,8 @@ Trajectory::const_iterator DiscretizedTraj::query_lower_bound_station_point(cons
 
   return std::lower_bound(
     _data.begin(), _data.end(), station,
-    [](const TrajPoint &t, double station) {
-      return t.s < station;
+    [](const TrajPoint &t, float s) {
+      return t.s < s;
     });
 }
 
