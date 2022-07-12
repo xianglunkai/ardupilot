@@ -7,10 +7,6 @@
 #include <GCS_MAVLink/GCS.h>
 
 namespace {
-    static constexpr float unit_t = 3.0f;
-    static constexpr float dense_unit_s = 0.1f;
-    static constexpr float sparse_unit_s = 1.0f;
-
     // obstacle cost config
     static constexpr float default_obstacle_cost  =1.0e4f;
 
@@ -38,8 +34,7 @@ namespace {
     // other constant parameters
     static constexpr float kfloatEpsilon = 1.0e-6f;
     static constexpr float kInf = std::numeric_limits<float>::infinity();
-    static constexpr float track_err_max = 2.0f;
-    static constexpr float planning_length_min = 15.0f;
+    static constexpr float overtake_add_margin = 5.0f;
 }  // namespace
 
 #define debug 1
@@ -132,6 +127,34 @@ const AP_Param::GroupInfo AP_SpeedDecider::var_info[] = {
   // @User: Standard
   AP_GROUPINFO("DEC_WGH", 11, AP_SpeedDecider, _decel_penalty, decel_penalty),
 
+  // @Param: UNT_TIME
+  // @Description: Time scale
+  // @Units: s
+  // @Range: 1 10
+  // @User: Standard
+  AP_GROUPINFO("UNT_TIME", 12, AP_SpeedDecider, _unit_t, 1.0f),
+
+  // @Param: UNT_DENS
+  // @Description: Dense distance scale
+  // @Units: m
+  // @Range: 0.1 10
+  // @User: Standard
+  AP_GROUPINFO("UNT_DENS", 13, AP_SpeedDecider, _dense_unit_s, 0.2f),
+
+  // @Param: UNT_SPAS
+  // @Description: Sparse distance scale
+  // @Units: m
+  // @Range: 1 10
+  // @User: Standard
+  AP_GROUPINFO("UNT_SPAS", 14, AP_SpeedDecider, _sparse_unit_s, 1.0f),
+
+  // @Param: PLN_MIN
+  // @Description: Planning distance mininmal
+  // @Units: m
+  // @Range: 1 100
+  // @User: Standard
+  AP_GROUPINFO("PLN_MIN", 15, AP_SpeedDecider, _planning_length_min, 15.0f),
+
   AP_GROUPEND
 };
 
@@ -168,15 +191,12 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
 
     // projecting current speed into AB 
     float groundSpeed = ground_speed_vec.length();
-    //float ground_course_deg = degrees(ground_speed_vec.angle());
     Vector2f groundspeed_vector = ground_speed_vec;
     if (groundSpeed < 0.1f) {
       // use a small ground speed vector in the right direction,
       // allowing us to use the compass heading at zero GPS velocity
       groundSpeed = 0.1f;
       groundspeed_vector = Vector2f(cosf(AP::ahrs().yaw), sinf(AP::ahrs().yaw)) * groundSpeed;
-      // with zero ground speed use vehicle's heading
-     // ground_course_deg = AP::ahrs().yaw_sensor * 0.01f;
     }
 
     // get current speed 
@@ -186,16 +206,14 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
 
     // determine planning start position
     _curr_start = Vector2f::closest_point(mp, origin_ne, destination_ne);
-   // const float distance_to_line = (_curr_start - mp).length();
     const float distance_to_end  = MIN((_curr_start - destination_ne).length(), _total_s);
     _planning_length = distance_to_end;
 
     // determine planning end position
     _curr_end = _curr_start +  projected_line_unit * distance_to_end;
-   // const float angle_to_line = wrap_180(ground_course_deg - degrees(projected_line_unit.angle()));
 
     // could not speed planning, then return not required
-    if (/*distance_to_line > track_err_max ||*/ distance_to_end  < planning_length_min  /*|| fabsf(angle_to_line) > 30.0f*/) {
+    if (distance_to_end  < _planning_length_min) {
       return false;
     }
 
@@ -277,7 +295,7 @@ void AP_SpeedDecider::genate_drivable_boundary(const float current_speed, STBoun
   if (!st_bound.empty()) {
     st_bound.clear();
   }
-  for (float curr_t = 0.0f; curr_t <= _total_t; curr_t += unit_t) {
+  for (float curr_t = 0.0f; curr_t <= _total_t; curr_t += _unit_t) {
     st_bound.emplace_back(curr_t, std::numeric_limits<float>::lowest(),
                           std::numeric_limits<float>::max());
   }
@@ -372,7 +390,7 @@ float AP_SpeedDecider::get_obstacle_cost(const planning::StGraphPoint& point)
     STBound st_bound;
     genate_drivable_boundary(_curr_speed, st_bound);
 
-    int index = static_cast<int>(t / unit_t);
+    int index = static_cast<int>(t / _unit_t);
     float ts, lower_bound, upper_bound;
     std::tie(ts, lower_bound, upper_bound) = st_bound.at(index);
 
@@ -406,16 +424,16 @@ float AP_SpeedDecider::get_obstacle_cost(const planning::StGraphPoint& point)
                 s_diff * s_diff;
       }
     } else if (s > s_upper) {
-      if (s > s_upper + _margin_max) {  // or calculated from velocity
+      if (s > s_upper + _margin_max + overtake_add_margin) {  // or calculated from velocity
         continue;
       } else {
-        auto s_diff = _margin_max + s_upper - s;
+        auto s_diff = _margin_max + overtake_add_margin + s_upper - s;
         cost += _obstacle_weight * default_obstacle_cost *
                 s_diff * s_diff;
       }
     }
   }
-  return cost * unit_t;
+  return cost * _unit_t;
 }
 
 float AP_SpeedDecider::get_spatial_potential_cost(const planning::StGraphPoint& point)
@@ -433,21 +451,21 @@ float AP_SpeedDecider::get_speed_cost(const planning::STPoint& first, const plan
                                       const float cruise_speed) const
 {
   float cost = 0.0f;
-  const float speed = (second.s() - first.s()) / unit_t;
+  const float speed = (second.s() - first.s()) / _unit_t;
   if (speed < 0.0f) {
     return kInf;
   }
 
   float det_speed = (speed - speed_limit) / speed_limit;
   if (det_speed > 0) {
-    cost += exceed_speed_penalty * default_speed_cost * (det_speed * det_speed) * unit_t;
+    cost += exceed_speed_penalty * default_speed_cost * (det_speed * det_speed) * _unit_t;
   } else if (det_speed < 0) {
-    cost += low_speed_penalty * default_speed_cost * -det_speed * unit_t;
+    cost += low_speed_penalty * default_speed_cost * -det_speed * _unit_t;
   }
 
   if (_enable_dp_reference_speed) {
     float diff_speed = speed - cruise_speed;
-    cost += reference_speed_penalty * default_speed_cost * fabs(diff_speed) * unit_t;
+    cost += reference_speed_penalty * default_speed_cost * fabs(diff_speed) * _unit_t;
   }
 
   return cost;
@@ -457,8 +475,8 @@ float AP_SpeedDecider::get_accel_cost_by_two_points(const float pre_speed,
                                                     const planning::STPoint& pre_point,
                                                     const planning::STPoint& curr_point)
 {
-  float current_speed = (curr_point.s() - pre_point.s()) / unit_t;
-  float accel = (current_speed - pre_speed) / unit_t;
+  float current_speed = (curr_point.s() - pre_point.s()) / _unit_t;
+  float accel = (current_speed - pre_speed) / _unit_t;
   return get_accel_cost(accel);
 }
 
@@ -466,7 +484,7 @@ float AP_SpeedDecider::get_accel_cost_by_three_points(const planning::STPoint& f
                                                       const planning::STPoint& second,
                                                       const planning::STPoint& third)
 {
-  float accel = (first.s() + third.s() - 2 * second.s()) / (unit_t * unit_t);
+  float accel = (first.s() + third.s() - 2 * second.s()) / (_unit_t * _unit_t);
   return get_accel_cost(accel);
 }
 
@@ -475,9 +493,9 @@ float AP_SpeedDecider::get_jerk_cost_by_two_points(const float pre_speed,
                                                   const planning::STPoint& pre_point,
                                                   const planning::STPoint& curr_point)
 {
-  const float curr_speed = (curr_point.s() - pre_point.s()) / unit_t;
-  const float curr_accel = (curr_speed - pre_speed) / unit_t;
-  const float jerk = (curr_accel - pre_acc) / unit_t;
+  const float curr_speed = (curr_point.s() - pre_point.s()) / _unit_t;
+  const float curr_accel = (curr_speed - pre_speed) / _unit_t;
+  const float jerk = (curr_accel - pre_acc) / _unit_t;
   return jerk_cost(jerk);
 }
 
@@ -486,11 +504,11 @@ float AP_SpeedDecider::get_jerk_cost_by_three_points(const float first_speed,
                                                      const planning::STPoint& second,
                                                      const planning::STPoint& third)
 {
-  const float pre_speed = (second.s() - first.s()) / unit_t;
-  const float pre_acc = (pre_speed - first_speed) / unit_t;
-  const float curr_speed = (third.s() - second.s()) / unit_t;
-  const float curr_acc = (curr_speed - pre_speed) / unit_t;
-  const float jerk = (curr_acc - pre_acc) / unit_t;
+  const float pre_speed = (second.s() - first.s()) / _unit_t;
+  const float pre_acc = (pre_speed - first_speed) / _unit_t;
+  const float curr_speed = (third.s() - second.s()) / _unit_t;
+  const float curr_acc = (curr_speed - pre_speed) / _unit_t;
+  const float jerk = (curr_acc - pre_acc) / _unit_t;
   return jerk_cost(jerk);
 }
 
@@ -500,7 +518,7 @@ float AP_SpeedDecider::get_jerk_cost_by_four_points(const planning::STPoint& fir
                                                     const planning::STPoint& fourth)
 {
     float jerk = (fourth.s() - 3 * third.s() + 3 * second.s() - first.s()) /
-                (unit_t * unit_t * unit_t);
+                (_unit_t * _unit_t * _unit_t);
   return jerk_cost(jerk);
 }
 
@@ -534,7 +552,7 @@ float AP_SpeedDecider::get_accel_cost(const float accel)
   } else {
     cost = _accel_cost.at(accel_key);
   }
-  return cost * unit_t;
+  return cost * _unit_t;
 }
 
 float AP_SpeedDecider::jerk_cost(const float jerk)
@@ -550,16 +568,16 @@ float AP_SpeedDecider::jerk_cost(const float jerk)
   if (_jerk_cost.at(jerk_key) < 0.0) {
     float jerk_sq = jerk * jerk;
     if (jerk > 0) {
-      cost = positive_jerk_coeff * jerk_sq * unit_t;
+      cost = positive_jerk_coeff * jerk_sq * _unit_t;
     } else {
-      cost = negative_jerk_coeff * jerk_sq * unit_t;
+      cost = negative_jerk_coeff * jerk_sq * _unit_t;
     }
     _jerk_cost.at(jerk_key) = cost;
   } else {
     cost = _jerk_cost.at(jerk_key);
   }
 
-  // TODO(All): normalize to unit_t_
+  // TODO(All): normalize to _unit_t_
   return cost;
 }
 
@@ -572,10 +590,10 @@ bool AP_SpeedDecider::search(planning::SpeedData* const speed_data)
     if (boundary.is_point_in_boundary({0.0, 0.0}) ||
         (std::fabs(boundary.min_t()) < kBounadryEpsilon &&
          std::fabs(boundary.min_s()) < kBounadryEpsilon)) {
-      _dimension_t = static_cast<uint32_t>(std::ceil(_total_t / static_cast<float>(unit_t))) + 1;
+      _dimension_t = static_cast<uint32_t>(std::ceil(_total_t / static_cast<float>(_unit_t))) + 1;
       std::vector<planning::SpeedPoint> speed_profile;
       float t = 0.0f;
-      for (uint32_t i = 0; i < _dimension_t; ++i, t += unit_t) {
+      for (uint32_t i = 0; i < _dimension_t; ++i, t += _unit_t) {
         speed_profile.push_back(planning::SpeedPoint::ToSpeedPoint(0, t));
       }
       *speed_data = planning::SpeedData(speed_profile);
@@ -613,8 +631,8 @@ bool AP_SpeedDecider::init_cost_table()
   // dense and sparse with dense resolution coming first in the spatial horizon
 
   // sanity check for numberical stability
-  if (unit_t < kfloatEpsilon) {
-    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "unit_t is smaller than kfloatEpsilon");
+  if (_unit_t < kfloatEpsilon) {
+    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "_unit_t is smaller than kfloatEpsilon");
     return false;
   }
  
@@ -624,19 +642,19 @@ bool AP_SpeedDecider::init_cost_table()
     return false;
   }
 
-  _dimension_t = static_cast<uint32_t>(std::ceil(_total_t / static_cast<float>(unit_t))) + 1;
+  _dimension_t = static_cast<uint32_t>(std::ceil(_total_t / static_cast<float>(_unit_t))) + 1;
 
    float sparse_length_s =
-      _planning_length - static_cast<float>(_dense_dimension_s - 1) * dense_unit_s;
+      _planning_length - static_cast<float>(_dense_dimension_s - 1) * _dense_unit_s;
 
   _sparse_dimension_s =
       sparse_length_s > std::numeric_limits<float>::epsilon()
-          ? static_cast<uint32_t>(std::ceil(sparse_length_s / sparse_unit_s))
+          ? static_cast<uint32_t>(std::ceil(sparse_length_s / _sparse_unit_s))
           : 0;
   _dense_dimension_s =
       sparse_length_s > std::numeric_limits<float>::epsilon()
           ? _dense_dimension_s
-          : static_cast<uint32_t>(std::ceil(_planning_length / dense_unit_s)) +
+          : static_cast<uint32_t>(std::ceil(_planning_length / _dense_unit_s)) +
                 1;
   _dimension_s = _dense_dimension_s + _sparse_dimension_s;
 
@@ -653,14 +671,14 @@ bool AP_SpeedDecider::init_cost_table()
   _cost_table = std::vector<std::vector<planning::StGraphPoint>>(_dimension_t, std::vector<planning::StGraphPoint>(_dimension_s, planning::StGraphPoint()));
 
   float curr_t = 0.0f;
-  for (uint32_t i = 0; i < _cost_table.size(); ++i, curr_t += unit_t) {
+  for (uint32_t i = 0; i < _cost_table.size(); ++i, curr_t += _unit_t) {
     auto& cost_table_i = _cost_table[i];
     float curr_s = 0.0f;
-    for (uint32_t j = 0; j < _dense_dimension_s; ++j, curr_s += dense_unit_s) {
+    for (uint32_t j = 0; j < _dense_dimension_s; ++j, curr_s += _dense_unit_s) {
       cost_table_i[j].init(i, j, planning::STPoint(curr_s, curr_t));
     }
-    curr_s = static_cast<float>(_dense_dimension_s - 1) * dense_unit_s + sparse_unit_s;
-    for (uint32_t j = _dense_dimension_s; j < cost_table_i.size(); ++j, curr_s += sparse_unit_s) {
+    curr_s = static_cast<float>(_dense_dimension_s - 1) * _dense_unit_s + _sparse_unit_s;
+    for (uint32_t j = _dense_dimension_s; j < cost_table_i.size(); ++j, curr_s += _sparse_unit_s) {
       cost_table_i[j].init(i, j, planning::STPoint(curr_s, curr_t));
     }
   }
@@ -807,16 +825,16 @@ void AP_SpeedDecider::calculate_cost_at(const std::shared_ptr<StGraphMessage>& m
   const float cruise_speed = _cruise_speed;
   // the minimal s to model as constant acceleration formula
   // default: 0.25 * 7 = 1.75m
-  const float min_s_consider_speed = dense_unit_s * _dimension_t;
+  const float min_s_consider_speed = _dense_unit_s * _dimension_t;
 
   if (c == 1) {
     const float acc =
-        2 * (cost_cr.point().s() / unit_t - _curr_speed) / unit_t;
+        2 * (cost_cr.point().s() / _unit_t - _curr_speed) / _unit_t;
     if (acc < -_dec_max || acc > _acc_max) {
       return;
     }
 
-    if (_curr_speed + acc * unit_t < -kfloatEpsilon &&
+    if (_curr_speed + acc * _unit_t < -kfloatEpsilon &&
         cost_cr.point().s() > min_s_consider_speed) {
       return;
     }
@@ -830,14 +848,14 @@ void AP_SpeedDecider::calculate_cost_at(const std::shared_ptr<StGraphMessage>& m
         cost_init.total_cost() +
         calculate_edge_cost_for_second_col(r, speed_limit, cruise_speed));
     cost_cr.set_pre_point(cost_init);
-    cost_cr.set_optimal_speed(_curr_speed + acc * unit_t);
+    cost_cr.set_optimal_speed(_curr_speed + acc * _unit_t);
     return;
   }
 
   static constexpr float kSpeedRangeBuffer = 0.20f;
   const float pre_lowest_s =
       cost_cr.point().s() -
-      _speed_max * (1 + kSpeedRangeBuffer) * unit_t;
+      _speed_max * (1 + kSpeedRangeBuffer) * _unit_t;
   const auto pre_lowest_itr =
       std::lower_bound(_spatial_distance_by_index.begin(),
                        _spatial_distance_by_index.end(), pre_lowest_s);
@@ -861,20 +879,20 @@ void AP_SpeedDecider::calculate_cost_at(const std::shared_ptr<StGraphMessage>& m
       }
       // TODO(Jiaxuan): Calculate accurate acceleration by recording speed
       // data in ST point.
-      // Use curr_v = (point.s - pre_point.s) / unit_t as current v
-      // Use pre_v = (pre_point.s - prepre_point.s) / unit_t as previous v
-      // Current acc estimate: curr_a = (curr_v - pre_v) / unit_t
-      // = (point.s + prepre_point.s - 2 * pre_point.s) / (unit_t * unit_t)
+      // Use curr_v = (point.s - pre_point.s) / _unit_t as current v
+      // Use pre_v = (pre_point.s - prepre_point.s) / _unit_t as previous v
+      // Current acc estimate: curr_a = (curr_v - pre_v) / _unit_t
+      // = (point.s + prepre_point.s - 2 * pre_point.s) / (_unit_t * _unit_t)
       const float curr_a =
           2 *
-          ((cost_cr.point().s() - pre_col[r_pre].point().s()) / unit_t -
+          ((cost_cr.point().s() - pre_col[r_pre].point().s()) / _unit_t -
            pre_col[r_pre].get_optimal_speed()) /
-          unit_t;
+          _unit_t;
       if (curr_a < -_dec_max || curr_a > _acc_max) {
         continue;
       }
 
-      if (pre_col[r_pre].get_optimal_speed() + curr_a * unit_t <
+      if (pre_col[r_pre].get_optimal_speed() + curr_a * _unit_t <
               -kfloatEpsilon &&
           cost_cr.point().s() > min_s_consider_speed) {
         continue;
@@ -898,7 +916,7 @@ void AP_SpeedDecider::calculate_cost_at(const std::shared_ptr<StGraphMessage>& m
         cost_cr.set_total_cost(cost);
         cost_cr.set_pre_point(pre_col[r_pre]);
         cost_cr.set_optimal_speed(pre_col[r_pre].get_optimal_speed() +
-                                curr_a * unit_t);
+                                curr_a * _unit_t);
       }
     }
     return;
@@ -910,20 +928,20 @@ void AP_SpeedDecider::calculate_cost_at(const std::shared_ptr<StGraphMessage>& m
         pre_col[r_pre].pre_point() == nullptr) {
       continue;
     }
-    // Use curr_v = (point.s - pre_point.s) / unit_t as current v
-    // Use pre_v = (pre_point.s - prepre_point.s) / unit_t as previous v
-    // Current acc estimate: curr_a = (curr_v - pre_v) / unit_t
-    // = (point.s + prepre_point.s - 2 * pre_point.s) / (unit_t * unit_t)
+    // Use curr_v = (point.s - pre_point.s) / _unit_t as current v
+    // Use pre_v = (pre_point.s - prepre_point.s) / _unit_t as previous v
+    // Current acc estimate: curr_a = (curr_v - pre_v) / _unit_t
+    // = (point.s + prepre_point.s - 2 * pre_point.s) / (_unit_t * _unit_t)
     const float curr_a =
         2 *
-        ((cost_cr.point().s() - pre_col[r_pre].point().s()) / unit_t -
+        ((cost_cr.point().s() - pre_col[r_pre].point().s()) / _unit_t -
          pre_col[r_pre].get_optimal_speed()) /
-        unit_t;
+        _unit_t;
     if (curr_a > _acc_max || curr_a < -_dec_max) {
       continue;
     }
 
-    if (pre_col[r_pre].get_optimal_speed() + curr_a * unit_t < -kfloatEpsilon &&
+    if (pre_col[r_pre].get_optimal_speed() + curr_a * _unit_t < -kfloatEpsilon &&
         cost_cr.point().s() > min_s_consider_speed) {
       continue;
     }
@@ -957,7 +975,7 @@ void AP_SpeedDecider::calculate_cost_at(const std::shared_ptr<StGraphMessage>& m
       cost_cr.set_total_cost(cost);
       cost_cr.set_pre_point(pre_col[r_pre]);
       cost_cr.set_optimal_speed(pre_col[r_pre].get_optimal_speed() +
-                              curr_a * unit_t);
+                              curr_a * _unit_t);
     }
   }
 }
@@ -1008,18 +1026,23 @@ void AP_SpeedDecider::get_row_range(const planning::StGraphPoint& point,
     // information of the current velocity (set to 1 by default since we use
     // past 1 second's average v as approximation)
     float v0 = 0.0f;
-    float acc_coeff = 0.5;
+   // float acc_coeff = 0.5;
     if (!point.pre_point()) {
       v0 = _curr_speed;
     } else {
       v0 = point.get_optimal_speed();
     }
 
+    float low_s = 0, upper_s = 0;
+    get_vehicle_dynamics_limits(_unit_t, v0, low_s, upper_s);
+
     const auto max_s_size = _dimension_s - 1;
-    const float t_squared = unit_t * unit_t;
-    const float s_upper_bound = v0 * unit_t +
-                                acc_coeff * _acc_max * t_squared +
-                                point.point().s();
+    //const float t_squared = _unit_t * _unit_t;
+    // const float s_upper_bound = v0 * _unit_t +
+    //                             acc_coeff * _acc_max * t_squared +
+    //                             point.point().s();
+    const float s_upper_bound = upper_s + point.point().s();
+
     const auto next_highest_itr =
         std::lower_bound(_spatial_distance_by_index.begin(),
                         _spatial_distance_by_index.end(), s_upper_bound);
@@ -1030,9 +1053,13 @@ void AP_SpeedDecider::get_row_range(const planning::StGraphPoint& point,
           std::distance(_spatial_distance_by_index.begin(), next_highest_itr);
     }
 
-    const float s_lower_bound =
-        std::fmax(0.0, v0 * unit_t - acc_coeff * _dec_max * t_squared) +
-        point.point().s();
+    // const float s_lower_bound =
+    //     std::fmax(0.0, v0 * _unit_t - acc_coeff * _dec_max * t_squared) +
+    //     point.point().s();
+
+    const float s_lower_bound = low_s + point.point().s();
+
+
     const auto next_lowest_itr =
         std::lower_bound(_spatial_distance_by_index.begin(),
                         _spatial_distance_by_index.end(), s_lower_bound);

@@ -159,6 +159,10 @@ private:
     AP_Float _obstacle_weight;   // avoidance obstacle collision penalty factor
     AP_Float _accel_penalty;     // acceleration variation penalty
     AP_Float _decel_penalty;     // deceleration variation penalty
+    AP_Float _unit_t;            // time scale
+    AP_Float _dense_unit_s;      // dense distance scale
+    AP_Float _sparse_unit_s;     // sparse distance scale
+    AP_Float _planning_length_min; 
 
     float _planning_length;
     float _margin_max;           // avoidance margin with meters
