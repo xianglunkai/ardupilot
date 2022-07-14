@@ -80,13 +80,6 @@ const AP_Param::GroupInfo AP_SpeedDecider::var_info[] = {
   // @User: Standard
   AP_GROUPINFO("ROB_RADIUS", 4, AP_SpeedDecider, _vehicle_radius, 1.0f),
 
-  // @Param: CRUISE_SPD
-  // @Description: Vehicle cruise speed
-  // @Units: m/s
-  // @Range: 1 10
-  // @User: Standard
-  AP_GROUPINFO("CRUISE_SPD", 5, AP_SpeedDecider, _cruise_speed, 2.0f),
-
   // @Param: PLN_TIME
   // @Description: Maximum time of speed planning curve
   // @Units: s
@@ -202,6 +195,7 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
     // get current speed 
     _curr_speed = MAX(groundspeed_vector * projected_line_unit, 0.0f);
     _planning_period = dt;
+    _input_speed = desired_speed_new;
     Vector2f mp = current_ne + ground_speed_vec * dt;
 
     // determine planning start position
@@ -822,7 +816,7 @@ void AP_SpeedDecider::calculate_cost_at(const std::shared_ptr<StGraphMessage>& m
   }
 
   const float speed_limit = _speed_limit_by_index[r];
-  const float cruise_speed = _cruise_speed;
+  const float cruise_speed = _input_speed;
   // the minimal s to model as constant acceleration formula
   // default: 0.25 * 7 = 1.75m
   const float min_s_consider_speed = _dense_unit_s * _dimension_t;

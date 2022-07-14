@@ -152,7 +152,6 @@ private:
     AP_Float _dec_max;           // deceleration maximum value, set must >= 0
     AP_Float _speed_max;         // speed maximum value
     AP_Float _vehicle_radius;    // vehicle shape size
-    AP_Float _cruise_speed;      // vehicle cruise speed
     AP_Float _total_t;           // planning time with unit seconds
     AP_Float _total_s;           // planning distance with unit meters
     AP_Float _obs_pred_t;        // obstacle trajectory prediction time with seconds
@@ -189,6 +188,7 @@ private:
     // store current state
     float    _planning_period;  // planing module period with seconds
     float    _curr_speed;       // planning module init speed projected reference
+    float    _input_speed;      // planning speed
     Vector2f _curr_start;       // planning module start position projected reference
     Vector2f _curr_end;         // planning module end position projected reference
 };
