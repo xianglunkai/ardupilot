@@ -123,7 +123,30 @@ bool Polygon2d::IsPointIn(const Vec2d &point) const {
 
 bool Polygon2d::HasOverlap(const Polygon2d &polygon) const {
 
+  if (polygon.max_x() < min_x() || polygon.min_x() > max_x() ||
+      polygon.max_y() < min_y() || polygon.min_y() > max_y()) {
+    return false;
+  }
+
   return DistanceTo(polygon) <= kMathEpsilon;
+}
+
+
+bool Polygon2d::HasOverlap(const Box2d &box) const {
+  if (box.max_x() < min_x() || box.min_x() > max_x() ||
+      box.max_y() < min_y() || box.min_y() > max_y()) {
+    return false;
+  }
+
+  for(auto &pt: points_) {
+    if(box.IsPointIn(pt)) return true;
+  }
+
+  for(auto &corner: box.GetAllCorners()) {
+    if(IsPointIn(corner)) return true;
+  }
+
+  return false;
 }
 
 bool Polygon2d::Contains(const LineSegment2d &line_segment) const {

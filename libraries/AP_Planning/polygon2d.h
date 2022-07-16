@@ -210,6 +210,8 @@ class Polygon2d {
    */
   bool HasOverlap(const Polygon2d &polygon) const;
 
+  bool HasOverlap(const Box2d &box) const;
+
   // Only compute overlaps between two convex polygons.
   /**
    * @brief Compute the overlap of this polygon and the other polygon if any.
@@ -260,7 +262,10 @@ class Polygon2d {
    */
   Polygon2d ExpandByDistance(const float distance) const;
 
-
+  float min_x() const { return min_x_; }
+  float max_x() const { return max_x_; }
+  float min_y() const { return min_y_; }
+  float max_y() const { return max_y_; }
 
  protected:
   void BuildFromPoints();
