@@ -360,13 +360,11 @@ float fixedwing_turn_rate(float bank_angle_deg, float airspeed);
 // convert degrees farenheight to Kelvin
 float degF_to_Kelvin(float temp_f);
 
-<<<<<<< HEAD
 float sign(float val);
 
 float fhan(float v1, float v2, float r0, float h0);
 
 float fal(float e, float alpha, float delta);
-=======
 /*
   conversion functions to prevent undefined behaviour
  */
@@ -374,5 +372,4 @@ int16_t float_to_int16(const float v);
 uint16_t float_to_uint16(const float v);
 int32_t float_to_int32(const float v);
 uint32_t float_to_uint32(const float v);
->>>>>>> 88f0a324fd... AP_Math: added rounding functions
 
