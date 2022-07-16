@@ -8,6 +8,10 @@
 #include <cmath>
 #include <memory>
 #include <AP_Planning/vec2d.h>
+#include <AP_Planning/discretized_traj.h>
+#include <AP_Planning/box2d.h>
+#include <AP_Planning/pose.h>
+#include <AP_Planning/polygon2d.h>
 
 class AP_DPPlanner {
 public:
@@ -93,29 +97,48 @@ private:
 private:
 
     // OA common parameters
-    float _safe_margin;              // object avoidance will ignore objects more than this many meters from vehicle
-    
+    float _safe_margin;                                     // object avoidance will ignore objects more than this many meters from vehicle
        
     // DP parameters
     AP_Int8 _enable;                                         // enable or disable algorithm
     AP_Float _nfe;                                           // number of finite elements used to descretize an OCP
     AP_Float _tf;                                            // time horizon length
-    AP_Float _cruise_speed;                                  // nominal velocity
     AP_Float _speed_max;                                     // max speed
     AP_Float _dcceleration_max;                              // must set > 0
     AP_Float _acceleration_max;                              // must set > 0
     AP_Float _jerk_max;                                      // M/S^3
-    AP_Float _vehicle_radius;                                // vehicle size
+    AP_Float _vehicle_length;                                // vehicle length
+    AP_Float _vehicle_width;                                 // vehicle width
     AP_Float _obstacle_weight;                               // cost of obstacles, should be set larger to avoid collision with obstacles
     AP_Float _lateral_weight;                                // lateral cost, the larger the trajectory the closer to reference line
     AP_Float _lateral_change_weight;                         // lateral change cost dl/ds, penalty for lateral change
     AP_Float _lateral_vel_change_weight;                     // lateral change cost, dl/dt, penalty for sudden lateral change
     AP_Float _longitudinal_vel_weight;                       // longitudinal velocity cost, velocity to the nominal velocity
     AP_Float _longitudinal_vel_change_weight;                // Cost of longitudinal velocity change, ds/dt
+    AP_Float _reference_left_bound;                          // reference center line left range
+    AP_Float _reference_right_bound;                         // reference center line right range
+    AP_Float _reference_resolution;                          // reference center line resolution with meter
 
     // internal variables used by background thread
 
 private:
-    // discretized
-    
+    // reference line
+    planning::DiscretizedTraj _reference;
+    std::vector<planning::Vec2d> _road_barrier;
+    Vector2f _start;
+    Vector2f _end;
+    float _desired_speed_input;
+    void set_reference(const planning::DiscretizedTraj &reference);
+
+private:
+    // enviroment
+    std::vector<planning::Polygon2d> _static_obstacles;
+    std::vector<std::pair<planning::Vec2d, planning::Polygon2d>> _dynamic_obstacles;
+    void update_obstacles(bool proximity_only);
+
+    template<class T>
+    std::tuple<T, T, T, T> get_disc_positions(const T &x, const T &y, const T &theta) const;
+    bool check_station_collision(const planning::Box2d &rect);
+    bool check_dynamical_collision(const float time, const planning::Box2d &rect);
+    bool check_optimization_collision(const float time, const planning::Pose &pose);
 };
