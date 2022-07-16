@@ -3,13 +3,17 @@
  * @brief The class of Box2d. Here, the x/y axes are respectively Forward/Left,
  *        as opposed to what happens in euler_angles_zxy.h (Right/Forward).
  */
+
 #pragma once
 
+#include <limits>
 #include <string>
 #include <vector>
+
 #include "aabox2d.h"
 #include "line_segment2d.h"
 #include "vec2d.h"
+
 
 namespace planning {
 
@@ -26,6 +30,7 @@ namespace planning {
  */
 class Box2d {
  public:
+  Box2d() = default;
   /**
    * @brief Constructor which takes the center, heading, length and width.
    * @param center The center of the rectangular bounding box.
@@ -139,6 +144,12 @@ class Box2d {
   void GetAllCorners(std::vector<Vec2d> *const corners) const;
 
   /**
+   * @brief Getter of the corners of the box
+   * @param corners The vector where the corners are listed
+   */
+  std::vector<Vec2d> GetAllCorners() const;
+
+  /**
    * @brief Tests points for membership in the box
    * @param point A point that we wish to test for membership in the box
    * @return True iff the point is contained in the box
@@ -205,6 +216,20 @@ class Box2d {
    */
   void Shift(const Vec2d &shift_vec);
 
+  /**
+   * @brief Extend the box longitudinally
+   * @param extension_length the length to extend
+   */
+  void LongitudinalExtend(const float extension_length);
+
+  void LateralExtend(const float extension_length);
+
+  void InitCorners();
+
+  float max_x() const { return max_x_; }
+  float min_x() const { return min_x_; }
+  float max_y() const { return max_y_; }
+  float min_y() const { return min_y_; }
 
  private:
   Vec2d center_;
@@ -215,6 +240,15 @@ class Box2d {
   float heading_ = 0.0;
   float cos_heading_ = 1.0;
   float sin_heading_ = 0.0;
+
+  std::vector<Vec2d> corners_;
+
+  float max_x_ = std::numeric_limits<float>::lowest();
+  float min_x_ = std::numeric_limits<float>::max();
+  float max_y_ = std::numeric_limits<float>::lowest();
+  float min_y_ = std::numeric_limits<float>::max();
 };
 
 }  // namespace planning
+
+

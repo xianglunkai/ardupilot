@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <cmath>
 
-
 #include "math_utils.h"
 #include "polygon2d.h"
 
 namespace planning {
+
 namespace {
 
 float PtSegDistance(float query_x, float query_y, float start_x,
@@ -39,6 +39,7 @@ Box2d::Box2d(const Vec2d &center, const float heading, const float length,
       heading_(heading),
       cos_heading_(cos(heading)),
       sin_heading_(sin(heading)) {
+  InitCorners();
 }
 
 Box2d::Box2d(const LineSegment2d &axis, const float width)
@@ -50,7 +51,26 @@ Box2d::Box2d(const LineSegment2d &axis, const float width)
       heading_(axis.heading()),
       cos_heading_(axis.cos_heading()),
       sin_heading_(axis.sin_heading()) {
+  InitCorners();
+}
 
+void Box2d::InitCorners() {
+  const float dx1 = cos_heading_ * half_length_;
+  const float dy1 = sin_heading_ * half_length_;
+  const float dx2 = sin_heading_ * half_width_;
+  const float dy2 = -cos_heading_ * half_width_;
+  corners_.clear();
+  corners_.emplace_back(center_.x() + dx1 + dx2, center_.y() + dy1 + dy2);
+  corners_.emplace_back(center_.x() + dx1 - dx2, center_.y() + dy1 - dy2);
+  corners_.emplace_back(center_.x() - dx1 - dx2, center_.y() - dy1 - dy2);
+  corners_.emplace_back(center_.x() - dx1 + dx2, center_.y() - dy1 + dy2);
+
+  for (auto &corner : corners_) {
+    max_x_ = std::fmax(corner.x(), max_x_);
+    min_x_ = std::fmin(corner.x(), min_x_);
+    max_y_ = std::fmax(corner.y(), max_y_);
+    min_y_ = std::fmin(corner.y(), min_y_);
+  }
 }
 
 Box2d::Box2d(const AABox2d &aabox)
@@ -62,7 +82,6 @@ Box2d::Box2d(const AABox2d &aabox)
       heading_(0.0),
       cos_heading_(1.0),
       sin_heading_(0.0) {
-
 }
 
 Box2d Box2d::CreateAABox(const Vec2d &one_corner,
@@ -78,17 +97,10 @@ void Box2d::GetAllCorners(std::vector<Vec2d> *const corners) const {
   if (corners == nullptr) {
     return;
   }
-  const float dx1 = cos_heading_ * half_length_;
-  const float dy1 = sin_heading_ * half_length_;
-  const float dx2 = sin_heading_ * half_width_;
-  const float dy2 = -cos_heading_ * half_width_;
-  corners->clear();
-  corners->reserve(4);
-  corners->emplace_back(center_.x() + dx1 + dx2, center_.y() + dy1 + dy2);
-  corners->emplace_back(center_.x() + dx1 - dx2, center_.y() + dy1 - dy2);
-  corners->emplace_back(center_.x() - dx1 - dx2, center_.y() - dy1 - dy2);
-  corners->emplace_back(center_.x() - dx1 + dx2, center_.y() - dy1 + dy2);
+  *corners = corners_;
 }
+
+std::vector<Vec2d> Box2d::GetAllCorners() const { return corners_; }
 
 bool Box2d::IsPointIn(const Vec2d &point) const {
   const float x0 = point.x() - center_.x();
@@ -128,6 +140,12 @@ float Box2d::DistanceTo(const Vec2d &point) const {
 bool Box2d::HasOverlap(const LineSegment2d &line_segment) const {
   if (line_segment.length() <= kMathEpsilon) {
     return IsPointIn(line_segment.start());
+  }
+  if (std::fmax(line_segment.start().x(), line_segment.end().x()) < min_x() ||
+      std::fmin(line_segment.start().x(), line_segment.end().x()) > max_x() ||
+      std::fmax(line_segment.start().y(), line_segment.end().y()) < min_y() ||
+      std::fmin(line_segment.start().y(), line_segment.end().y()) > max_y()) {
+    return false;
   }
   return DistanceTo(line_segment) <= kMathEpsilon;
 }
@@ -221,7 +239,6 @@ float Box2d::DistanceTo(const LineSegment2d &line_segment) const {
         return 0.0;
     }
   }
-
   return 0.0;
 }
 
@@ -230,6 +247,11 @@ float Box2d::DistanceTo(const Box2d &box) const {
 }
 
 bool Box2d::HasOverlap(const Box2d &box) const {
+  if (box.max_x() < min_x() || box.min_x() > max_x() || box.max_y() < min_y() ||
+      box.min_y() > max_y()) {
+    return false;
+  }
+
   const float shift_x = box.center_x() - center_.x();
   const float shift_y = box.center_y() - center_.y();
 
@@ -272,8 +294,25 @@ void Box2d::RotateFromCenter(const float rotate_angle) {
   heading_ = NormalizeAngle(heading_ + rotate_angle);
   cos_heading_ = std::cos(heading_);
   sin_heading_ = std::sin(heading_);
+  InitCorners();
 }
 
-void Box2d::Shift(const Vec2d &shift_vec) { center_ += shift_vec; }
+void Box2d::Shift(const Vec2d &shift_vec) {
+  center_ += shift_vec;
+  InitCorners();
+}
+
+void Box2d::LongitudinalExtend(const float extension_length) {
+  length_ += extension_length;
+  half_length_ += extension_length / 2.0;
+  InitCorners();
+}
+
+void Box2d::LateralExtend(const float extension_length) {
+  width_ += extension_length;
+  half_width_ += extension_length / 2.0;
+  InitCorners();
+}
 
 }  // namespace planning
+
