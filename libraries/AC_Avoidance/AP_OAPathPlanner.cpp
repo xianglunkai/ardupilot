@@ -121,10 +121,14 @@ void AP_OAPathPlanner::init()
         }
         break;
 
-    case OA_SPEED_DECIDER:
+    case OA_EM:
         if (_speed_decider == nullptr) {
             _speed_decider = new AP_SpeedDecider();
             AP_Param::load_object_from_eeprom(_speed_decider, AP_SpeedDecider::var_info);
+        }
+        if (_oabendyruler == nullptr) {
+            _oabendyruler = new AP_OABendyRuler();
+            AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
         }
         break;
     }
@@ -159,8 +163,8 @@ bool AP_OAPathPlanner::pre_arm_check(char *failure_msg, uint8_t failure_msg_len)
             return false;
         }
         break;
-    case OA_SPEED_DECIDER:
-        if (_speed_decider == nullptr) {
+    case OA_EM:
+        if (_speed_decider == nullptr || _oabendyruler == nullptr) {
             hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
         }
         break;
@@ -397,19 +401,27 @@ void AP_OAPathPlanner::avoidance_thread()
             break;
         }
         
-        case OA_SPEED_DECIDER: {
-            if (_speed_decider == nullptr) {
+        case OA_EM: {
+            if ((_oabendyruler == nullptr) || (_speed_decider == nullptr)) {
                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             }
-            _speed_decider->set_config(_margin_max);
+             path_planner_used = OAPathPlannerUsed::EM;
+             
+             _oabendyruler->set_config(_margin_max);
+            AP_OABendyRuler::OABendyType bendy_type;
+            if (_oabendyruler->update(avoidance_request2.current_loc, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, bendy_type, false)) {
+                res = OA_SUCCESS;
+            }else if(_oabendyruler->abandon_waypoint()){
+                res = OA_ABANDON;
+                break;
+            }
 
-            if (_speed_decider->update(avoidance_request2.current_loc, 
-                                       avoidance_request2.origin, avoidance_request2.destination, 
-                                       avoidance_request2.ground_speed_vec, desired_speed_new, 0.001f * OA_UPDATE_MS)) {
+            _speed_decider->set_config(_margin_max);
+            if (_speed_decider->update(avoidance_request2.current_loc, avoidance_request2.origin, avoidance_request2.destination, avoidance_request2.ground_speed_vec, desired_speed_new, 0.001f * OA_UPDATE_MS)) {
                 res = OA_SUCCESS;
             }
-            path_planner_used = OAPathPlannerUsed::SpeedDecider;
+           
             break;
         }
 

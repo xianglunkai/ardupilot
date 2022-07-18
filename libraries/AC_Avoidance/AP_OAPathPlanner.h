@@ -50,7 +50,7 @@ public:
         BendyRulerHorizontal,
         BendyRulerVertical,
         Dijkstras,
-        SpeedDecider,
+        EM,
     };
 
     // provides an alternative target location if path planning around obstacles is required
@@ -71,7 +71,7 @@ public:
         OA_PATHPLAN_BENDYRULER = 1,
         OA_PATHPLAN_DIJKSTRA = 2,
         OA_PATHPLAN_DJIKSTRA_BENDYRULER = 3,
-        OA_SPEED_DECIDER = 4,
+        OA_EM = 4,
     };
 
     // enumeration for _OPTION parameter
