@@ -181,6 +181,7 @@ bool AP_SpeedDecider::update(const Location &current_loc, const Location& origin
     origin_ne *= 0.01f;
     destination_ne *= 0.01f;
     projected_line_unit = (destination_ne - origin_ne).normalized();
+    _ref_bearing = origin.get_bearing_to(destination) * 0.01f;
 
     // projecting current speed into AB 
     float groundSpeed = ground_speed_vec.length();
@@ -348,6 +349,17 @@ void AP_SpeedDecider::update_obstacle_st_boundary()
       const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
       std::vector<planning::STPoint> lower_points;
       std::vector<planning::STPoint> upper_points;
+
+      if (item.vel.length_squared() < sq(0.3)) {
+        // ingore static obstacle
+        continue;
+      } else {
+        // ignore incomming obstacle
+        const float object_vel_dir = degrees(item.vel.xy().angle());
+        if (fabs(wrap_180(object_vel_dir - _ref_bearing + 180)) <= 5.0f ) {
+            continue;
+        }
+      }
 
       // compute obstacle st boundary
       if (compute_obstacle_st_boundary(_curr_start, _curr_end,

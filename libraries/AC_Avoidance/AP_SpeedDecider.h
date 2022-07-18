@@ -191,4 +191,5 @@ private:
     float    _input_speed;      // planning speed
     Vector2f _curr_start;       // planning module start position projected reference
     Vector2f _curr_end;         // planning module end position projected reference
+    float    _ref_bearing;      // refeerence bearing
 };
