@@ -51,9 +51,27 @@ float slerp(const float a0, const float t0, const float a1, const float t1,
 
 
 template<int N>
-std::array<float, N> linspace(const float start, const float end);
+inline std::array<float, N> LinSpaced(float start, float end) {
+  std::array<float, N> res;
+  float step = (end - start) / (N - 1);
 
-std::vector<float> linspace(const float start, const float end, const int16_t count);
+  for(int i = 0; i < N; i++) {
+    res[i] = start + step * i;
+  }
+
+  return res;
+}
+
+inline std::vector<float> LinSpaced(float start, float end, int count) {
+  std::vector<float> res(count, 0);
+  float step = (end - start) / (count - 1);
+
+  for(int i = 0; i < count; i++) {
+    res[i] = start + step * i;
+  }
+
+  return res;
+}
 
 }  // namespace planning
 
