@@ -104,5 +104,4 @@ private:
     Location _origin_loc;           // stored original location
     Location _destination_loc;      // stored destination location
     Vector3f _groundspeed_vector;   // current vehicle speed vector
-    Hysteresis _avoidance_required{true}; // switch avoidance requied
 };

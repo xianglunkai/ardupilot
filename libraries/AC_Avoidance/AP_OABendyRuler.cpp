@@ -31,7 +31,6 @@ const float OA_BENDYRULER_LOOKAHEAD_STEP2_RATIO = 1.0f;             // step2's l
 const float OA_BENDYRULER_LOOKAHEAD_STEP2_MIN = 2.0f;               // step2 checks at least this many meters past step1's location
 const float OA_BENDYRULER_LOOKAHEAD_PAST_DEST = 2.0f;               // lookahead length will be at least this many meters past the destination
 const float OA_BENDYRULER_LOW_SPEED_SQUARED = (0.2f * 0.2f);        // when ground course is below this speed squared, vehicle's heading will be used
-const uint64_t OA_BENDYRULER_TIME_DELAY_RESET = (uint64_t)2000 * 1000ULL;
 
 #define VERTICAL_ENABLED APM_BUILD_COPTER_OR_HELI
 
@@ -82,7 +81,6 @@ AP_OABendyRuler::AP_OABendyRuler()
 { 
     AP_Param::setup_object_defaults(this, var_info); 
     _bearing_prev = FLT_MAX;
-    _avoidance_required.set_hysteresis_time_from(true, OA_BENDYRULER_TIME_DELAY_RESET);
 }
 
 // run background task to find best path and update avoidance_results
@@ -251,21 +249,19 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
                         // if the chosen direction is directly towards the destination avoidance can be turned off
                         // i == 0 && j == 0 implies no deviation from bearing to destination 
                         const bool active = (i != 0 || j != 0);
-                        _avoidance_required.set_state_and_update(active,AP_HAL::micros64());
-                        const bool oa_is_required = _avoidance_required.get_state();
                         float final_bearing = bearing_test;
                         float final_margin  = margin;
                         // check if we need ignore test_bearing and continue on previous bearing
-                        const bool ignore_bearing_change = resist_bearing_change(destination, current_loc, oa_is_required, bearing_test, lookahead_step1_dist, margin, _destination_prev,_bearing_prev, final_bearing, final_margin, proximity_only);
+                        const bool ignore_bearing_change = resist_bearing_change(destination, current_loc, active, bearing_test, lookahead_step1_dist, margin, _destination_prev,_bearing_prev, final_bearing, final_margin, proximity_only);
                 
                         // all good, now project in the chosen direction by the full distance
-                        if (oa_is_required) {
+                        if (active) {
                             destination_new = current_loc;
                             destination_new.offset_bearing(final_bearing, MIN(distance_to_dest, lookahead_step1_dist));
-                            _current_lookahead = MIN(_lookahead, _current_lookahead * 1.1f);
                         }
-                        Write_OABendyRuler((uint8_t)OABendyType::OA_BENDY_HORIZONTAL, oa_is_required, bearing_to_dest, 0.0f, ignore_bearing_change, final_margin, destination, destination_new);
-                        return oa_is_required;
+                        _current_lookahead = MIN(_lookahead, _current_lookahead * 1.1f);
+                        Write_OABendyRuler((uint8_t)OABendyType::OA_BENDY_HORIZONTAL, active, bearing_to_dest, 0.0f, ignore_bearing_change, final_margin, destination, destination_new);
+                        return active;
                     }
                 }
             }
@@ -291,7 +287,6 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
     // calculate new target based on best effort
     destination_new = current_loc;
     destination_new.offset_bearing(chosen_bearing, chosen_distance);
-    _avoidance_required.set_state_and_update(true,AP_HAL::micros64());
 
     // log results
     Write_OABendyRuler((uint8_t)OABendyType::OA_BENDY_HORIZONTAL, true, chosen_bearing, 0.0f, false, best_margin, destination, destination_new);
