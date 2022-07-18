@@ -69,11 +69,11 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
     // @User: Standard
     AP_GROUPINFO_FRAME("TYPE", 4, AP_OABendyRuler, _bendy_type, OA_BENDYRULER_TYPE_DEFAULT, AP_PARAM_FRAME_COPTER | AP_PARAM_FRAME_HELI | AP_PARAM_FRAME_TRICOPTER),
 
-    // @Param{Rover}: DYOA_EN
-    // @DisplayName: DYOA_TYPE
-    // @Description: Disable or enable dynamical avoidance; 0: disable dynamical avoidance; 1: enable dynamical avoidance
+    // @Param{Rover}: MARG_TYPE
+    // @DisplayName: MARG_TYPE
+    // @Description: 0: without prediction 1: with prediction 2: only with static and incoming objects
     // @User: Standard
-    AP_GROUPINFO_FRAME("DYOA_EN", 5, AP_OABendyRuler, _dyna_oa_enable, 0,AP_PARAM_FRAME_ROVER),
+    AP_GROUPINFO_FRAME("MARG_TYPE", 5, AP_OABendyRuler, _margin_type, 0, AP_PARAM_FRAME_ROVER),
 
     AP_GROUPEND
 };
@@ -91,8 +91,9 @@ AP_OABendyRuler::AP_OABendyRuler()
 bool AP_OABendyRuler::update(const Location& current_loc, const Location& destination, const Vector2f &ground_speed_vec, Location &origin_new, Location &destination_new, OABendyType &bendy_type, bool proximity_only)
 {
     // bendy ruler always sets origin to current_loc
-    origin_new = current_loc;
     _current_loc = current_loc;
+    _origin_loc = origin_new;
+    _destination_loc = destination_new;
 
     // init bendy_type returned
     bendy_type = OABendyType::OA_BENDY_DISABLED;
@@ -147,7 +148,10 @@ bool AP_OABendyRuler::update(const Location& current_loc, const Location& destin
             ret = search_xy_path(current_loc, destination, ground_course_deg, destination_new, lookahead_step1_dist, lookahead_step2_dist, bearing_to_dest, distance_to_dest, proximity_only);
             bendy_type = OABendyType::OA_BENDY_HORIZONTAL;
     }
-
+    // update origin_new
+    if (ret) {
+        origin_new = current_loc;
+    }
     return ret;
 }
 
@@ -248,17 +252,20 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
                         // i == 0 && j == 0 implies no deviation from bearing to destination 
                         const bool active = (i != 0 || j != 0);
                         _avoidance_required.set_state_and_update(active,AP_HAL::micros64());
+                        const bool oa_is_required = _avoidance_required.get_state();
                         float final_bearing = bearing_test;
                         float final_margin  = margin;
                         // check if we need ignore test_bearing and continue on previous bearing
-                        const bool ignore_bearing_change = resist_bearing_change(destination, current_loc, _avoidance_required.get_state(), bearing_test, lookahead_step1_dist, margin, _destination_prev,_bearing_prev, final_bearing, final_margin, proximity_only);
-
+                        const bool ignore_bearing_change = resist_bearing_change(destination, current_loc, oa_is_required, bearing_test, lookahead_step1_dist, margin, _destination_prev,_bearing_prev, final_bearing, final_margin, proximity_only);
+                
                         // all good, now project in the chosen direction by the full distance
-                        destination_new = current_loc;
-                        destination_new.offset_bearing(final_bearing, MIN(distance_to_dest, lookahead_step1_dist));
-                        _current_lookahead = MIN(_lookahead, _current_lookahead * 1.1f);
-                        Write_OABendyRuler((uint8_t)OABendyType::OA_BENDY_HORIZONTAL, _avoidance_required.get_state(), bearing_to_dest, 0.0f, ignore_bearing_change, final_margin, destination, destination_new);
-                        return _avoidance_required.get_state();
+                        if (oa_is_required) {
+                            destination_new = current_loc;
+                            destination_new.offset_bearing(final_bearing, MIN(distance_to_dest, lookahead_step1_dist));
+                            _current_lookahead = MIN(_lookahead, _current_lookahead * 1.1f);
+                        }
+                        Write_OABendyRuler((uint8_t)OABendyType::OA_BENDY_HORIZONTAL, oa_is_required, bearing_to_dest, 0.0f, ignore_bearing_change, final_margin, destination, destination_new);
+                        return oa_is_required;
                     }
                 }
             }
@@ -470,12 +477,19 @@ float AP_OABendyRuler::calc_avoidance_margin(const Location &start, const Locati
     float latest_margin;
     
     // calculate margin from obstacles for dynamical scenario
-    if ( _dyna_oa_enable && AP::oadatabase()->dynamical_object_enable()) {
-        if(calc_margin_from_dynamical_object(start,end,latest_margin)){
+    if (_margin_type.get() == 1) {
+        // with prediction
+        if(calc_margin_from_object_database_with_prediction(start, end, latest_margin, false)){
             margin_min = MIN(margin_min, latest_margin);
         }
+    } else if (_margin_type.get() == 2) {
+        // only consider static and incoming obstacles
+        if(calc_margin_from_object_database_with_prediction(start, end, latest_margin, true)){
+                    margin_min = MIN(margin_min, latest_margin);
+        }
     } else {
-        if (calc_margin_from_object_database(start, end, latest_margin)) {
+        // without prediction
+         if (calc_margin_from_object_database(start, end, latest_margin)) {
             margin_min = MIN(margin_min, latest_margin);
         }
     }
@@ -750,7 +764,7 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
     return false;
 }
 
-bool AP_OABendyRuler::calc_margin_from_dynamical_object(const Location &start,const Location &end,float &margin) const
+bool AP_OABendyRuler::calc_margin_from_object_database_with_prediction(const Location &start,const Location &end,float &margin, bool static_only) const
 {
     // exit immediately if db is empty
     AP_OADatabase *oaDb = AP::oadatabase();
@@ -772,8 +786,21 @@ bool AP_OABendyRuler::calc_margin_from_dynamical_object(const Location &start,co
     float smallest_margin = FLT_MAX;
     const float eplase_time = (start_NEU - cur_NEU).length() / _groundspeed_vector.length();
     const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
+    const float ref_bearing = _origin_loc.get_bearing_to(_destination_loc) * 0.01f;
+
     for (uint16_t i=0; i<oaDb->database_count(); i++) {
         const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
+
+        // only consider static and incomming objects
+        if (static_only) {
+            if (item.vel.length_squared() > sq(0.3)) {
+                const float object_vel_dir = degrees(item.vel.xy().angle());
+                if (fabs(wrap_180(object_vel_dir - ref_bearing + 180)) > OA_BENDYRULER_BEARING_INC_XY ) {
+                    continue;
+                }
+            }
+        }
+
         const Vector3f point_cm = item.pos * 100.0f;
         const Vector3f point_pred_cm = point_cm + item.vel * eplase_time * 100.0f;
         // calculate closest distance on relative velocity
