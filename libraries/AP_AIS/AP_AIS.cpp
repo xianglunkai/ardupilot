@@ -249,36 +249,6 @@ void AP_AIS::send(mavlink_channel_t chan)
     }
 }
 
-// get vessel location
-Location AP_AIS::get_location(const ais_vehicle_t &vehicle) const
-{
-    const Location loc = Location(
-        vehicle.info.lat,
-        vehicle.info.lon,
-        0.0f,
-        Location::AltFrame::ABSOLUTE);
-        
-    return loc;
-}
-
-// request vessel information
-bool AP_AIS::get_vessel_info(uint16_t i,ais_vehicle_t &obstacle)
-{
-    if (!enabled()) {
-        return false;
-    }
-
-    const uint16_t list_size = _list.max_items();
-    if(i < list_size){
-        if(_list[i].last_update_ms != 0){
-            obstacle = _list[i];
-            return true;
-        }
-    }
-
-    return false;
-}
-
 // remove the given index from the AIVDM buffer and shift following elements up
 void AP_AIS::buffer_shift(uint8_t i)
 {
