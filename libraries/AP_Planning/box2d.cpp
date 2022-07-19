@@ -81,7 +81,10 @@ Box2d::Box2d(const AABox2d &aabox)
       half_width_(aabox.half_width()),
       heading_(0.0),
       cos_heading_(1.0),
-      sin_heading_(0.0) {
+      sin_heading_(0.0),
+      min_x_(aabox.min_x()), min_y_(aabox.min_y()),
+      max_x_(aabox.max_x()), max_y_(aabox.max_y()) {
+      aabox.GetAllCorners(&corners_); 
 }
 
 Box2d Box2d::CreateAABox(const Vec2d &one_corner,
