@@ -81,6 +81,10 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     AP_SUBGROUPINFO(_oashallow, "SO_", 9, AP_OAPathPlanner, AP_ShallowAvoid),
    #endif
 
+    // @Group: DP_
+    // @Path: AP_DPPlanner.cpp
+    AP_SUBGROUPPTR(_dp_planner, "DP_", 10, AP_OAPathPlanner, AP_DPPlanner),
+
     AP_GROUPEND
 };
 
@@ -131,6 +135,12 @@ void AP_OAPathPlanner::init()
             AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
         }
         break;
+    case OA_DP:
+        if (_dp_planner == nullptr) {
+            _dp_planner = new AP_DPPlanner();
+            AP_Param::load_object_from_eeprom(_dp_planner, AP_DPPlanner::var_info);
+        }
+        break;
     }
 
     _oadatabase.init();
@@ -165,6 +175,11 @@ bool AP_OAPathPlanner::pre_arm_check(char *failure_msg, uint8_t failure_msg_len)
         break;
     case OA_EM:
         if (_speed_decider == nullptr || _oabendyruler == nullptr) {
+            hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
+        }
+        break;
+    case OA_DP:
+        if (_dp_planner == nullptr) {
             hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
         }
         break;
@@ -425,9 +440,23 @@ void AP_OAPathPlanner::avoidance_thread()
             break;
         }
 
+        case OA_DP: {
+            if (_dp_planner == nullptr) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
+                continue;
+            }
+            path_planner_used = OAPathPlannerUsed::DP;
+
+            _dp_planner->set_config(_margin_max);
+            if (_dp_planner->update(avoidance_request2.current_loc, avoidance_request2.origin, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, desired_speed_new, false)) {
+                res = OA_SUCCESS;
+            }
+            break;
+        }
+
         } // switch
 
-#if APM_BUILD_TYPE(APM_BUILD_Rover)
+        #if APM_BUILD_TYPE(APM_BUILD_Rover)
         // shoreline avoidance
         bool shoreline_detect = _oashoreline.update(avoidance_request2.current_loc,
                                                     avoidance_request2.origin, avoidance_request2.destination);
@@ -439,7 +468,7 @@ void AP_OAPathPlanner::avoidance_thread()
         if (shoreline_detect || shallow_detect) {
             res = OA_ABANDON;
         }
-#endif
+        #endif
 
 
         {

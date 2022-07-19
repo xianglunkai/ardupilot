@@ -10,41 +10,125 @@
 #include <iostream>
 #endif
 
-constexpr float DPPLANNER_LOOKAHEAD_TIME = 1.0f;
+constexpr float DPPLANNER_LOOKAHEAD_TIME = 1.5f;
 
 const AP_Param::GroupInfo AP_DPPlanner::var_info[] = {
 
+  // @Param: ENABLE
+  // @DisplayName: Enable
+  // @Description: Enable SLT planner
+  // @Values: 0:Disabled,1:Enabled
+  // @User: Advanced
+  // @RebootRequired: True
   AP_GROUPINFO_FLAGS("ENABLE", 0, AP_DPPlanner, _enable, 0, AP_PARAM_FLAG_ENABLE),
 
-  AP_GROUPINFO("ACC_MAX", 1, AP_DPPlanner, _nfe, 80),
+  // @Param: NFE
+  // @Description: number of finite elements used to descretize an OCP
+  // @Range: 1 320
+  // @User: Standard
+  AP_GROUPINFO("NFE", 1, AP_DPPlanner, _nfe, 20),
 
-  AP_GROUPINFO("DEC_MAX", 2, AP_DPPlanner, _tf, 16),
+  // @Param: TF
+  // @Description: time horizon length
+  // @Range: 1 100
+  // @User: Standard
+  AP_GROUPINFO("TF", 2, AP_DPPlanner, _tf, 10),
 
-  AP_GROUPINFO("ROB_RADIUS", 4, AP_DPPlanner, _speed_max, 3.0f),
+  // @Param: SPEED_MAX
+  // @Description: max speed
+  // @User: Standard
+  AP_GROUPINFO("SPEED_MAX", 3, AP_DPPlanner, _speed_max, 3.0f),
 
-  AP_GROUPINFO("CRUISE_SPD", 5, AP_DPPlanner, _dcceleration_max, 0.3f),
+  // @Param: DCC_MAX
+  // @Description: Maximum vehicle acceleration
+  // @Units: m/s^2
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("DCC_MAX", 4, AP_DPPlanner, _dcceleration_max, 0.3f),
 
-  AP_GROUPINFO("PLN_TIME", 6, AP_DPPlanner, _acceleration_max, 0.3f),
+  // @Param: ACC_MAX
+  // @Description: Maximum vehicle acceleration
+  // @Units: m/s^2
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("ACC_MAX", 5, AP_DPPlanner, _acceleration_max, 0.3f),
 
-  AP_GROUPINFO("PLN_DIST", 7, AP_DPPlanner, _jerk_max, 10.0f),
+  // @Param: JERK_MAX
+  // @Description: Maximum vehicle acceleration
+  // @Units: m/s^2
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("JERK_MAX", 6, AP_DPPlanner, _jerk_max, 10.0f),
 
-  AP_GROUPINFO("ROB_WDH", 8, AP_DPPlanner, _vehicle_width, 1.0f),
+  // @Param: ROB_WID
+  // @Description: vehicle width
+  // @Units: m
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("ROB_WID", 7, AP_DPPlanner, _vehicle_width, 0.25f),
 
+  // @Param: ROB_LEN
+  // @Description: vehicle length
+  // @Units: m
+  // @Range: 0 10
+  // @User: Standard
   AP_GROUPINFO("ROB_LEN", 8, AP_DPPlanner, _vehicle_length, 1.0f),
 
-  AP_GROUPINFO("OBS_WGH", 9, AP_DPPlanner, _obstacle_weight, 1.0f),
+  // @Param: OBS_WGT
+  // @Description: cost of obstacles
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("OBS_WGH", 9, AP_DPPlanner, _obstacle_weight, 1000.0f),
 
-  AP_GROUPINFO("ACC_WGH", 10, AP_DPPlanner, _obstacle_weight, 1000),
+  // @Param: LAT_WGT
+  // @Description: lateral cost
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("LAT_WGT", 10, AP_DPPlanner, _lateral_weight, 0.1f),
 
-  AP_GROUPINFO("DEC_WGH", 11, AP_DPPlanner, _lateral_weight, 0.1f),
+  // @Param: SLAT_WGT
+  // @Description: lateral change cost dl/ds
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("SLAT_WGT", 11, AP_DPPlanner, _lateral_change_weight, 0.5f),
 
-  AP_GROUPINFO("ACC_WGH", 10, AP_DPPlanner, _lateral_change_weight, 0.5f),
+  // @Param: TLAT_WGT
+  // @Description: lateral change cost, dl/dt
+  // @Units: m/s^2
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("TLAT_WGT", 12, AP_DPPlanner, _lateral_vel_change_weight, 1.0f),
 
-  AP_GROUPINFO("DEC_WGH", 11, AP_DPPlanner, _lateral_vel_change_weight, 1.0f),
+  // @Param: LON_WGT
+  // @Description: longitudinal velocity cost
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("LON_WGT", 13, AP_DPPlanner, _longitudinal_vel_weight, 10.0f),
 
-  AP_GROUPINFO("ACC_WGH", 10, AP_DPPlanner, _longitudinal_vel_weight, 10.0f),
+  // @Param: TLON_WGT
+  // @Description: Cost of longitudinal velocity change, ds/dt
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("TLON_WGT", 14, AP_DPPlanner, _longitudinal_vel_change_weight, 1.0f),
 
-  AP_GROUPINFO("DEC_WGH", 11, AP_DPPlanner, _longitudinal_vel_change_weight, 1.0f),
+  // @Param: REF_LB
+  // @Description: reference center line left range
+  // @Units: m
+  // @Range: 0 100
+  // @User: Standard
+  AP_GROUPINFO("REF_LB", 15, AP_DPPlanner, _reference_left_bound, 100.0f),
+
+  // @Param: REF_RB
+  // @Description: reference center line right range
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("REF_RB", 16, AP_DPPlanner, _reference_right_bound, 100.0f),
+
+  // @Param: REF_RES
+  // @Description: reference center line resolution
+  // @Range: 0 10
+  // @User: Standard
+  AP_GROUPINFO("REF_RES", 17, AP_DPPlanner, _reference_resolution, 0.1f),
 
   AP_GROUPEND
 };
@@ -52,14 +136,7 @@ const AP_Param::GroupInfo AP_DPPlanner::var_info[] = {
 AP_DPPlanner::AP_DPPlanner() 
 {
     AP_Param::setup_object_defaults(this, var_info);
-
-    _nseg = _nfe / NT;
-    _unit_time = _tf / NT;
-    _time = planning::linspace<NT>(_unit_time, _tf);
-    _station = planning::linspace<NS>(0.0f, _unit_time * _speed_max);
-    _lateral = planning::linspace<NL-1>(0.0f, 1.0f);
 }
-
 
 // run background task to find best cruise speed and update avoidance results
 // returns false if obstacle avoidance is not required
@@ -70,6 +147,13 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
     if (!_enable) {
      return false;
     }
+
+    // initial 
+    _nseg = _nfe / NT;
+    _unit_time = _tf / NT;
+    _time = planning::LinSpaced<NT>(_unit_time, _tf);
+    _station = planning::LinSpaced<NS>(0.0f, _unit_time * _speed_max);
+    _lateral = planning::LinSpaced<NL-1>(0.0f, 1.0f);
 
     Vector2f current_ne, origin_ne, destination_ne;
     // convert location with lat-lng to offsets from ekf orgin
@@ -86,9 +170,11 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
 
     // get ground course
     float ground_course_deg;
-    if (ground_speed_vec.length_squared() < 0.04f) {
+    float groundSpeed = ground_speed_vec.length();
+    if (ground_speed_vec.length_squared() < sq(0.2f)) {
         // with zero ground speed use vehicle's heading
         ground_course_deg = AP::ahrs().yaw_sensor * 0.01f;
+        groundSpeed = 0.0f;
     } else {
         ground_course_deg = degrees(ground_speed_vec.angle());
     }
@@ -189,19 +275,12 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
 
     // trace back layers to find optimum traj
     std::vector<std::pair<StateIndex, StateCell>> waypoints(NT);
-    for (int16_t i = NT - 1; i >= 0; i++) {
+    for (int16_t i = NT - 1; i >= 0; i--) {
         auto &cell  = _state_space[i][min_s_ind][min_l_ind];
         waypoints[i] = std::make_pair(StateIndex(i, min_s_ind, min_l_ind), cell);
         min_s_ind = cell.parent_s_ind;
         min_l_ind = cell.parent_l_ind;
     }
-
- #if debug == 1
-    int16_t t_ind = 0;
-    for (auto &wp: waypoints) {
-        printf("s[%d] = %f\n", t_ind++, wp.second.current_s);
-    }
- #endif
 
     // interpolation
     const float dt = _tf / (_nfe - 1);
@@ -223,26 +302,41 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
             data[n].s = segment[j].x();
             data[n].x = xy.x();
             data[n].y = xy.y();
-            data[n].velocity = std::hypot(ds,dl) / dt;
-            data[n].theta = tp.theta + atanf((dl / ds) / (1 - tp.kappa * segment[j].y()));
+            data[n].velocity = (n == 0) ? groundSpeed : (data[n].s - data[n-1].s) / dt;
+            data[n].theta = (n  == 0) ? _state.start_theta : tp.theta + atanf((dl / ds) / (1 - tp.kappa * segment[j].y()));
         }
     }
-    data[0].theta = _state.start_theta;
-    data[0].velocity = desired_speed_new;
-
+   
     // construct planning trajectory
     auto result = planning::DiscretizedTraj(data);
 
+    #if debug
+    int16_t i = 0;
+    for (auto res:result.data()) {
+        printf("t[%f], s[%f], vel[%f]\n", dt * i, res.s, res.velocity);
+        i++;
+    }
+    #endif
+
     // get next desired location and velocity
-    const int16_t lookahead_ind = DPPLANNER_LOOKAHEAD_TIME / dt;
-    auto &p = result.data().at(lookahead_ind);
-    origin_new = current_loc;
-    destination_new = current_loc;
-    const Vector2f pre_pos{p.x, p.y};
-    const float final_bearing = degrees((pre_pos - current_ne).angle());
-    const float final_distance = (pre_pos - current_ne).length();
-    destination_new.offset_bearing(final_bearing, final_distance);
+    uint16_t next_track_ind = 0;
+    for (uint16_t ind = 0; ind < result.data().size(); ind++) {
+        next_track_ind =  ind;
+        const Vector2f q(result.data().at(ind).x, result.data().at(ind).y);
+        if ((q - current_ne).length() > 10.0f) {
+            break;
+        }
+    }
+
+    auto p = result.data().at(next_track_ind);
     desired_speed_new = p.velocity;
+    if (desired_speed_new > 0.3f) {
+        destination_new = current_loc;
+        const Vector2f vec_p{p.x, p.y};
+        const float final_bearing = degrees((vec_p - current_ne).angle());
+        const float final_distance = (vec_p - current_ne).length();
+        destination_new.offset_bearing(final_bearing, final_distance);
+    }
     return true;
 }
 

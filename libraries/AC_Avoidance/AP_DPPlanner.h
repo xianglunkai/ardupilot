@@ -7,6 +7,7 @@
 #include <limits>
 #include <cmath>
 #include <memory>
+#include <array>
 #include <AP_Planning/vec2d.h>
 #include <AP_Planning/discretized_traj.h>
 #include <AP_Planning/box2d.h>
