@@ -88,7 +88,10 @@ Vec2d DiscretizedTraj::get_projection(const Vec2d &xy) const
     unsigned long point_idx = std::distance(_data.begin(), query_nearest_point(xy));
     auto project_point = _data[point_idx];
     unsigned long index_start = std::max((unsigned long)0, point_idx - 1);
-    unsigned long index_end = std::min(_data.size() - 1, (unsigned long)point_idx + 1);
+    unsigned long index_end =  (unsigned long)point_idx + 1;
+    if (index_end >= _data.size()) {
+        index_end = _data.size() - 1;
+    }
 
     if (index_start < index_end) {
         const float v0x = xy.x() - _data[index_start].x;
