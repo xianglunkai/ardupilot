@@ -26,7 +26,7 @@ void Rover::init_ardupilot()
 #endif
 
     // init gripper
-#if GRIPPER_ENABLED == ENABLED
+#if AP_GRIPPER_ENABLED
     g2.gripper.init();
 #endif
 
