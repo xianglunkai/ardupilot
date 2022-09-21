@@ -135,6 +135,9 @@ public:
     // this alt-frame will be updated to match the destination alt frame
     void linearly_interpolate_alt(const Location &point1, const Location &point2);
 
+    // find the projection of point on a line segment
+    bool line_projection_los(const Location &origin, const Location &destination, const float lookahead,  Location &return_loc) const;
+
     bool initialised() const { return (lat !=0 || lng != 0 || alt != 0); }
 
     // wrap longitude at -180e7 to 180e7

@@ -430,6 +430,32 @@ float Location::line_path_proportion(const Location &point1, const Location &poi
     return (vec1 * vec2) / dsquared;
 }
 
+// find the projection of point on a line segment
+bool Location::line_projection_los(const Location &origin, const Location &destination, const float lookahead,  Location &return_loc) const
+{
+    // convert origin and destination to offset from EKF origin
+    Vector2f origin_NE;
+    Vector2f destination_NE;
+    Vector2f current_NE;
+    if (!origin.get_vector_xy_from_origin_NE(origin_NE) ||
+        !destination.get_vector_xy_from_origin_NE(destination_NE) ||
+        !(*this).get_vector_xy_from_origin_NE(current_NE)) {
+        INTERNAL_ERROR(AP_InternalError::error_t::flow_of_control);
+        return false;
+    }
+
+    // get closest point
+    Vector2f vec_p = Vector2f::closest_point(current_NE, origin_NE, destination_NE);
+    Location loc_p{Vector3f{vec_p.x, vec_p.y, 0.0}, Location::AltFrame::ABOVE_ORIGIN};
+
+    // moving points along a line segment
+    const float bearing = origin.get_bearing_to(destination) * 0.01f;
+    loc_p.offset_bearing(bearing, lookahead);
+    return_loc = loc_p;
+    
+    return true;
+}
+
 /*
   wrap longitude for -180e7 to 180e7
  */
