@@ -18,6 +18,7 @@
 
 #if HAL_PROXIMITY_ENABLED
 #include <AP_Common/AP_Common.h>
+#include <AP_HAL/Semaphores.h>
 
 class AP_Proximity_Backend
 {
@@ -61,13 +62,24 @@ protected:
     // database helpers. All angles are in degrees
     static bool database_prepare_for_push(Vector3f &current_pos, Matrix3f &body_to_ned);
     // Note: "angle" refers to yaw (in body frame) towards the obstacle
-    static void database_push(float angle, float distance,float radius = 0.0f);
-    static void database_push(float angle, float distance, uint32_t timestamp_ms, const Vector3f &current_pos, const Matrix3f &body_to_ned,float radius = 0.0f) {
-        database_push(angle, 0.0f, distance, timestamp_ms, current_pos, body_to_ned,radius);
+    static void database_push(float angle, float pitch, float distance, float radius = 0.0f);
+    static void database_push(float angle, float distance, float radius = 0.0f) {
+        database_push(angle, 0.0f, distance, radius);
+    }
+
+    static void database_push(float angle, float distance, uint32_t timestamp_ms, const Vector3f &current_pos, const Matrix3f &body_to_ned) {
+        database_push(angle, 0.0f, distance, timestamp_ms, current_pos, body_to_ned);
     };
+
     static void database_push(float angle, float pitch, float distance, uint32_t timestamp_ms, const Vector3f &current_pos, const Matrix3f &body_to_ned,const float radius = 0.0f);
+    
     static void database_push(float angle, float pitch,float distance, float vel_mag, float vel_angle, float radius = 0.0f,bool relative = true);
 
+
+    // semaphore for access to shared frontend data
+    HAL_Semaphore _sem;
+
+    AP_Proximity::Type _backend_type;
 
     AP_Proximity &frontend;
     AP_Proximity::Proximity_State &state;   // reference to this instances state
