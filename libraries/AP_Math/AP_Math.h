@@ -375,3 +375,8 @@ uint32_t float_to_uint32(const float v);
 uint32_t double_to_uint32(const double v);
 int32_t double_to_int32(const double v);
 
+// ADRC functions
+float sign(float val);
+float fhan(float v1, float v2, float r0, float h0);
+float fal(float e, float alpha, float delta);
+
