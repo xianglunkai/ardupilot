@@ -45,6 +45,12 @@ protected:
     ByteBuffer *from_autopilot;
 
     bool init_sitl_pointer();
+
+private:
+
+    bool is_match_baud(void) const;
+
+    uint32_t autopilot_baud;
 };
 
 }
