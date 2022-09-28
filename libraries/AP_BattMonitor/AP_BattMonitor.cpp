@@ -328,11 +328,11 @@ AP_BattMonitor::init()
                 drivers[instance] = new AP_BattMonitor_Torqeedo(*this, state[instance], _params[instance]);
                 break;
 #endif
-#if HAL_KXD_CAN_ENABLE
+#if HAL_KXD_CAN_ENABLED
             case Type::KXD_CAN:
                 drivers[instance] = new AP_BattMonitor_KXD_CAN(*this, state[instance], _params[instance]);
             break;
-#endif // HAL_KXD_CAN_ENABLE
+#endif // HAL_KXD_CAN_ENABLED
 #if HAL_KXD_RS485_ENABLED
             case Type::KXD_RS485:
                 drivers[instance] = new AP_BattMonitor_KXD_RS485(*this, state[instance], _params[instance]);

@@ -1,6 +1,6 @@
 #include "AP_BattMonitor_KXD_CAN.h"
 
-#if HAL_KXD_CAN_ENABLE
+#if HAL_KXD_CAN_ENABLED
 #include <AP_CANManager/AP_CANManager.h>
 #include <GCS_MAVLink/GCS.h>
 

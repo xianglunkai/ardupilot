@@ -2,14 +2,14 @@
 #include "AP_BattMonitor_Backend.h"
 #include <AP_CANManager/AP_CANSensor.h>
 
-#ifndef HAL_KXD_CAN_ENABLE
-#define HAL_KXD_CAN_ENABLE (HAL_NUM_CAN_IFACES && !HAL_MINIMIZE_FEATURES && HAL_MAX_CAN_PROTOCOL_DRIVERS)
+#ifndef HAL_KXD_CAN_ENABLED
+#define HAL_KXD_CAN_ENABLED (HAL_NUM_CAN_IFACES && !HAL_MINIMIZE_FEATURES && HAL_MAX_CAN_PROTOCOL_DRIVERS)
 #endif
 
-#if HAL_KXD_CAN_ENABLE
+#if HAL_KXD_CAN_ENABLED
 
 #ifndef KXD_CAN_DEVICE_COUNT_MAX
-    #define KXD_CAN_DEVICE_COUNT_MAX 2
+#define KXD_CAN_DEVICE_COUNT_MAX 2
 #endif
 
 class AP_BattMonitor_KXD_CAN : public CANSensor, public AP_BattMonitor_Backend {
