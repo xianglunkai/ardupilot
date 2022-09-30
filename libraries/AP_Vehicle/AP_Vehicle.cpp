@@ -1,5 +1,5 @@
 #include "AP_Vehicle.h"
-
+#include <stdio.h>
 #include <AP_BLHeli/AP_BLHeli.h>
 #include <AP_Common/AP_FWVersion.h>
 #include <AP_Arming/AP_Arming.h>
@@ -130,12 +130,19 @@ void AP_Vehicle::setup()
                         "\n\nFree RAM: %u\n",
                         AP::fwversion().fw_string,
                         (unsigned)hal.util->available_memory());
+                        
+    printf("\n\nInit %s"
+                    "\n\nFree RAM: %u\n",
+                    AP::fwversion().fw_string,
+                    (unsigned)hal.util->available_memory());
 
 #if AP_CHECK_FIRMWARE_ENABLED
     check_firmware_print();
 #endif
 
     load_parameters();
+
+    printf("Load parameters success!\n");
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     if (AP_BoardConfig::get_sdcard_slowdown() != 0) {
@@ -151,6 +158,7 @@ void AP_Vehicle::setup()
     uint32_t log_bit;
     get_scheduler_tasks(tasks, task_count, log_bit);
     AP::scheduler().init(tasks, task_count, log_bit);
+    printf("Scheduler initialization success!\n");
 
     // time per loop - this gets updated in the main loop() based on
     // actual loop rate
@@ -259,6 +267,7 @@ void AP_Vehicle::setup()
     custom_rotations.init();
 
     gcs().send_text(MAV_SEVERITY_INFO, "ArduPilot Ready");
+    ::printf("ArduPilot Ready\n");
 }
 
 void AP_Vehicle::loop()
@@ -286,7 +295,7 @@ void AP_Vehicle::loop()
     const uint32_t new_internal_errors = AP::internalerror().errors();
     if(_last_internal_errors != new_internal_errors) {
         AP::logger().Write_Error(LogErrorSubsystem::INTERNAL_ERROR, LogErrorCode::INTERNAL_ERRORS_DETECTED);
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "Internal Errors 0x%x", (unsigned)new_internal_errors);
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "Internal Errors %x", (unsigned)new_internal_errors);
         _last_internal_errors = new_internal_errors;
     }
 }
@@ -635,13 +644,14 @@ void AP_Vehicle::publish_osd_info()
     nav_info.wp_number = mission->get_current_nav_index();
     osd->set_nav_info(nav_info);
 }
-#endif
 
 void AP_Vehicle::get_osd_roll_pitch_rad(float &roll, float &pitch) const
 {
     roll = ahrs.roll;
     pitch = ahrs.pitch;
 }
+
+#endif
 
 #if HAL_INS_ACCELCAL_ENABLED
 

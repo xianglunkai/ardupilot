@@ -293,7 +293,7 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
         //Calculate Nu1 angle (Angle to L1 reference point)
         float sine_Nu1 = _crosstrack_error/MAX(_L1_dist, 0.1f);
         //Limit sine of Nu1 to provide a controlled track capture angle of 45 deg
-        sine_Nu1 = constrain_float(sine_Nu1, -0.7071f, 0.7071f);
+        sine_Nu1 = constrain_float(sine_Nu1, -1.0f, 1.0f);
         float Nu1 = asinf(sine_Nu1);
 
         // compute integral error component to converge to a crosstrack of zero when traveling
@@ -312,8 +312,8 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
         // to converge to zero we must push Nu1 harder
         Nu1 += _L1_xtrack_i;
 
-        Nu = Nu1 + Nu2;
-        _nav_bearing = wrap_PI(atan2f(AB.y, AB.x) + Nu1);   // bearing (radians) from AC to L1 point
+        Nu = wrap_PI(Nu1 + Nu2);
+        _nav_bearing = wrap_PI(atan2f(AB.y, AB.x) + Nu1); // bearing (radians) from AC to L1 point
     }
 
     _prevent_indecision(Nu);

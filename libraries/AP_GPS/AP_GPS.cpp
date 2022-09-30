@@ -590,34 +590,10 @@ void AP_GPS::send_blob_start(uint8_t instance)
     }
 #endif // AP_GPS_NMEA_ENABLED
 
-    // the following devices don't have init blobs:
-    const char *blob = nullptr;
-    uint32_t blob_size = 0;
-    switch (_type[instance]) {
-#if AP_GPS_SBF_ENABLED
-    case GPS_TYPE_SBF:
-#endif //AP_GPS_SBF_ENABLED
-#if AP_GPS_GSOF_ENABLED
-    case GPS_TYPE_GSOF:
-#endif //AP_GPS_GSOF_ENABLED
-#if AP_GPS_NOVA_ENABLED
-    case GPS_TYPE_NOVA:
-#endif //AP_GPS_NOVA_ENABLED
-#if HAL_SIM_GPS_ENABLED
-    case GPS_TYPE_SITL:
-#endif  // HAL_SIM_GPS_ENABLED
-        // none of these GPSs have initialisation blobs
-        break;
-    default:
-        // send combined initialisation blob, on the assumption that the
-        // GPS units will parse what they need and ignore the data they
-        // don't understand:
-        blob = _initialisation_blob;
-        blob_size = sizeof(_initialisation_blob);
-        break;
-    }
-
-    send_blob_start(instance, blob, blob_size);
+    // send combined initialisation blob, on the assumption that the
+    // GPS units will parse what they need and ignore the data they
+    // don't understand:
+    send_blob_start(instance, _initialisation_blob, sizeof(_initialisation_blob));
 }
 
 /*
@@ -717,29 +693,6 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
     // all remaining drivers automatically cycle through baud rates to detect
     // the correct baud rate, and should have the selected baud broadcast
     dstate->auto_detected_baud = true;
-    const uint32_t now = AP_HAL::millis();
-
-    if (now - dstate->last_baud_change_ms > GPS_BAUD_TIME_MS) {
-        // try the next baud rate
-        // incrementing like this will skip the first element in array of bauds
-        // this is okay, and relied upon
-        dstate->current_baud++;
-        if (dstate->current_baud == ARRAY_SIZE(_baudrates)) {
-            dstate->current_baud = 0;
-        }
-        uint32_t baudrate = _baudrates[dstate->current_baud];
-        _port[instance]->begin(baudrate);
-        _port[instance]->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
-        dstate->last_baud_change_ms = now;
-
-        if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
-            send_blob_start(instance);
-        }
-    }
-
-    if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
-        send_blob_update(instance);
-    }
 
     switch (_type[instance]) {
 #if AP_GPS_SBF_ENABLED
@@ -763,6 +716,30 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
 
     default:
         break;
+    }
+
+    const uint32_t now = AP_HAL::millis();
+
+    if (now - dstate->last_baud_change_ms > GPS_BAUD_TIME_MS) {
+        // try the next baud rate
+        // incrementing like this will skip the first element in array of bauds
+        // this is okay, and relied upon
+        dstate->current_baud++;
+        if (dstate->current_baud == ARRAY_SIZE(_baudrates)) {
+            dstate->current_baud = 0;
+        }
+        uint32_t baudrate = _baudrates[dstate->current_baud];
+        _port[instance]->begin(baudrate);
+        _port[instance]->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+        dstate->last_baud_change_ms = now;
+
+        if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
+            send_blob_start(instance);
+        }
+    }
+
+    if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
+        send_blob_update(instance);
     }
 
     if (initblob_state[instance].remaining != 0) {

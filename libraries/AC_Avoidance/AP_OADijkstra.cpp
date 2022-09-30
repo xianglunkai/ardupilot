@@ -22,7 +22,6 @@
 
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_Logger/AP_Logger.h>
-#include <GCS_MAVLink/GCS.h>
 
 #define OA_DIJKSTRA_EXPANDING_ARRAY_ELEMENTS_PER_CHUNK  32      // expanding arrays for fence points and paths to destination will grow in increments of 20 elements
 #define OA_DIJKSTRA_POLYGON_SHORTPATH_NOTSET_IDX        255     // index use to indicate we do not have a tentative short path for a node
@@ -932,8 +931,27 @@ bool AP_OADijkstra::calc_shortest_path(const Location &origin, const Location &d
     return success;
 }
 
+// return location point from final path
+bool AP_OADijkstra::get_shortest_path_location(uint8_t point_num, Location& Loc) const
+{
+    if (!_shortest_path_ok) {
+        // this is acting like a basic semaphore to save doing it properly
+        return false;
+    }
+
+    Vector2f pos;
+    if (!get_shortest_path_point(point_num, pos)) {
+        return false;
+    }
+
+    Location temp_loc(Vector3f{pos.x, pos.y, 0.0}, Location::AltFrame::ABOVE_ORIGIN);
+    Loc.lat = temp_loc.lat;
+    Loc.lng = temp_loc.lng;
+    return true;
+}
+
 // return point from final path as an offset (in cm) from the ekf origin
-bool AP_OADijkstra::get_shortest_path_point(uint8_t point_num, Vector2f& pos)
+bool AP_OADijkstra::get_shortest_path_point(uint8_t point_num, Vector2f& pos) const
 {
     if ((_path_numpoints == 0) || (point_num >= _path_numpoints)) {
         return false;

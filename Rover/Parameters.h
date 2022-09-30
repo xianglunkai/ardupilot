@@ -15,6 +15,7 @@
 #include <AP_Stats/AP_Stats.h>
 #include "AP_Torqeedo/AP_Torqeedo.h"
 #include <AP_WindVane/AP_WindVane.h>
+#include <APM_Control/AR_PosControl.h>
 
 // Global parameter class.
 //
@@ -216,7 +217,7 @@ public:
         k_param_ins,
         k_param_compass,
         k_param_rcmap,
-        k_param_L1_controller,          // unused
+        k_param_L1_controller,
         k_param_steerController_old,    // unused
         k_param_barometer,
         k_param_notify,
@@ -397,7 +398,7 @@ public:
 #endif // AP_SCRIPTING_ENABLED
 
     // waypoint navigation
-    AR_WPNav_OA wp_nav;
+    AR_WPNav wp_nav;
 
     // Sailboat functions
     Sailboat sailboat;
@@ -422,8 +423,8 @@ public:
     // position controller
     AR_PosControl pos_control;
 
-    // guided options bitmask
-    AP_Int32 guided_options;
+    // navigation type
+    AP_Int8 mis_nav_type;
 
     // Rover options
     AP_Int32 manual_options;

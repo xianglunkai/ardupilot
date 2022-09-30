@@ -27,7 +27,7 @@ extern const AP_HAL::HAL &hal;
 const float OA_MARGIN_MAX_DEFAULT = 5;
 const int16_t OA_OPTIONS_DEFAULT = 1;
 
-const int16_t OA_UPDATE_MS = 1000;      // path planning updates run at 1hz
+const int16_t OA_UPDATE_MS  = 1000;     // path planning updates run at 1hz
 const int16_t OA_TIMEOUT_MS = 3000;     // results over 3 seconds old are ignored
 
 const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
@@ -66,6 +66,24 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     // @Group: BR_
     // @Path: AP_OABendyRuler.cpp
     AP_SUBGROUPPTR(_oabendyruler, "BR_", 6, AP_OAPathPlanner, AP_OABendyRuler),
+
+    // @Group: SP_
+    // @Path: AP_SpeedDecider.cpp
+    AP_SUBGROUPPTR(_speed_decider, "SP_", 7, AP_OAPathPlanner, AP_SpeedDecider),
+
+    #if APM_BUILD_TYPE(APM_BUILD_Rover)
+    // @Group: SL_
+    // @Path: AP_ShorelineAvoid.cpp
+    AP_SUBGROUPINFO(_oashoreline, "SL_", 8, AP_OAPathPlanner, AP_ShorelineAvoid),
+
+    // @Group: SO_
+    // @Path: AP_ShallowAvoid.cpp
+    AP_SUBGROUPINFO(_oashallow, "SO_", 9, AP_OAPathPlanner, AP_ShallowAvoid),
+   #endif
+
+    // @Group: DP_
+    // @Path: AP_DPPlanner.cpp
+    AP_SUBGROUPPTR(_dp_planner, "DP_", 10, AP_OAPathPlanner, AP_DPPlanner),
 
     AP_GROUPEND
 };
@@ -110,6 +128,23 @@ void AP_OAPathPlanner::init()
             AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
         }
         break;
+
+    case OA_EM:
+        if (_speed_decider == nullptr) {
+            _speed_decider = new AP_SpeedDecider();
+            AP_Param::load_object_from_eeprom(_speed_decider, AP_SpeedDecider::var_info);
+        }
+        if (_oabendyruler == nullptr) {
+            _oabendyruler = new AP_OABendyRuler();
+            AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
+        }
+        break;
+    case OA_DP:
+        if (_dp_planner == nullptr) {
+            _dp_planner = new AP_DPPlanner();
+            AP_Param::load_object_from_eeprom(_dp_planner, AP_DPPlanner::var_info);
+        }
+        break;
     }
 
     _oadatabase.init();
@@ -142,7 +177,18 @@ bool AP_OAPathPlanner::pre_arm_check(char *failure_msg, uint8_t failure_msg_len)
             return false;
         }
         break;
+    case OA_EM:
+        if (_speed_decider == nullptr || _oabendyruler == nullptr) {
+            hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
+        }
+        break;
+    case OA_DP:
+        if (_dp_planner == nullptr) {
+            hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
+        }
+        break;
     }
+
     return true;
 }
 
@@ -160,10 +206,14 @@ bool AP_OAPathPlanner::start_thread()
     // create the avoidance thread as low priority. It should soak
     // up spare CPU cycles to fill in the avoidance_result structure based
     // on requests in avoidance_request
+    uint32_t stack_size = 8192;
+    #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60 || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX
+        stack_size = 1024 * 1024;
+    #endif
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_OAPathPlanner::avoidance_thread, void),
-                                      "avoidance",
-                                      8192, AP_HAL::Scheduler::PRIORITY_IO, -1)) {
-        return false;
+                                    "avoidance",
+                                    stack_size, AP_HAL::Scheduler::PRIORITY_IO, -1)) {
+     return false;
     }
     _thread_created = true;
     return true;
@@ -190,8 +240,10 @@ AP_OAPathPlanner::OAPathPlannerUsed AP_OAPathPlanner::map_bendytype_to_pathplann
 AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location &current_loc,
                                          const Location &origin,
                                          const Location &destination,
+                                         const float &desired_speed,
                                          Location &result_origin,
                                          Location &result_destination,
+                                         float &result_desired_speed,
                                          OAPathPlannerUsed &path_planner_used)
 {
     // exit immediately if disabled or thread is not running from a failed init
@@ -206,6 +258,7 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
     avoidance_request.current_loc = current_loc;
     avoidance_request.origin = origin;
     avoidance_request.destination = destination;
+    avoidance_request.desired_speed = desired_speed;
     avoidance_request.ground_speed_vec = AP::ahrs().groundspeed_vector();
     avoidance_request.request_time_ms = now;
 
@@ -220,6 +273,7 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
         // we have a result from the thread
         result_origin = avoidance_result.origin_new;
         result_destination = avoidance_result.destination_new;
+        result_desired_speed = avoidance_result.desired_speed_new;
         path_planner_used = avoidance_result.path_planner_used;
         return avoidance_result.ret_state;
     }
@@ -266,10 +320,12 @@ void AP_OAPathPlanner::avoidance_thread()
 
         Location origin_new;
         Location destination_new;
+        float desired_speed_new;
         {
             WITH_SEMAPHORE(_rsem);
             if (now - avoidance_request.request_time_ms > OA_TIMEOUT_MS) {
                 // this is a very old request, don't process it
+                avoidance_result.ret_state = OA_NOT_REQUIRED;
                 continue;
             }
 
@@ -279,19 +335,48 @@ void AP_OAPathPlanner::avoidance_thread()
             // store passed in origin and destination so we can return it if object avoidance is not required
             origin_new = avoidance_request.origin;
             destination_new = avoidance_request.destination;
+            desired_speed_new = avoidance_request.desired_speed;
         }
 
         // run background task looking for best alternative destination
         OA_RetState res = OA_NOT_REQUIRED;
         OAPathPlannerUsed path_planner_used = OAPathPlannerUsed::None;
+
+        // check goal and current location near obstacles
+        _abandon_wp = false;
+        _margin_min = FLT_MAX;
+        const float check_margin = 2.0f * _margin_max;
+        
+        if (check_unreachable_from_object_database(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
+            GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近障碍物");
+            _abandon_wp = true;
+        }
+
+        if (check_unreachable_from_home_fence(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
+            GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近家围栏");
+            _abandon_wp = true;
+        }
+
+        if (check_unreachable_from_inclusion_and_exclusion_polygons(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
+            GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近多边形围栏");
+            _abandon_wp = true;
+        }
+
+        if (check_unreachable_from_inclusion_and_exclusion_circles(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
+            GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近圆形围栏");
+            _abandon_wp = true;
+        }
+
         switch (_type) {
         case OA_PATHPLAN_DISABLED:
             continue;
         case OA_PATHPLAN_BENDYRULER: {
             if (_oabendyruler == nullptr) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             }
             _oabendyruler->set_config(_margin_max);
+            _oabendyruler->set_margin_min(_margin_min);
 
             AP_OABendyRuler::OABendyType bendy_type;
             if (_oabendyruler->update(avoidance_request2.current_loc, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, bendy_type, false)) {
@@ -304,6 +389,7 @@ void AP_OAPathPlanner::avoidance_thread()
         case OA_PATHPLAN_DIJKSTRA: {
 #if AP_FENCE_ENABLED
             if (_oadijkstra == nullptr) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             }
             _oadijkstra->set_fence_margin(_margin_max);
@@ -326,9 +412,11 @@ void AP_OAPathPlanner::avoidance_thread()
 
         case OA_PATHPLAN_DJIKSTRA_BENDYRULER: {
             if ((_oabendyruler == nullptr) || _oadijkstra == nullptr) {
+                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             } 
             _oabendyruler->set_config(_margin_max);
+            _oabendyruler->set_margin_min(_margin_min);
             AP_OABendyRuler::OABendyType bendy_type;
             if (_oabendyruler->update(avoidance_request2.current_loc, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, bendy_type, proximity_only)) {
                 // detected a obstacle by vehicle's proximity sensor. Switch avoidance to BendyRuler till obstacle is out of the way
@@ -364,8 +452,59 @@ void AP_OAPathPlanner::avoidance_thread()
 #endif
             break;
         }
+        
+        case OA_EM: {
+            if ((_oabendyruler == nullptr) || (_speed_decider == nullptr)) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
+                continue;
+            }
+             path_planner_used = OAPathPlannerUsed::EM;
+             
+             _oabendyruler->set_config(_margin_max);
+             _oabendyruler->set_margin_min(_margin_min);
+            AP_OABendyRuler::OABendyType bendy_type;
+            if (_oabendyruler->update(avoidance_request2.current_loc, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, bendy_type, false)) {
+                res = OA_SUCCESS;
+            }
+
+            _speed_decider->set_config(_margin_max);
+            if (_speed_decider->update(avoidance_request2.current_loc, origin_new, destination_new, avoidance_request2.ground_speed_vec, desired_speed_new, 0.001f * OA_UPDATE_MS)) {
+                res = OA_SUCCESS;
+            }
+           
+            break;
+        }
+
+        case OA_DP: {
+            if (_dp_planner == nullptr) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
+                continue;
+            }
+            path_planner_used = OAPathPlannerUsed::DP;
+
+            _dp_planner->set_config(_margin_max);
+            if (_dp_planner->update(avoidance_request2.current_loc, avoidance_request2.origin, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, desired_speed_new, 0.001f * OA_UPDATE_MS)) {
+                res = OA_SUCCESS;
+            }
+            break;
+        }
 
         } // switch
+
+#if APM_BUILD_TYPE(APM_BUILD_Rover)
+        // shoreline avoidance
+        bool shoreline_detect = _oashoreline.update(avoidance_request2.current_loc,
+                                                    avoidance_request2.origin, avoidance_request2.destination);
+        // shallow avoidance
+        bool shallow_detect   = _oashallow.update(avoidance_request2.current_loc,
+                                                  avoidance_request2.origin, avoidance_request2.destination,
+                                                  avoidance_request2.ground_speed_vec,
+                                                  0.001f * OA_UPDATE_MS);
+        if (shoreline_detect || shallow_detect || _abandon_wp) {
+            res = OA_ABANDON;
+        }
+#endif
+
 
         {
             // give the main thread the avoidance result
@@ -373,11 +512,267 @@ void AP_OAPathPlanner::avoidance_thread()
             avoidance_result.destination = avoidance_request2.destination;
             avoidance_result.origin_new = (res == OA_SUCCESS) ? origin_new : avoidance_result.origin_new;
             avoidance_result.destination_new = (res == OA_SUCCESS) ? destination_new : avoidance_result.destination;
+            avoidance_result.desired_speed_new = (res == OA_SUCCESS) ? desired_speed_new : avoidance_request2.desired_speed;
             avoidance_result.result_time_ms = AP_HAL::millis();
             avoidance_result.path_planner_used = path_planner_used;
             avoidance_result.ret_state = res;
         }
     }
+}
+
+// returns the number of points in the current solution path
+uint16_t AP_OAPathPlanner::get_path_count() const
+{
+    switch (_type) {
+    case OA_PATHPLAN_DIJKSTRA:
+    case OA_PATHPLAN_DJIKSTRA_BENDYRULER:
+        if (_oadijkstra == nullptr) {
+            return 0;
+        }
+        return _oadijkstra->get_path_length();
+        break;
+        
+    case OA_PATHPLAN_BENDYRULER:
+        if (_oabendyruler == nullptr) {
+            return 0;
+        }
+        return _oabendyruler->get_path_length();
+        break;
+
+    case OA_DP:
+        if (_dp_planner == nullptr) {
+            return 0;
+        }
+        return _dp_planner->get_path_length();
+        break;
+
+    default:
+        return 0;
+    }
+}
+
+// returns a location in the current solution path
+bool AP_OAPathPlanner::get_path_point(uint8_t point_num, Location& Loc) const
+{
+    switch (_type) {
+    case OA_PATHPLAN_DIJKSTRA:
+    case OA_PATHPLAN_DJIKSTRA_BENDYRULER:
+        if (_oadijkstra == nullptr || !_oadijkstra->get_shortest_path_location(point_num, Loc)) {
+            return false;
+        }
+        // note that altitude in Location is wrong, it is not calculated as part of the Dijkstra's solution.
+        // Copter interpolates the altitude and rover does not. Possibly in the future altitude will be included in the solution
+        return true;
+
+    case OA_PATHPLAN_BENDYRULER:
+        if (_oabendyruler == nullptr || !_oabendyruler->get_shortest_path_location(point_num, Loc)) {
+            return false;
+        }
+        return true;
+        break;
+        
+    case OA_DP:
+        if (_dp_planner == nullptr || !_dp_planner->get_shortest_path_location(point_num, Loc)) {
+            return false;
+        }
+        return true;
+        break;
+
+    default:
+        return false;
+    }
+}
+
+
+bool AP_OAPathPlanner::check_unreachable_from_object_database(const Location &curr, const Location &end, const float margin)
+{
+    // exit immediately if db is empty
+    AP_OADatabase *oaDb = AP::oadatabase();
+    if(oaDb == nullptr || !oaDb->healthy()){
+        return false;
+    }
+
+    // convert start and end to offsets (in cm) from EKF origin
+    Vector3f cur_NEU,end_NEU;
+    if (!curr.get_vector_from_origin_NEU(cur_NEU) || !end.get_vector_from_origin_NEU(end_NEU)) {
+        return false;
+    }
+    
+    // check each obstacle's distance from goal
+    for(uint16_t i = 0; i < oaDb ->database_count(); i++){
+        const AP_OADatabase::OA_DbItem& item = oaDb ->get_item(i);
+        const Vector3f point_cm = item.pos * 100.0f;
+        // margin is distance between goal point and obstacle edge
+        const float m = (point_cm - end_NEU).length() * 0.01f - item.radius;
+        const float n = (point_cm - cur_NEU).length() * 0.01f - item.radius;
+        _margin_min = MIN(_margin_min, n);
+        if(m < margin && n < margin){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool AP_OAPathPlanner::check_unreachable_from_home_fence(const Location &cur, const Location &end, const float margin)
+{
+    // exit immediately if polygon fence is not enabled
+    const AC_Fence *fence = AC_Fence::get_singleton();
+    if(fence == nullptr){
+        return false;
+    }
+    if(fence->get_enabled_fences() & AC_FENCE_TYPE_CIRCLE){
+        return false;
+    }
+
+    // calculate goal point's distance from home
+    const Location &ahrs_home = AP::ahrs().get_home();
+    const float end_dist_sq = ahrs_home.get_distance_NE(end).length_squared();
+    const float cur_dist_sq = ahrs_home.get_distance_NE(cur).length_squared();
+
+    // margin is fence radius minus the longer of start or end distance
+    const float m = fence->get_radius() - sqrtf(end_dist_sq);
+    const float n = fence->get_radius() - sqrtf(cur_dist_sq);
+    _margin_min = MIN(_margin_min, n);
+    if (m < margin && n < margin) {
+        return true;
+    }
+
+    return true;
+}
+
+bool AP_OAPathPlanner::check_unreachable_from_inclusion_and_exclusion_polygons(const Location &cur, const Location &end, const float margin)
+{
+    const AC_Fence *fence = AC_Fence::get_singleton();
+    if (fence == nullptr) {
+        return false;
+    }
+
+    // exclusion polygons enabled along with polygon fences
+    if ((fence->get_enabled_fences() & AC_FENCE_TYPE_POLYGON) == 0) {
+        return false;
+    }
+
+    // return immediately if no inclusion nor exclusion polygons
+    const uint8_t num_inclusion_polygons = fence->polyfence().get_inclusion_polygon_count();
+    const uint8_t num_exclusion_polygons = fence->polyfence().get_exclusion_polygon_count();
+    if ((num_inclusion_polygons == 0) && (num_exclusion_polygons == 0)) {
+        return false;
+    }
+
+    // convert start and end to offsets from EKF origin
+    Vector2f cur_NE, end_NE;
+    if (!cur.get_vector_xy_from_origin_NE(cur_NE) || !end.get_vector_xy_from_origin_NE(end_NE)) {
+        return false;
+    }
+
+    // iterate through inclusion polygons and calculate minimum distance
+    for (uint8_t i = 0; i < num_inclusion_polygons; i++) {
+        uint16_t num_points;
+        const Vector2f* boundary = fence->polyfence().get_inclusion_polygon(i, num_points);
+
+        // if outside the fence margin is the closest distance but with negative sign
+        const float end_sign = Polygon_outside(end_NE, boundary, num_points) ? -1.0f : 1.0f;
+        const float cur_sign = Polygon_outside(cur_NE, boundary, num_points) ? -1.0f : 1.0f;
+
+        // calculate min distance (in meters) from line to polygon
+        const float m = end_sign * Polygon_closest_distance_point(boundary,num_points,end_NE) * 0.01f;
+        const float n = cur_sign * Polygon_closest_distance_point(boundary,num_points,cur_NE) * 0.01f;
+        _margin_min = MIN(_margin_min, n);
+        if ( m < margin && n < margin) {
+            return true;
+        }
+       
+    }
+
+    // iterate through exclusion polygons and calculate minimum margin
+    for (uint8_t i = 0; i < num_exclusion_polygons; i++) {
+        uint16_t num_points;
+        const Vector2f* boundary = fence->polyfence().get_exclusion_polygon(i, num_points);
+
+        // if outside the fence margin is the closest distance but with negative sign
+        const float end_sign = Polygon_outside(end_NE, boundary, num_points) ? 1.0f : -1.0f;
+        const float cur_sign = Polygon_outside(cur_NE, boundary,num_points) ? 1.0f : -1.0f;
+
+        // calculate min distance (in meters) from line to polygon
+        const float m = end_sign * Polygon_closest_distance_point(boundary,num_points,end_NE) * 0.01f;
+        const float n = cur_sign * Polygon_closest_distance_point(boundary,num_points,cur_NE) * 0.01f;
+        _margin_min = MIN(_margin_min, n);
+        if ( m < margin && n < margin) {
+            return true;
+        }
+    }
+
+     return false;
+}
+
+bool AP_OAPathPlanner::check_unreachable_from_inclusion_and_exclusion_circles(const Location &cur, const Location &end, const float margin) 
+{
+     // exit immediately if fence is not enabled
+    const AC_Fence *fence = AC_Fence::get_singleton();
+    if (fence == nullptr) {
+        return false;
+    }
+
+    // inclusion/exclusion circles enabled along with polygon fences
+    if ((fence->get_enabled_fences() & AC_FENCE_TYPE_POLYGON) == 0) {
+        return false;
+    }
+
+    // return immediately if no inclusion nor exclusion circles
+    const uint8_t num_inclusion_circles = fence->polyfence().get_inclusion_circle_count();
+    const uint8_t num_exclusion_circles = fence->polyfence().get_exclusion_circle_count();
+    if ((num_inclusion_circles == 0) && (num_exclusion_circles == 0)) {
+        return false;
+    }
+
+    // convert start and end to offsets from EKF origin
+    Vector2f cur_NE, end_NE;
+    if (!cur.get_vector_xy_from_origin_NE(cur_NE) || !end.get_vector_xy_from_origin_NE(end_NE)) {
+        return false;
+    }
+
+    // iterate through inclusion circles and calculate minimum margin
+    for (uint8_t i = 0; i < num_inclusion_circles; i++) {
+        Vector2f center_pos_cm;
+        float radius;
+        if (fence->polyfence().get_inclusion_circle(i, center_pos_cm, radius)) {
+
+            const float end_dist_sq = (end_NE - center_pos_cm).length_squared();
+            const float cur_dist_sq = (cur_NE - center_pos_cm).length_squared();
+
+            // margin is fence radius minus the longer of start or end distance
+            const float m = radius - sqrtf(end_dist_sq) * 0.01f;
+            const float n = radius - sqrtf(cur_dist_sq) * 0.01f;
+            _margin_min = MIN(_margin_min, n);
+            // update margin with lowest value so far
+            if (m < margin && n < margin) {
+                return true;
+            }
+        }
+    }
+
+    // iterate through exclusion circles and calculate minimum margin
+    for (uint8_t i = 0; i < num_exclusion_circles; i++) {
+        Vector2f center_pos_cm;
+        float radius;
+        if (fence->polyfence().get_exclusion_circle(i, center_pos_cm, radius)) {
+
+            const float end_dist_sq = (end_NE - center_pos_cm).length_squared();
+            const float cur_dist_sq = (cur_NE - center_pos_cm).length_squared();
+
+            // margin is fence radius minus the longer of start or end distance
+            const float m = sqrtf(end_dist_sq) * 0.01f - radius;
+            const float n = sqrtf(cur_dist_sq) * 0.01f - radius;
+            _margin_min = MIN(_margin_min, n);
+            // update margin with lowest value so far
+            if (m < margin && n < margin) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 // singleton instance

@@ -113,5 +113,5 @@ struct PACKED log_OD_Visgraph {
       "OADJ","QBBBBLLLL","TimeUS,State,Err,CurrPoint,TotPoints,DLat,DLng,OALat,OALng", "sbbbbDUDU", "F----GGGG" , true }, \
     { LOG_SIMPLE_AVOID_MSG, sizeof(log_SimpleAvoid), \
       "SA",  "QBffffffB","TimeUS,State,DVelX,DVelY,DVelZ,MVelX,MVelY,MVelZ,Back", "sbnnnnnnb", "F--------", true }, \
-     { LOG_OD_VISGRAPH_MSG, sizeof(log_OD_Visgraph), \
+    { LOG_OD_VISGRAPH_MSG, sizeof(log_OD_Visgraph), \
       "OAVG", "QBBLL", "TimeUS,version,point_num,Lat,Lon", "s--DU", "F--GG", true},

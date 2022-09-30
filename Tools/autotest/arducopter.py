@@ -2602,54 +2602,6 @@ class AutoTestCopter(AutoTest):
         self.wait_disarmed()
         self.progress("MOTORS DISARMED OK")
 
-    def GuidedEKFLaneChange(self):
-        '''test lane change with GPS diff on startup'''
-        self.set_parameters({
-            "EK3_SRC1_POSZ": 3,
-            "EK3_AFFINITY" : 1,
-            "GPS_TYPE2" : 1,
-            "SIM_GPS2_DISABLE" : 0,
-            "SIM_GPS2_GLTCH_Z" : -30
-            })
-        self.reboot_sitl()
-
-        self.change_mode("GUIDED")
-        self.wait_ready_to_arm()
-
-        self.progress("waiting for both EKF lanes to init")
-        self.delay_sim_time(10)
-
-        self.set_parameters({
-            "SIM_GPS2_GLTCH_Z" : 0
-            })
-
-        self.progress("waiting for EKF to do a position Z reset")
-        self.delay_sim_time(20)
-
-        self.arm_vehicle()
-        self.user_takeoff(alt_min=20)
-        m = self.mav.recv_match(type='GPS_RAW_INT', blocking=True)
-        gps_alt = m.alt*0.001
-        self.progress("Initial guided alt=%.1fm" % gps_alt)
-
-        self.context_collect('STATUSTEXT')
-        self.progress("force a lane change")
-        self.set_parameters({
-            "INS_ACCOFFS_X" : 5
-            })
-        self.wait_statustext("EKF3 lane switch 1", timeout=10, check_context=True)
-
-        self.delay_sim_time(10)
-        m = self.mav.recv_match(type='GPS_RAW_INT', blocking=True)
-        gps_alt2 = m.alt*0.001
-        alt_change = gps_alt - gps_alt2
-        self.progress("GPS Alt change by %.1fm" % abs(alt_change))
-
-        if abs(alt_change) > 2:
-            raise NotAchievedException("Altitude changed on lane switch %.1fm" % alt_change)
-        self.disarm_vehicle(force=True)
-        self.reboot_sitl()
-
     def MotorFail(self, fail_servo=0, fail_mul=0.0, holdtime=30):
         """Test flight with reduced motor efficiency"""
 
@@ -6942,33 +6894,6 @@ class AutoTestCopter(AutoTest):
         self.change_mode('AUTO')
         self.wait_rtl_complete()
 
-    def WatchAlts(self):
-        '''Ensure we can monitor different altitudes'''
-        self.takeoff(30, mode='GUIDED')
-        self.delay_sim_time(5, reason='let altitude settle')
-
-        self.progress("Testing absolute altitudes")
-        absolute_alt = self.get_altitude(altitude_source='SIM_STATE.alt')
-        self.progress("absolute_alt=%f" % absolute_alt)
-        epsilon = 4  # SIM_STATE and vehicle state can be off by a bit...
-        for source in ['GLOBAL_POSITION_INT.alt', 'SIM_STATE.alt', 'GPS_RAW_INT.alt']:
-            self.watch_altitude_maintained(
-                absolute_alt-epsilon,
-                absolute_alt+epsilon,
-                altitude_source=source
-            )
-
-        self.progress("Testing absolute altitudes")
-        relative_alt = self.get_altitude(relative=True)
-        for source in ['GLOBAL_POSITION_INT.relative_alt']:
-            self.watch_altitude_maintained(
-                relative_alt-epsilon,
-                relative_alt+epsilon,
-                altitude_source=source
-            )
-
-        self.do_RTL()
-
     def fly_rangefinder_drivers_fly(self, rangefinders):
         '''ensure rangefinder gives height-above-ground'''
         self.change_mode('GUIDED')
@@ -7413,7 +7338,7 @@ class AutoTestCopter(AutoTest):
             ("USD1_v1", 11),
             ("leddarone", 12),
             ("maxsonarseriallv", 13),
-            ("nmea", 17, {"baud": 9600}),
+            ("nmea", 17),
             ("wasp", 18),
             ("benewake_tf02", 19),
             ("blping", 23),
@@ -7432,20 +7357,14 @@ class AutoTestCopter(AutoTest):
                                                          (1, '--uartF', 5),
                                                          (2, '--uartG', 6)]:
                 if len(do_drivers) > offs:
-                    if len(do_drivers[offs]) > 2:
-                        (sim_name, rngfnd_param_value, kwargs) = do_drivers[offs]
-                    else:
-                        (sim_name, rngfnd_param_value) = do_drivers[offs]
-                        kwargs = {}
+                    (sim_name, rngfnd_param_value) = do_drivers[offs]
                     command_line_args.append("%s=sim:%s" %
                                              (cmdline_argument, sim_name))
-                    sets = {
-                        "SERIAL%u_PROTOCOL" % serial_num: 9, # rangefinder
+                    serial_param_name = "SERIAL%u_PROTOCOL" % serial_num
+                    self.set_parameters({
+                        serial_param_name: 9, # rangefinder
                         "RNGFND%u_TYPE" % (offs+1): rngfnd_param_value,
-                    }
-                    if "baud" in kwargs:
-                        sets["SERIAL%u_BAUD" % serial_num] = kwargs["baud"]
-                    self.set_parameters(sets)
+                    })
             self.customise_SITL_commandline(command_line_args)
             self.fly_rangefinder_drivers_fly([x[0] for x in do_drivers])
             self.context_pop()
@@ -7592,7 +7511,6 @@ class AutoTestCopter(AutoTest):
                 "SIM_BARO_DISABLE": 1,
                 "SIM_BARO2_DISABL": 1,
             })
-
             self.wait_gps_disable(position_vertical=True)
 
             # turn off arming checks (mandatory arming checks will still be run)
@@ -9128,8 +9046,6 @@ class AutoTestCopter(AutoTest):
             self.DefaultIntervalsFromFiles,
             self.GPSTypes,
             self.MultipleGPS,
-            self.WatchAlts,
-            self.GuidedEKFLaneChange,
         ])
         return ret
 

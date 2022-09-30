@@ -63,8 +63,8 @@ const AP_Param::Info Rover::var_info[] = {
     // @DisplayName: GCS PID tuning mask
     // @Description: bitmask of PIDs to send MAVLink PID_TUNING messages for
     // @User: Advanced
-    // @Values: 0:None,1:Steering,2:Throttle,4:Pitch,8:Left Wheel,16:Right Wheel,32:Sailboat Heel,64:Velocity North,128:Velocity East
-    // @Bitmask: 0:Steering,1:Throttle,2:Pitch,3:Left Wheel,4:Right Wheel,5:Sailboat Heel,6:Velocity North,7:Velocity East
+    // @Values: 0:None,1:Steering,2:Throttle,4:Pitch,8:Left Wheel,16:Right Wheel,32:Sailboat Heel
+    // @Bitmask: 0:Steering,1:Throttle,2:Pitch,3:Left Wheel,4:Right Wheel,5:Sailboat Heel
     GSCALAR(gcs_pid_mask,           "GCS_PID_MASK",     0),
 
     // @Param: AUTO_TRIGGER_PIN
@@ -281,6 +281,10 @@ const AP_Param::Info Rover::var_info[] = {
     // @Group: SERIAL
     // @Path: ../libraries/AP_SerialManager/AP_SerialManager.cpp
     GOBJECT(serial_manager,         "SERIAL",   AP_SerialManager),
+
+    // @Group: NAVL1_
+    // @Path: ../libraries/AP_L1_Control/AP_L1_Control.cpp
+    GOBJECT(L1_controller,         "NAVL1_",   AP_L1_Control),
 
     // @Group: RNGFND
     // @Path: ../libraries/AP_RangeFinder/AP_RangeFinder.cpp
@@ -613,7 +617,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 
     // @Group: WP_
     // @Path: ../libraries/AR_WPNav/AR_WPNav.cpp
-    AP_SUBGROUPINFO(wp_nav, "WP_", 43, ParametersG2, AR_WPNav_OA),
+    AP_SUBGROUPINFO(wp_nav, "WP_", 43, ParametersG2, AR_WPNav),
 
     // @Group: SAIL_
     // @Path: sailboat.cpp
@@ -641,8 +645,8 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_GROUPINFO("LOIT_SPEED_GAIN", 47, ParametersG2, loiter_speed_gain, 0.5f),
 
     // @Param: FS_OPTIONS
-    // @DisplayName: Failsafe Options
-    // @Description: Bitmask to enable failsafe options
+    // @DisplayName: Rover Failsafe Options
+    // @Description: Bitmask to enable Rover failsafe options
     // @Values: 0:None,1:Failsafe enabled in Hold mode
     // @Bitmask: 0:Failsafe enabled in Hold mode
     // @User: Advanced
@@ -658,13 +662,6 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Path: ../libraries/APM_Control/AR_PosControl.cpp
     AP_SUBGROUPINFO(pos_control, "PSC", 51, ParametersG2, AR_PosControl),
 
-    // @Param: GUID_OPTIONS
-    // @DisplayName: Guided mode options
-    // @Description: Options that can be applied to change guided mode behaviour
-    // @Bitmask: 6:SCurves used for navigation
-    // @User: Advanced
-    AP_GROUPINFO("GUID_OPTIONS", 52, ParametersG2, guided_options, 0),
-
     // @Param: MANUAL_OPTIONS
     // @DisplayName: Manual mode options
     // @Description: Manual mode specific options
@@ -672,6 +669,13 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("MANUAL_OPTIONS", 53, ParametersG2, manual_options, 0),
 
+    // @Param: MIS_NAV_TYP
+    // @DisplayName: Mission navigation type
+    // @Description: Behaviour mission navigation class
+    // @Values: 0:Navigation by lateral acceleration 1: Navigation by yaw 
+    // @User: Standard
+    AP_GROUPINFO("MIS_NAV_TYP", 60, ParametersG2, mis_nav_type, 0),
+    
 #if MODE_DOCK_ENABLED == ENABLED
     // @Group: DOCK
     // @Path: mode_dock.cpp
@@ -731,7 +735,7 @@ ParametersG2::ParametersG2(void)
     follow(),
     windvane(),
     pos_control(attitude_control),
-    wp_nav(attitude_control, pos_control),
+    wp_nav(attitude_control, rover.L1_controller),
     sailboat()
 {
     AP_Param::setup_object_defaults(this, var_info);
@@ -764,10 +768,11 @@ const AP_Param::ConversionInfo conversion_table[] = {
     { Parameters::k_param_throttle_min_old,   0,      AP_PARAM_INT8,  "MOT_THR_MIN" },
     { Parameters::k_param_throttle_max_old,   0,      AP_PARAM_INT8,  "MOT_THR_MAX" },
     { Parameters::k_param_compass_enabled_deprecated,       0,      AP_PARAM_INT8, "COMPASS_ENABLE" },
+    { Parameters::k_param_pivot_turn_angle_old,   0,  AP_PARAM_INT16,  "WP_PIVOT_ANGLE" },
     { Parameters::k_param_waypoint_radius_old,    0,  AP_PARAM_FLOAT,  "WP_RADIUS" },
-    { Parameters::k_param_g2,               299,      AP_PARAM_INT16,  "WP_PIVOT_ANGLE" },
-    { Parameters::k_param_g2,               363,      AP_PARAM_INT16,  "WP_PIVOT_RATE" },
-    { Parameters::k_param_g2,               491,      AP_PARAM_FLOAT,  "WP_PIVOT_DELAY" },
+    { Parameters::k_param_waypoint_overshoot_old, 0,  AP_PARAM_FLOAT,  "WP_OVERSHOOT" },
+    { Parameters::k_param_g2,                20,      AP_PARAM_INT16,  "WP_PIVOT_RATE" },
+
     { Parameters::k_param_g2,                32,      AP_PARAM_FLOAT,  "SAIL_ANGLE_MIN" },
     { Parameters::k_param_g2,                33,      AP_PARAM_FLOAT,  "SAIL_ANGLE_MAX" },
     { Parameters::k_param_g2,                34,      AP_PARAM_FLOAT,  "SAIL_ANGLE_IDEAL" },
@@ -827,6 +832,9 @@ void Rover::load_parameters(void)
 
     SRV_Channels::upgrade_parameters();
     hal.console->printf("load_all took %uus\n", unsigned(micros() - before));
+
+    // set a more reasonable default NAVL1_PERIOD for rovers
+    L1_controller.set_default_period(NAVL1_PERIOD);
 
     // convert CH7_OPTION to RC7_OPTION for Rover-3.4 to 3.5 upgrade
     const AP_Param::ConversionInfo ch7_option_info = { Parameters::k_param_ch7_option, 0, AP_PARAM_INT8, "RC7_OPTION" };

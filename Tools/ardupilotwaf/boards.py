@@ -34,6 +34,7 @@ class Board:
 
     def __init__(self):
         self.with_can = False
+        self.with_osqp = False
 
     def configure(self, cfg):
         cfg.env.TOOLCHAIN = cfg.options.toolchain or self.toolchain
@@ -418,6 +419,32 @@ class Board:
             env.INCLUDES += [
                 cfg.srcnode.find_dir('modules/uavcan/libuavcan/include').abspath()
             ]
+        
+        if self.with_osqp:
+            env.AP_LIBRARIES += [
+                'AP_PiecewiseJerk',
+                'libraries/osqp/src/*.c',
+                'libraries/osqp/lin_sys/*.c',
+                'libraries/osqp/lin_sys/direct/*.c',
+                'libraries/osqp/lin_sys/direct/pardiso/*.c',
+                'libraries/osqp/lin_sys/direct/qdldl/*.c',
+                'libraries/osqp/lin_sys/direct/qdldl/amd/src/*.c',
+                'libraries/osqp/lin_sys/direct/qdldl/qdldl_sources/src/*.c',
+                ]
+
+            env.DEFINES.update(
+        
+            )
+
+            env.INCLUDES += [
+                cfg.srcnode.find_dir('libraries/osqp/include').abspath(),
+                cfg.srcnode.find_dir('libraries/osqp/lin_sys').abspath(),
+                cfg.srcnode.find_dir('libraries/osqp/lin_sys/direct').abspath(),
+                cfg.srcnode.find_dir('libraries/osqp/lin_sys/direct/pardiso').abspath(),
+                cfg.srcnode.find_dir('libraries/osqp/lin_sys/direct/qdldl').abspath(),
+                cfg.srcnode.find_dir('libraries/osqp/lin_sys/direct/qdldl/amd/include/').abspath(),
+                cfg.srcnode.find_dir('libraries/osqp/lin_sys/direct/qdldl/qdldl_sources/include/').abspath(),
+            ]
 
         if cfg.options.build_dates:
             env.build_dates = True
@@ -583,9 +610,11 @@ class sitl(Board):
     def __init__(self):
         if Utils.unversioned_sys_platform().startswith("linux"):
             self.with_can = True
+            self.with_osqp = True
         else:
             self.with_can = False
-
+            self.with_osqp = False
+        
     def configure_env(self, cfg, env):
         super(sitl, self).configure_env(cfg, env)
         env.DEFINES.update(
@@ -606,6 +635,12 @@ class sitl(Board):
             cfg.define('HAL_NUM_CAN_IFACES', 2)
             cfg.define('UAVCAN_EXCEPTIONS', 0)
             cfg.define('UAVCAN_SUPPORT_CANFD', 1)
+        
+        if self.with_osqp:
+            env.CFLAGS.remove('-Werror=undef')
+            env.CXXFLAGS.remove('-Werror=undef')
+            env.CFLAGS.remove('-Werror=unused-variable')
+            env.CXXFLAGS.remove('-Werror=unused-variable')
 
         env.CXXFLAGS += [
             '-Werror=float-equal'
@@ -641,7 +676,8 @@ class sitl(Board):
         env.LIB += [
             'm',
         ]
-
+        
+        cfg.check_libdl(env)
         cfg.check_librt(env)
         cfg.check_feenableexcept()
 
@@ -1122,6 +1158,12 @@ class linux(Board):
         if len(env.ROMFS_FILES) > 0:
             env.CXXFLAGS += ['-DHAL_HAVE_AP_ROMFS_EMBEDDED_H']
 
+        if self.with_osqp:
+            env.CFLAGS.remove('-Werror=undef')
+            env.CXXFLAGS.remove('-Werror=undef')
+            env.CFLAGS.remove('-Werror=unused-variable')
+            env.CXXFLAGS.remove('-Werror=unused-variable')
+
     def build(self, bld):
         super(linux, self).build(bld)
         if bld.options.upload:
@@ -1264,6 +1306,34 @@ class bebop(linux):
 
         env.DEFINES.update(
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_BEBOP',
+        )
+        
+class imx(linux):
+    toolchain = 'arm-linux-gnueabihf'
+    
+    def __init__(self):
+        self.with_can = True
+        self.with_osqp = True
+
+    def configure_env(self, cfg, env):
+        super(imx, self).configure_env(cfg, env)
+
+        env.DEFINES.update(
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_IMX',
+        )
+
+class imx_k60(linux):
+    toolchain = 'arm-linux-gnueabihf'
+    
+    def __init__(self):
+        self.with_can = True
+        self.with_osqp = True
+
+    def configure_env(self, cfg, env):
+        super(imx_k60, self).configure_env(cfg, env)
+
+        env.DEFINES.update(
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_IMX_K60',
         )
 
 class vnav(linux):

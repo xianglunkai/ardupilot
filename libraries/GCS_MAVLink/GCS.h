@@ -3,7 +3,11 @@
 // protocols.
 #pragma once
 
-#include "GCS_config.h"
+#include <AP_HAL/AP_HAL_Boards.h>
+
+#ifndef HAL_GCS_ENABLED
+#define HAL_GCS_ENABLED 1
+#endif
 
 #if HAL_GCS_ENABLED
 
@@ -1079,6 +1083,7 @@ public:
 #if AP_FENCE_ENABLED
     static class MissionItemProtocol_Fence *_missionitemprotocol_fence;
 #endif
+    static class MissionItemProtocol_PathPlanning *_missionitemprotocol_path_planning;
     class MissionItemProtocol *get_prot_for_mission_type(const MAV_MISSION_TYPE mission_type) const;
     void try_send_queued_message_for_type(MAV_MISSION_TYPE type) const;
 
@@ -1152,6 +1157,11 @@ protected:
     GCS_MAVLINK_Parameters chan_parameters[MAVLINK_COMM_NUM_BUFFERS];
     uint8_t _num_gcs;
     GCS_MAVLINK *_chan[MAVLINK_COMM_NUM_BUFFERS];
+
+
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+      AP_HAL::AnalogSource *_control_root;
+#endif
 
 private:
 

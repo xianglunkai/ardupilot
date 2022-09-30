@@ -1,7 +1,8 @@
 #pragma once
 
-#include <AP_HAL/AP_HAL_Boards.h>
-#include <GCS_MAVLink/GCS_config.h>
+#include <GCS_MAVLink/GCS.h>
+#include "AccelCalibrator.h"
+#include "AP_Vehicle/AP_Vehicle_Type.h"
 
 #ifndef HAL_INS_ACCELCAL_ENABLED
 #if HAL_GCS_ENABLED
@@ -10,10 +11,6 @@
 #define HAL_INS_ACCELCAL_ENABLED 0
 #endif
 #endif
-
-#include <GCS_MAVLink/GCS_MAVLink.h>
-#include "AccelCalibrator.h"
-#include "AP_Vehicle/AP_Vehicle_Type.h"
 
 #define AP_ACCELCAL_MAX_NUM_CLIENTS 4
 class GCS_MAVLINK;
@@ -53,7 +50,7 @@ public:
     bool running(void) const;
 
 private:
-    class GCS_MAVLINK *_gcs;
+    GCS_MAVLINK *_gcs;
     bool _use_gcs_snoop;
     bool _waiting_for_mavlink_ack = false;
     uint32_t _last_position_request_ms;

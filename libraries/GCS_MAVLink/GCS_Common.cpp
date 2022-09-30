@@ -59,6 +59,8 @@
 #include "MissionItemProtocol_Waypoints.h"
 #include "MissionItemProtocol_Rally.h"
 #include "MissionItemProtocol_Fence.h"
+#include "MissionItemProtocol_PathPlanning.h"
+
 
 #include <stdio.h>
 
@@ -559,13 +561,15 @@ MissionItemProtocol *GCS::get_prot_for_mission_type(const MAV_MISSION_TYPE missi
     switch (mission_type) {
     case MAV_MISSION_TYPE_MISSION:
         return _missionitemprotocol_waypoints;
-#if HAL_RALLY_ENABLED
     case MAV_MISSION_TYPE_RALLY:
         return _missionitemprotocol_rally;
-#endif
 #if AP_FENCE_ENABLED
     case MAV_MISSION_TYPE_FENCE:
         return _missionitemprotocol_fence;
+#endif
+#if APM_BUILD_TYPE(APM_BUILD_Rover)
+    case MAV_MISSION_TYPE_PATH_PLANNING:
+        return _missionitemprotocol_path_planning;
 #endif
     default:
         return nullptr;
@@ -2209,32 +2213,32 @@ void GCS::update_send()
         if (mission != nullptr) {
             _missionitemprotocol_waypoints = new MissionItemProtocol_Waypoints(*mission);
         }
-#if HAL_RALLY_ENABLED
         AP_Rally *rally = AP::rally();
         if (rally != nullptr) {
             _missionitemprotocol_rally = new MissionItemProtocol_Rally(*rally);
         }
-#endif
-#if AP_FENCE_ENABLED
         AC_Fence *fence = AP::fence();
         if (fence != nullptr) {
             _missionitemprotocol_fence = new MissionItemProtocol_Fence(*fence);
         }
+        #if APM_BUILD_TYPE(APM_BUILD_Rover) // we may also have this on copter, but we cant tell at compile time (from here)
+        _missionitemprotocol_path_planning = new MissionItemProtocol_PathPlanning();
+        #endif
     }
-#endif
     if (_missionitemprotocol_waypoints != nullptr) {
         _missionitemprotocol_waypoints->update();
     }
-#if HAL_RALLY_ENABLED
     if (_missionitemprotocol_rally != nullptr) {
         _missionitemprotocol_rally->update();
     }
-#endif
-#if AP_FENCE_ENABLED
     if (_missionitemprotocol_fence != nullptr) {
         _missionitemprotocol_fence->update();
     }
-#endif
+    #if APM_BUILD_TYPE(APM_BUILD_Rover)
+    if (_missionitemprotocol_path_planning != nullptr) {
+        _missionitemprotocol_path_planning->update();
+    }
+#endif // APM_BUILD_TYPE(APM_BUILD_Rover)
 #endif // HAL_BUILD_AP_PERIPH
     // round-robin the GCS_MAVLINK backend that gets to go first so
     // one backend doesn't monopolise all of the time allowed for sending
@@ -5035,20 +5039,16 @@ bool GCS_MAVLINK::try_send_mission_message(const enum ap_message id)
         gcs().try_send_queued_message_for_type(MAV_MISSION_TYPE_MISSION);
         ret = true;
         break;
-#if HAL_RALLY_ENABLED
     case MSG_NEXT_MISSION_REQUEST_RALLY:
         CHECK_PAYLOAD_SIZE(MISSION_REQUEST);
         gcs().try_send_queued_message_for_type(MAV_MISSION_TYPE_RALLY);
         ret = true;
         break;
-#endif
-#if AP_FENCE_ENABLED
     case MSG_NEXT_MISSION_REQUEST_FENCE:
         CHECK_PAYLOAD_SIZE(MISSION_REQUEST);
         gcs().try_send_queued_message_for_type(MAV_MISSION_TYPE_FENCE);
         ret = true;
         break;
-#endif
     default:
         ret = true;
         break;

@@ -57,24 +57,6 @@ GPS::GPS(uint8_t _instance) :
 #endif
 }
 
-uint32_t GPS::device_baud() const
-{
-    switch ((Type)_sitl->gps_type[instance].get()) {
-        case Type::NOVA:
-            return 19200;
-        case Type::NONE:
-        case Type::UBLOX:
-        case Type::NMEA:
-        case Type::SBP:
-        case Type::SBP2:
-#if AP_SIM_GPS_FILE_ENABLED
-        case Type::FILE:
-#endif
-            return 0;  // 0 meaning unset
-    }
-    return 0;  // 0 meaning unset
-}
-
 /*
   write some bytes from the simulated GPS
  */
@@ -590,6 +572,16 @@ void GPS::update_nmea(const struct gps_data *d)
                     d->speedN * 3.6,
                     -d->speedD * 3.6);
     }
+
+    // GST - GPS Pseudorange Noise Statistics
+    // Only parse the 3 standard devations
+    nmea_printf("$GPGST,%s,1.0,1.0,1.0,0,1.11,2.22,3.33,",tstring);
+
+    // GSA - GPS DOP and active satellites
+    // Only parse the dops
+    nmea_printf("$GNGSA,A,3,3,4,5,6,7,8,9,10,11,12,13,14,1.11,2.22,3.33,");
+
+
 }
 
 void GPS::sbp_send_message(uint16_t msg_type, uint16_t sender_id, uint8_t len, uint8_t *payload)

@@ -779,17 +779,19 @@ bool AP_Arming::mission_checks(bool report)
         AP_Mission *mission = AP::mission();
         if (mission == nullptr) {
             check_failed(ARMING_CHECK_MISSION, report, "No mission library present");
+            #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+                AP_HAL::panic("Mission checks requested, but no mission was allocated");
+            #endif // CONFIG_HAL_BOARD == HAL_BOARD_SITL
             return false;
         }
-#if HAL_RALLY_ENABLED
         AP_Rally *rally = AP::rally();
         if (rally == nullptr) {
             check_failed(ARMING_CHECK_MISSION, report, "No rally library present");
+            #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+                AP_HAL::panic("Mission checks requested, but no rally was allocated");
+            #endif // CONFIG_HAL_BOARD == HAL_BOARD_SITL
             return false;
         }
-#else
-        check_failed(ARMING_CHECK_MISSION, report, "No rally library present");
-#endif
 
         const struct MisItemTable {
           MIS_ITEM_CHECK check;
@@ -811,7 +813,6 @@ bool AP_Arming::mission_checks(bool report)
                 }
             }
         }
-#if HAL_RALLY_ENABLED
         if (_required_mission_items & MIS_ITEM_CHECK_RALLY) {
             Location ahrs_loc;
             if (!AP::ahrs().get_location(ahrs_loc)) {
@@ -824,7 +825,6 @@ bool AP_Arming::mission_checks(bool report)
                 return false;
             }
           }
-#endif
     }
 
     return true;
@@ -1150,6 +1150,8 @@ bool AP_Arming::can_checks(bool report)
                 case AP_CANManager::Driver_Type_Scripting:
                 case AP_CANManager::Driver_Type_Scripting2:
                 case AP_CANManager::Driver_Type_Benewake:
+                case AP_CANManager::Driver_Type_ARS408:
+                case AP_CANManager::Driver_Type_KXD_CAN:
                     break;
             }
         }

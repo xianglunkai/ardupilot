@@ -18,7 +18,6 @@
 ./Tools/autotest/sim_vehicle.py --gdb --debug -v ArduCopter -A --uartF=sim:nmea --speedup=1
 
 param set SERIAL5_PROTOCOL 9
-param set SERIAL5_BAUD 9600
 param set RNGFND1_TYPE 17
 graph RANGEFINDER.distance
 graph GLOBAL_POSITION_INT.relative_alt/1000-RANGEFINDER.distance
@@ -36,8 +35,6 @@ namespace SITL {
 
 class RF_NMEA : public SerialRangeFinder {
 public:
-
-    uint32_t device_baud() const override { return 9600; }
 
     uint32_t packet_for_alt(uint16_t alt_cm, uint8_t *buffer, uint8_t buflen) override;
 

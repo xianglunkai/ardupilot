@@ -1211,15 +1211,6 @@ bool NavEKF3::getAirSpdVec(Vector3f &vel) const
     return false;
 }
 
-// return the innovation in m/s, innovation variance in (m/s)^2 and age in msec of the last TAS measurement processed
-bool NavEKF3::getAirSpdHealthData(float &innovation, float &innovationVariance, uint32_t &age_ms) const
-{
-    if (core) {
-        return core[primary].getAirSpdHealthData(innovation, innovationVariance, age_ms);
-    }
-    return false;
-}
-
 // Return the rate of change of vertical position in the down direction (dPosD/dt) in m/s
 float NavEKF3::getPosDownDerivative() const
 {
@@ -1374,10 +1365,6 @@ bool NavEKF3::getOriginLLH(struct Location &loc) const
 {
     if (!core) {
         return false;
-    }
-    if (common_origin_valid) {
-        loc = common_EKF_origin;
-        return true;
     }
     return core[primary].getOriginLLH(loc);
 }

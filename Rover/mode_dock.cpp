@@ -45,6 +45,24 @@ const AP_Param::GroupInfo ModeDock::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_STOP_DIST", 5, ModeDock, stopping_dist, 0.30f),
 
+    // @Param: ACCEL
+    // @DisplayName: Waypoint acceleration
+    // @Description: Waypoint acceleration.  If zero then ATC_ACCEL_MAX is used
+    // @Units: m/s/s
+    // @Range: 0 100
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("_ACCEL", 6, ModeDock, _accel_max, 0),
+
+    // @Param: JERK
+    // @DisplayName: Waypoint jerk
+    // @Description: Waypoint jerk (change in acceleration).  If zero then jerk is same as acceleration
+    // @Units: m/s/s/s
+    // @Range: 0 100
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("_JERK", 7, ModeDock, _jerk_max, 0),
+
     AP_GROUPEND
 };
 
@@ -78,8 +96,8 @@ bool ModeDock::_enter()
         // accel_max of zero means no limit so use maximum acceleration
         atc_accel_max = AR_DOCK_ACCEL_MAX;
     }
-    const float accel_max = is_positive(g2.wp_nav.get_default_accel()) ? MIN(g2.wp_nav.get_default_accel(), atc_accel_max) : atc_accel_max;
-    const float jerk_max = is_positive(g2.wp_nav.get_default_jerk()) ? g2.wp_nav.get_default_jerk() : accel_max;
+    const float accel_max = is_positive(_accel_max) ? MIN(_accel_max, atc_accel_max) : atc_accel_max;
+    const float jerk_max = is_positive(_jerk_max) ? _jerk_max : accel_max;
 
     // initialise position controller
     g2.pos_control.set_limits(speed_max, accel_max, g2.attitude_control.get_turn_lat_accel_max(), jerk_max);

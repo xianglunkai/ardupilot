@@ -60,6 +60,9 @@ public:
      */
     void set_cpu_affinity(const cpu_set_t &cpu_affinity) { _cpu_affinity = cpu_affinity; }
 
+    // pat the watchdog
+    void watchdog_pat(void);
+
 private:
     class SchedulerThread : public PeriodicThread {
     public:
@@ -117,6 +120,8 @@ private:
 
     Semaphore _io_semaphore;
     cpu_set_t _cpu_affinity;
+    uint32_t last_watchdog_pat_ms;
+    uint32_t watchdog_time_count = 0;
 };
 
 }

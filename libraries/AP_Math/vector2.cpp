@@ -448,6 +448,60 @@ void Vector2<T>::rotate(T angle_rad)
     y = ry;
 }
 
+template <typename T>
+bool Vector2<T>::intersection_between_segment_and_lines(const Vector2<T>& seg_start,
+                                                   const Vector2<T>& seg_end,
+                                                   const std::vector<Vector2<T>> &points,Vector2<T> &intersection)
+{
+    if(points.size() <= 1){
+        return false;
+    }
+
+     Vector2<T> w1,w2,w;
+    for(uint16_t i = 0; i< points.size() - 1; i++){
+           w1 = points.at(i);
+           w2 = points.at(i + 1);
+
+        if(segment_intersection(seg_start,seg_end,w1,w2,w)){
+            intersection = w;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+template <typename T>
+T Vector2<T>::distance_between_point_and_lines(const Vector2<T>& point,const std::vector<Vector2<T>> &points,Vector2<T>& closest_point)
+{
+    T distance = FLT_MAX;
+
+    if(points.size() == 0){
+        return FLT_MAX;
+    }
+
+    Vector2<T> vec  = points.at(0) - point;
+    distance = vec.length();
+    if(points.size() == 1){
+        return distance;
+    }
+
+    Vector2<T> w1,w2,w;
+    for(uint16_t i = 0; i< points.size() - 1; i++){
+        w1 = points.at(i);
+        w2 = points.at(i + 1);
+        float d = Vector2<T>::closest_distance_between_line_and_point(w1,w2,point);
+        w = Vector2<T>::closest_point(w,w1,w2);
+        if(d < distance){
+            distance = d;
+            closest_point = w;
+        }
+    }
+
+    return distance;
+}
+
 // define for float and double
 template class Vector2<float>;
 template class Vector2<double>;

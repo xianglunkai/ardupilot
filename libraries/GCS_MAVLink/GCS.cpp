@@ -16,6 +16,8 @@
 #include "MissionItemProtocol_Waypoints.h"
 #include "MissionItemProtocol_Rally.h"
 #include "MissionItemProtocol_Fence.h"
+#include "MissionItemProtocol_PathPlanning.h"
+
 
 extern const AP_HAL::HAL& hal;
 
@@ -41,6 +43,8 @@ MissionItemProtocol_Rally *GCS::_missionitemprotocol_rally;
 #if AP_FENCE_ENABLED
 MissionItemProtocol_Fence *GCS::_missionitemprotocol_fence;
 #endif
+MissionItemProtocol_PathPlanning *GCS::_missionitemprotocol_path_planning;
+
 
 const MAV_MISSION_TYPE GCS_MAVLINK::supported_mission_types[] = {
     MAV_MISSION_TYPE_MISSION,
@@ -51,6 +55,9 @@ const MAV_MISSION_TYPE GCS_MAVLINK::supported_mission_types[] = {
 void GCS::init()
 {
     mavlink_system.sysid = sysid_this_mav();
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+      _control_root = hal.analogin->channel(0);
+#endif
 }
 
 /*

@@ -2,7 +2,6 @@
 
 #include "GCS_Mavlink.h"
 
-#include <AP_RPM/AP_RPM_config.h>
 #include <AP_RangeFinder/AP_RangeFinder_Backend.h>
 
 MAV_TYPE GCS_Rover::frame_type() const
@@ -52,6 +51,12 @@ MAV_MODE GCS_MAVLINK_Rover::base_mode() const
 
 uint32_t GCS_Rover::custom_mode() const
 {
+    #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60
+    // this information is reported if permission is obtained from the controller remote control
+    if (is_zero(_control_root->voltage_average() - 2)) {
+        return 0xfe;
+    }
+    #endif
     return rover.control_mode->mode_number();
 }
 
@@ -113,7 +118,8 @@ void GCS_MAVLINK_Rover::send_nav_controller_output() const
         control_mode->nav_bearing(),
         control_mode->wp_bearing(),
         MIN(control_mode->get_distance_to_destination(), UINT16_MAX),
-        0,
+        // default 0,the obstacle avoidance status is temporarily filled alt error
+        control_mode->oa_active(), 
         control_mode->speed_error(),
         control_mode->crosstrack_error());
 }
@@ -186,11 +192,26 @@ void GCS_MAVLINK_Rover::send_pid_tuning()
     Parameters &g = rover.g;
     ParametersG2 &g2 = rover.g2;
 
-    const AP_PIDInfo *pid_info;
+    const AP_PIDInfo *pid_info = nullptr;
+
+    // controller type
+    const AP_Int8 steering_rate_ctl_type     = g2.attitude_control.steering_rate_ctl_type();
+    const AP_Int8 throttle_speed_ctl_type    = g2.attitude_control.throttle_speed_ctl_type(); 
+    const AP_Int8 heading_angle_ctl_type     = g2.attitude_control.steering_angle_ctl_type();
+
 
     // steering PID
     if (g.gcs_pid_mask & 1) {
+
         pid_info = &g2.attitude_control.get_steering_rate_pid().get_pid_info();
+        if(steering_rate_ctl_type == g2.attitude_control.ADRC){
+            pid_info = &g2.attitude_control.get_steering_rate_adrc().get_debug_info();
+        }else if( steering_rate_ctl_type == g2.attitude_control.MFAC){
+            pid_info = &g2.attitude_control.get_steering_rate_mfac().get_debug_info();
+        }else{
+            
+        }
+
         mavlink_msg_pid_tuning_send(chan, PID_TUNING_STEER,
                                     degrees(pid_info->target),
                                     degrees(pid_info->actual),
@@ -207,7 +228,16 @@ void GCS_MAVLINK_Rover::send_pid_tuning()
 
     // speed to throttle PID
     if (g.gcs_pid_mask & 2) {
+
         pid_info = &g2.attitude_control.get_throttle_speed_pid_info();
+        if(throttle_speed_ctl_type == g2.attitude_control.ADRC){
+            pid_info = &g2.attitude_control.get_throttle_speed_adrc().get_debug_info();
+        }else if( throttle_speed_ctl_type == g2.attitude_control.MFAC){
+            pid_info = &g2.attitude_control.get_throttle_speed_mfac().get_debug_info();
+        }else{
+
+        }
+    
         mavlink_msg_pid_tuning_send(chan, PID_TUNING_ACCZ,
                                     pid_info->target,
                                     pid_info->actual,
@@ -275,42 +305,15 @@ void GCS_MAVLINK_Rover::send_pid_tuning()
 
     // sailboat heel to mainsail pid
     if (g.gcs_pid_mask & 32) {
+
         pid_info = &g2.attitude_control.get_sailboat_heel_pid().get_pid_info();
+        if(heading_angle_ctl_type == g2.attitude_control.ADRC){
+            pid_info = &g2.attitude_control.get_steering_angle_adrc().get_debug_info();
+        }else if(heading_angle_ctl_type == g2.attitude_control.MFAC){
+            pid_info = &g2.attitude_control.get_steering_angle_mfac().get_debug_info();
+        }else{}
+ 
         mavlink_msg_pid_tuning_send(chan, 9,
-                                    pid_info->target,
-                                    pid_info->actual,
-                                    pid_info->FF,
-                                    pid_info->P,
-                                    pid_info->I,
-                                    pid_info->D,
-                                    pid_info->slew_rate,
-                                    pid_info->Dmod);
-        if (!HAVE_PAYLOAD_SPACE(chan, PID_TUNING)) {
-            return;
-        }
-    }
-
-    // Position Controller Velocity North PID
-    if (g.gcs_pid_mask & 64) {
-        pid_info = &g2.pos_control.get_vel_pid().get_pid_info_x();
-        mavlink_msg_pid_tuning_send(chan, 10,
-                                    pid_info->target,
-                                    pid_info->actual,
-                                    pid_info->FF,
-                                    pid_info->P,
-                                    pid_info->I,
-                                    pid_info->D,
-                                    pid_info->slew_rate,
-                                    pid_info->Dmod);
-        if (!HAVE_PAYLOAD_SPACE(chan, PID_TUNING)) {
-            return;
-        }
-    }
-
-    // Position Controller Velocity East PID
-    if (g.gcs_pid_mask & 128) {
-        pid_info = &g2.pos_control.get_vel_pid().get_pid_info_y();
-        mavlink_msg_pid_tuning_send(chan, 11,
                                     pid_info->target,
                                     pid_info->actual,
                                     pid_info->FF,
@@ -504,7 +507,7 @@ const AP_Param::GroupInfo GCS_MAVLINK_Parameters::var_info[] = {
     // @Increment: 1
     // @RebootRequired: True
     // @User: Advanced
-    AP_GROUPINFO("ADSB",   9, GCS_MAVLINK_Parameters, streamRates[9],  0),
+    AP_GROUPINFO("ADSB",   9, GCS_MAVLINK_Parameters, streamRates[9],  1),
 
     AP_GROUPEND
 };
@@ -565,9 +568,7 @@ static const ap_message STREAM_EXTRA3_msgs[] = {
     MSG_MAG_CAL_PROGRESS,
     MSG_EKF_STATUS_REPORT,
     MSG_VIBRATION,
-#if AP_RPM_ENABLED
     MSG_RPM,
-#endif
     MSG_WHEEL_DISTANCE,
     MSG_ESC_TELEMETRY,
 };
