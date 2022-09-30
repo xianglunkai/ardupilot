@@ -18,6 +18,7 @@
 #include "Storage.h"
 #include "UARTDriver.h"
 #include "Util.h"
+#include "watchdog.h"
 
 using namespace Linux;
 
@@ -294,6 +295,14 @@ void Scheduler::_io_task()
 
     // run registered IO processes
     _run_io();
+
+    // run pat watchdog
+    watchdog_time_count++;
+    if(watchdog_time_count >= 50)
+    {
+        watchdog_time_count = 0;
+        watchdog_pat();
+    }
 }
 
 bool Scheduler::in_main_thread() const
@@ -422,4 +431,11 @@ bool Scheduler::thread_create(AP_HAL::MemberProc proc, const char *name, uint32_
     }
 
     return true;
+}
+
+// pat the watchdog
+void Scheduler::watchdog_pat(void)
+{
+    linux_watchdog_pat();
+    last_watchdog_pat_ms = AP_HAL::millis();
 }

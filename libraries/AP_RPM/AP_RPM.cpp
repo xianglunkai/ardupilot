@@ -23,6 +23,7 @@
 #include "RPM_Generator.h"
 #include "RPM_HarmonicNotch.h"
 #include "RPM_ESC_Telem.h"
+#include "RPM_Analog.h"
 
 #include <AP_Logger/AP_Logger.h>
 
@@ -103,7 +104,13 @@ void AP_RPM::init(void)
             drivers[i] = new AP_RPM_SITL(*this, i, state[i]);
             break;
 #endif  // AP_RPM_SIM_ENABLED
+#if AP_RPM_ANALOG_ENABLE
+        case RPM_TYPE_ANALOG:
+              drivers[i] = new AP_RPM_Analog(*this, i, state[i]);
+        break;
+#endif // AP_RPM_ANALOG_ENABLE
         }
+
         if (drivers[i] != nullptr) {
             // we loaded a driver for this instance, so it must be
             // present (although it may not be healthy)

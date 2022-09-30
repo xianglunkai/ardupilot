@@ -67,6 +67,10 @@ AP_BattMonitor_Analog::AP_BattMonitor_Analog(AP_BattMonitor &mon,
     _volt_pin_analog_source = hal.analogin->channel(_volt_pin);
     _curr_pin_analog_source = hal.analogin->channel(_curr_pin);
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX && (CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60)
+    _temp_pin_analog_source = hal.analogin->channel(AP_BATT_TEMP_PIN);
+#endif
+
 }
 
 // read - read the voltage and current
@@ -96,10 +100,26 @@ AP_BattMonitor_Analog::read()
         // record time
         _state.last_time_micros = tnow;
     }
+
+    // read temp
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX && (CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60)
+    if(_temp_pin_analog_source != nullptr)
+    {
+        _state.temperature = _temp_pin_analog_source->read_average();
+    }
+#endif
+
 }
 
 /// return true if battery provides current info
 bool AP_BattMonitor_Analog::has_current() const
 {
     return ((AP_BattMonitor::Type)_params._type.get() == AP_BattMonitor::Type::ANALOG_VOLTAGE_AND_CURRENT);
+}
+
+bool AP_BattMonitor_Analog::has_temperature() const{
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX && (CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_IMX_K60)
+    return true;
+#endif
+     return false;
 }
