@@ -549,6 +549,15 @@ singleton AP_Mount method set_angle_target void uint8_t 0 UINT8_MAX float'skip_c
 singleton AP_Mount method set_rate_target void uint8_t 0 UINT8_MAX float'skip_check float'skip_check float'skip_check boolean
 singleton AP_Mount method set_roi_target void uint8_t 0 UINT8_MAX Location
 
+include AP_Winch/AP_Winch.h depends APM_BUILD_COPTER_OR_HELI
+singleton AP_Winch depends APM_BUILD_COPTER_OR_HELI
+singleton AP_Winch rename winch
+singleton AP_Winch method healthy boolean
+singleton AP_Winch method relax void
+singleton AP_Winch method release_length void float'skip_check
+singleton AP_Winch method set_desired_rate void float'skip_check
+singleton AP_Winch method get_rate_max float
+
 -- ----EFI Library----
 include AP_EFI/AP_EFI.h depends HAL_EFI_ENABLED
 include AP_EFI/AP_EFI_Scripting.h depends HAL_EFI_ENABLED
