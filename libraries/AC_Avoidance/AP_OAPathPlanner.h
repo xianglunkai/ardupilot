@@ -4,6 +4,7 @@
 #include <AP_Common/Location.h>
 #include <AP_Param/AP_Param.h>
 #include <AP_HAL/Semaphores.h>
+#include <AP_Planning/publishable_trajectory.h>
 
 #include "AP_OABendyRuler.h"
 #include "AP_OADijkstra.h"
@@ -133,6 +134,7 @@ private:
         Location origin_new;        // intermediate origin.  The start of line segment that vehicle should follow
         Location destination_new;   // intermediate destination vehicle should move towards
         float    desired_speed_new; // intermediate desired speed should move towards
+        planning::PublishableTrajectory last_publishable_trajectory; // stitching trajectory
         uint32_t result_time_ms;    // system time the result was calculated (used to verify the result is recent)
         OAPathPlannerUsed path_planner_used;    // path planner that produced the result
         OA_RetState ret_state;      // OA_SUCCESS if the vehicle should move along the path from origin_new to destination_new

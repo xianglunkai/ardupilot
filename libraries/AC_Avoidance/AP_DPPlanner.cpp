@@ -111,8 +111,8 @@ AP_DPPlanner::AP_DPPlanner()
 // run background task to find best cruise speed and update avoidance results
 // returns false if obstacle avoidance is not required
 bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, const Location& destination, 
-                          const Vector2f &ground_speed_vec, 
-                          Location &origin_new, Location &destination_new, float &desired_speed_new, 
+                          const float cruise_speed, 
+                          planning::DiscretizedTrajectory &planned_trajectory_pb, 
                           const float planning_cycle_time)
 {
     if (!_enable) {
@@ -121,7 +121,7 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
     }
 
     // initial 
-    _desired_speed_input = desired_speed_new;
+    _desired_speed_input = cruise_speed;
     _nseg = _nfe / NT;
     _unit_time = _tf / NT;
     _time = planning::LinSpaced<NT>(_unit_time, _tf);
@@ -144,6 +144,7 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
 
     // get ground course
     float ground_course_deg;
+    const Vector2f ground_speed_vec = AP::ahrs().groundspeed_vector();
     if (ground_speed_vec.length_squared() < sq(0.2f)) {
         // with zero ground speed use vehicle's heading
         ground_course_deg = AP::ahrs().yaw_sensor * 0.01f;
@@ -186,9 +187,6 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
         _shortest_path_ok = false;
         return false;
     }
-
-    // update planning start point
-    // todo add support stitch alogorithm to get planning start point
 
     auto sl = _reference.get_projection({current_ne.x, current_ne.y});
     _state.start_s = sl.x();
@@ -260,7 +258,8 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
 
         // if cost is inf , we should stop vehicle imemediatley
         if (std::isinf(cell.cost)) {
-            desired_speed_new = 0.0f;
+            // generate failsafe stop trajectory
+            generate_stop_trajectory(planned_trajectory_pb);
             GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DP planner failed, stop vehicle!");
             return true;
         }
@@ -305,25 +304,47 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
     const bool oa_active = (lateral_err_max > 0.5f || speed_err_max > 0.25f) && (_state.start_s < _reference.data().back().s);
     _shortest_path_ok = oa_active;
 
-    // get next desired location and velocity
-    uint16_t control_index = std::ceil(planning_cycle_time / dt);
-    if (control_index >= _planning_traj.data().size()) {
-        control_index = _planning_traj.data().size() - 1;
+    // return planned trajectory
+    planned_trajectory_pb.clear();
+    for (size_t i  = 0; i < _planning_traj.data().size(); i++) {
+        planning::TrajectoryPoint point;
+        point.path_point.x = _planning_traj.data().at(i).x;
+        point.path_point.y = _planning_traj.data().at(i).y;
+        point.path_point.theta = _planning_traj.data().at(i).theta;
+        point.path_point.s = _planning_traj.data().at(i).s;
+        point.path_point.kappa = _planning_traj.data().at(i).kappa;
+        point.relative_time = i * dt;
+        point.v = _planning_traj.data().at(i).velocity;
+        planned_trajectory_pb.emplace_back(point);
     }
-    const auto p = _planning_traj.data().at(control_index);
-    desired_speed_new = p.velocity;
-    origin_new = current_loc;
-    const Vector2f desired_pos{p.x * 100, p.y * 100};
-    Location temp_loc(Vector3f{desired_pos, 0.0}, Location::AltFrame::ABOVE_ORIGIN);
-    destination_new.lat = temp_loc.lat;
-    destination_new.lng = temp_loc.lng;
-    const float desired_bearing = origin_new.get_bearing_to(destination_new) * 0.01f;
-    const float desired_distance = origin_new.get_distance(destination_new);
-    if (desired_distance < _lookahead) {
-        destination_new = current_loc;
-        destination_new.offset_bearing(desired_bearing, _lookahead);
-    }
+
     return oa_active;
+}
+
+
+// generate stop trajectory
+void AP_DPPlanner::generate_stop_trajectory(planning::DiscretizedTrajectory& trajectory_data)
+{
+    Vector3f pos;
+    if (!AP::ahrs().get_relative_position_NED_origin(pos)) {
+        return;
+    }
+    float relative_time = 0.0;
+    static constexpr int stop_trajectory_length = 10;
+    static constexpr double relative_stop_time = 0.1f;
+    trajectory_data.clear();
+    for (size_t i = 0; i < stop_trajectory_length; i++) {
+        planning::TrajectoryPoint point;
+        point.path_point.x = pos.x;
+        point.path_point.y = pos.y;
+        point.path_point.theta = AP::ahrs().yaw;
+        point.path_point.s = 0;
+        point.path_point.kappa = 0;
+        point.relative_time = relative_time;
+        point.v = 0.0f;
+        trajectory_data.emplace_back(point);
+        relative_time += relative_stop_time;
+    }
 }
 
 // return location point from final path

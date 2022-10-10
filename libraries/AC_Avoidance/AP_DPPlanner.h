@@ -10,6 +10,7 @@
 #include <array>
 #include <AP_Planning/vec2d.h>
 #include <AP_Planning/discretized_traj.h>
+#include <AP_Planning/discretized_trajectory.h>
 #include <AP_Planning/pose.h>
 
 
@@ -25,8 +26,8 @@ public:
     // run background task to find best cruise speed and update avoidance results
     // returns false if obstacle avoidance is not required
     bool update(const Location &current_loc, const Location& origin, const Location& destination, 
-                const Vector2f &ground_speed_vec, 
-                Location &origin_new, Location &destination_new, float &desired_speed_new,
+                const float cruise_speed, 
+                planning::DiscretizedTrajectory &planned_trajectory_pb,
                 const float planning_cycle_time);
 
     // get the length of the final path
@@ -100,6 +101,9 @@ private:
 
     // linear polate
     std::vector<planning::Vec2d> interpolate_linearly(const float parent_s, const int16_t parent_l_ind, const int16_t current_s_ind, const int16_t current_l_ind);
+
+    // generate stop trajectory
+    void generate_stop_trajectory(planning::DiscretizedTrajectory& trajectory_data);
 
 private:
 

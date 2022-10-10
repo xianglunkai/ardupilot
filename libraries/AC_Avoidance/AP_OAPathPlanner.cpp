@@ -21,6 +21,8 @@
 #include "AP_OABendyRuler.h"
 #include "AP_OADijkstra.h"
 
+#include <AP_Planning/trajectory_stitcher.h>
+
 extern const AP_HAL::HAL &hal;
 
 // parameter defaults
@@ -29,6 +31,10 @@ const int16_t OA_OPTIONS_DEFAULT = 1;
 
 const int16_t OA_UPDATE_MS  = 1000;     // path planning updates run at 1hz
 const int16_t OA_TIMEOUT_MS = 3000;     // results over 3 seconds old are ignored
+const float   OA_LOOKAHEAD_M = 15.0f;   // minimal track line length
+const size_t  FLAGS_trajectory_stitching_preserved_length = 20;
+const bool    FLAGS_enable_trajectory_stitcher = true;
+const bool    FLAGS_replan_by_offset = true;
 
 const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
 
@@ -275,11 +281,41 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
         result_destination = avoidance_result.destination_new;
         result_desired_speed = avoidance_result.desired_speed_new;
         path_planner_used = avoidance_result.path_planner_used;
+
+        // override result_origin, result_destination, result_desired_speed
+        if (path_planner_used == OAPathPlannerUsed::DP &&
+            avoidance_result.last_publishable_trajectory.size() > 0) {
+            result_origin = current_loc;
+            const float relative_time = (now - avoidance_result.last_publishable_trajectory.header_time()) * 0.001f;
+            planning::TrajectoryPoint track_point = avoidance_result.last_publishable_trajectory.Evaluate(relative_time); 
+
+            // update result_desired_speed
+            result_desired_speed = track_point.v;
+
+            // do not consider stop trajectory
+            if (result_desired_speed > 0) {
+                // translate track point in X-Y into LAT-LNG
+                Location temp_loc(Vector3f{track_point.path_point.x * 100, 
+                                        track_point.path_point.y * 100, 0.0},
+                                        Location::AltFrame::ABOVE_ORIGIN);
+
+                // ensure track line minimal length is grater OA_LOOKAHEAD_M
+                result_destination = temp_loc;
+                const float desired_bearing = result_origin.get_bearing_to(result_destination) * 0.01f;
+                const float desired_distance = result_origin.get_distance(result_destination);
+                if (desired_distance < OA_LOOKAHEAD_M) {
+                    result_destination = current_loc;
+                    result_destination.offset_bearing(desired_bearing, OA_LOOKAHEAD_M);
+                }
+            }
+        }
+
         return avoidance_result.ret_state;
     }
 
     // if timeout then path planner is taking too long to respond
     if (timed_out) {
+        avoidance_result.last_publishable_trajectory.clear();
         return OA_ERROR;
     }
 
@@ -338,6 +374,13 @@ void AP_OAPathPlanner::avoidance_thread()
             desired_speed_new = avoidance_request.desired_speed;
         }
 
+        // planning is triggered by prediction data, but we can still use an estimated
+        // cycle time for stitching
+         const float planning_cycle_time = 0.001f * OA_UPDATE_MS;
+        
+        // current planning start clock time
+        const float start_timestamp = AP_HAL::millis();
+
         // run background task looking for best alternative destination
         OA_RetState res = OA_NOT_REQUIRED;
         OAPathPlannerUsed path_planner_used = OAPathPlannerUsed::None;
@@ -366,6 +409,38 @@ void AP_OAPathPlanner::avoidance_thread()
             GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近圆形围栏");
             _abandon_wp = true;
         }
+        
+        // 1. update vehicle state
+        planning::VehicleState vehicle_state;
+        Vector2f current_pos;
+        if (!avoidance_request2.current_loc.get_vector_xy_from_origin_NE(current_pos)) {
+            continue;
+        }
+        vehicle_state.x = current_pos.x / 100;
+        vehicle_state.y = current_pos.y / 100;
+        vehicle_state.z = 0;
+        vehicle_state.timestamp = AP_HAL::millis();
+        vehicle_state.heading = AP::ahrs().yaw;
+        vehicle_state.kappa = 0.0f;
+        vehicle_state.linear_velocity = AP::ahrs().groundspeed();
+        vehicle_state.angular_velocity = AP::ahrs().get_yaw_rate_earth();
+        vehicle_state.linear_acceleration = AP::ahrs().get_accel().xy().length();
+
+        // 2. called ComputeStitchingTrajectory to get stiching_trajectory
+        std::vector<planning::TrajectoryPoint> stitching_trajectory = 
+        planning::TrajectoryStitcher::ComputeStitchingTrajectory(
+            vehicle_state, start_timestamp, planning_cycle_time,
+            FLAGS_trajectory_stitching_preserved_length, FLAGS_replan_by_offset,
+            &avoidance_result.last_publishable_trajectory, FLAGS_enable_trajectory_stitcher);
+
+        // 3. update planning start point
+        auto planning_start_point_xy = stitching_trajectory.back();
+        Location planning_start_point(Vector3f{planning_start_point_xy.path_point.x * 100, 
+                                               planning_start_point_xy.path_point.y * 100, 0}, 
+                                               Location::AltFrame::ABOVE_ORIGIN);
+        
+        // 4. define planning trajectory output
+        planning::DiscretizedTrajectory planned_trajectory_pb;
 
         switch (_type) {
         case OA_PATHPLAN_DISABLED:
@@ -468,7 +543,7 @@ void AP_OAPathPlanner::avoidance_thread()
             }
 
             _speed_decider->set_config(_margin_max);
-            if (_speed_decider->update(avoidance_request2.current_loc, origin_new, destination_new, avoidance_request2.ground_speed_vec, desired_speed_new, 0.001f * OA_UPDATE_MS)) {
+            if (_speed_decider->update(avoidance_request2.current_loc, origin_new, destination_new, avoidance_request2.ground_speed_vec, desired_speed_new, planning_cycle_time)) {
                 res = OA_SUCCESS;
             }
            
@@ -483,7 +558,10 @@ void AP_OAPathPlanner::avoidance_thread()
             path_planner_used = OAPathPlannerUsed::DP;
 
             _dp_planner->set_config(_margin_max);
-            if (_dp_planner->update(avoidance_request2.current_loc, avoidance_request2.origin, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, desired_speed_new, 0.001f * OA_UPDATE_MS)) {
+            // use planning start point from sitching trajectory
+            if (_dp_planner->update(planning_start_point, avoidance_request2.origin, avoidance_request2.destination,
+                                    avoidance_request2.desired_speed, 
+                                    planned_trajectory_pb, planning_cycle_time)) {
                 res = OA_SUCCESS;
             }
             break;
@@ -499,7 +577,7 @@ void AP_OAPathPlanner::avoidance_thread()
         bool shallow_detect   = _oashallow.update(avoidance_request2.current_loc,
                                                   avoidance_request2.origin, avoidance_request2.destination,
                                                   avoidance_request2.ground_speed_vec,
-                                                  0.001f * OA_UPDATE_MS);
+                                                  planning_cycle_time);
         if (shoreline_detect || shallow_detect || _abandon_wp) {
             res = OA_ABANDON;
         }
@@ -516,6 +594,17 @@ void AP_OAPathPlanner::avoidance_thread()
             avoidance_result.result_time_ms = AP_HAL::millis();
             avoidance_result.path_planner_used = path_planner_used;
             avoidance_result.ret_state = res;
+
+            // 4. prepend stitching trajectory points
+            if (planned_trajectory_pb.size() > 0) {
+                avoidance_result.last_publishable_trajectory = std::move(planning::PublishableTrajectory(
+                    start_timestamp, planned_trajectory_pb));
+                
+                // apend last stitching trajectory
+                avoidance_result.last_publishable_trajectory.PrependTrajectoryPoints(
+                    std::vector<planning::TrajectoryPoint>(stitching_trajectory.begin(),
+                                                           stitching_trajectory.end() - 1));
+            }
         }
     }
 }
