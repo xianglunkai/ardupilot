@@ -38,19 +38,7 @@ void GCS::get_sensor_status_flags(uint32_t &present,
     health = control_sensors_health;
 }
 
-MissionItemProtocol_Waypoints *GCS::_missionitemprotocol_waypoints;
-MissionItemProtocol_Rally *GCS::_missionitemprotocol_rally;
-#if AP_FENCE_ENABLED
-MissionItemProtocol_Fence *GCS::_missionitemprotocol_fence;
-#endif
-MissionItemProtocol_PathPlanning *GCS::_missionitemprotocol_path_planning;
-
-
-const MAV_MISSION_TYPE GCS_MAVLINK::supported_mission_types[] = {
-    MAV_MISSION_TYPE_MISSION,
-    MAV_MISSION_TYPE_RALLY,
-    MAV_MISSION_TYPE_FENCE,
-};
+MissionItemProtocol *GCS::missionitemprotocols[4];
 
 void GCS::init()
 {

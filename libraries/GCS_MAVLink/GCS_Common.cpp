@@ -558,22 +558,10 @@ void GCS_MAVLINK::send_ahrs2()
 
 MissionItemProtocol *GCS::get_prot_for_mission_type(const MAV_MISSION_TYPE mission_type) const
 {
-    switch (mission_type) {
-    case MAV_MISSION_TYPE_MISSION:
-        return _missionitemprotocol_waypoints;
-    case MAV_MISSION_TYPE_RALLY:
-        return _missionitemprotocol_rally;
-#if AP_FENCE_ENABLED
-    case MAV_MISSION_TYPE_FENCE:
-        return _missionitemprotocol_fence;
-#endif
-#if APM_BUILD_TYPE(APM_BUILD_Rover)
-    case MAV_MISSION_TYPE_PATH_PLANNING:
-        return _missionitemprotocol_path_planning;
-#endif
-    default:
+    if (mission_type >= ARRAY_SIZE(missionitemprotocols)) {
         return nullptr;
     }
+    return missionitemprotocols[mission_type];
 }
 
 // handle a request for the number of items we have stored for a mission type:
@@ -702,8 +690,7 @@ void GCS_MAVLINK::handle_mission_clear_all(const mavlink_message_t &msg) const
 
 bool GCS_MAVLINK::requesting_mission_items() const
 {
-    for (uint8_t i=0; i<ARRAY_SIZE(supported_mission_types); i++) {
-        MissionItemProtocol *prot = gcs().get_prot_for_mission_type(supported_mission_types[i]);
+    for (const auto *prot : gcs().missionitemprotocols) {
         if (prot && prot->receiving && prot->active_link_is(this)) {
             return true;
         }
@@ -2205,41 +2192,39 @@ void GCS::send_message(enum ap_message id)
 void GCS::update_send()
 {
     update_send_has_been_called = true;
-#if !defined(HAL_BUILD_AP_PERIPH) && AP_FENCE_ENABLED
     if (!initialised_missionitemprotocol_objects) {
         initialised_missionitemprotocol_objects = true;
         // once-only initialisation of MissionItemProtocol objects:
+#if AP_MISSION_ENABLED
         AP_Mission *mission = AP::mission();
         if (mission != nullptr) {
-            _missionitemprotocol_waypoints = new MissionItemProtocol_Waypoints(*mission);
+            missionitemprotocols[MAV_MISSION_TYPE_MISSION] = new MissionItemProtocol_Waypoints(*mission);
         }
+#endif
+#if HAL_RALLY_ENABLED
         AP_Rally *rally = AP::rally();
         if (rally != nullptr) {
-            _missionitemprotocol_rally = new MissionItemProtocol_Rally(*rally);
+             missionitemprotocols[MAV_MISSION_TYPE_RALLY] = new MissionItemProtocol_Rally(*rally);
         }
+#endif
+#if AP_FENCE_ENABLED
         AC_Fence *fence = AP::fence();
         if (fence != nullptr) {
-            _missionitemprotocol_fence = new MissionItemProtocol_Fence(*fence);
+            missionitemprotocols[MAV_MISSION_TYPE_FENCE] = new MissionItemProtocol_Fence(*fence);
         }
-        #if APM_BUILD_TYPE(APM_BUILD_Rover) // we may also have this on copter, but we cant tell at compile time (from here)
-        _missionitemprotocol_path_planning = new MissionItemProtocol_PathPlanning();
-        #endif
+#endif
+#if APM_BUILD_TYPE(APM_BUILD_Rover) // we may also have this on copter, but we cant tell at compile time (from here)
+        missionitemprotocols[MAV_MISSION_TYPE_PATH_PLANNING] = new MissionItemProtocol_PathPlanning();
+#endif
     }
-    if (_missionitemprotocol_waypoints != nullptr) {
-        _missionitemprotocol_waypoints->update();
+
+    for (auto *prot : missionitemprotocols) {
+        if (prot == nullptr) {
+            continue;
+        }
+        prot->update();
     }
-    if (_missionitemprotocol_rally != nullptr) {
-        _missionitemprotocol_rally->update();
-    }
-    if (_missionitemprotocol_fence != nullptr) {
-        _missionitemprotocol_fence->update();
-    }
-    #if APM_BUILD_TYPE(APM_BUILD_Rover)
-    if (_missionitemprotocol_path_planning != nullptr) {
-        _missionitemprotocol_path_planning->update();
-    }
-#endif // APM_BUILD_TYPE(APM_BUILD_Rover)
-#endif // HAL_BUILD_AP_PERIPH
+
     // round-robin the GCS_MAVLINK backend that gets to go first so
     // one backend doesn't monopolise all of the time allowed for sending
     // messages
