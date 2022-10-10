@@ -124,9 +124,6 @@ private:
     AP_Float _reference_left_bound;                          // reference center line left range
     AP_Float _reference_right_bound;                         // reference center line right range
     AP_Float _reference_resolution;                          // reference center line resolution with meter
-    AP_Float _lookahead;                                     // trajectory lookahead distance in meter
-
-    // internal variables used by background thread
 
 private:
     // reference line

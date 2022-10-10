@@ -91,15 +91,6 @@ const AP_Param::GroupInfo AP_DPPlanner::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("REF_RES", 12, AP_DPPlanner, _reference_resolution, 0.2f),
 
-    // @Param: LOOKAHEAD
-    // @DisplayName: Object Avoidance look ahead distance maximum
-    // @Description: Object Avoidance will look this many meters ahead of vehicle
-    // @Units: m
-    // @Range: 1 100
-    // @Increment: 1
-    // @User: Standard
-    AP_GROUPINFO("LOOKAHEAD", 13, AP_DPPlanner, _lookahead, 10.0f),
-
   AP_GROUPEND
 };
 
