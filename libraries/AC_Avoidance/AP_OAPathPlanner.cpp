@@ -307,6 +307,8 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
                     result_destination = current_loc;
                     result_destination.offset_bearing(desired_bearing, OA_LOOKAHEAD_M);
                 }
+            } else {
+                return OA_ABANDON;
             }
         }
 
