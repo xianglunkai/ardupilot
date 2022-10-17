@@ -56,6 +56,14 @@ public:
         AirSimSITL = 12,
 #endif
         CYGBOT_D1 = 13,
+
+        
+#if HAL_MAX_CAN_PROTOCOL_DRIVERS
+        ARS408_CAN = 20,
+#endif
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+        DynamicalSITL = 21,
+#endif
     };
 
     enum class Status {
