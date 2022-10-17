@@ -793,7 +793,6 @@ bool AP_OABendyRuler::calc_margin_from_object_database_with_prediction(const Loc
     float smallest_margin = FLT_MAX;
     const float eplase_time = (start_NEU - cur_NEU).length() / _groundspeed_vector.length();
     const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
-    const float ref_bearing = _origin_loc.get_bearing_to(_destination_loc) * 0.01f;
 
     for (uint16_t i=0; i<oaDb->database_count(); i++) {
         const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
