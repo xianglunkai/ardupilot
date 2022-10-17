@@ -37,18 +37,20 @@ void AR_WPNav_OA::update(float dt)
 
     // run path planning around obstacles
     bool stop_vehicle = false;
-
+    
     // backup _origin and _destination when not doing oa
     if (!_oa_active) {
         _origin_oabak = _origin;
         _destination_oabak = _destination;
+        _oa_desired_speed = _base_speed_max;
     }
+    _oa_abandon = false;
 
     AP_OAPathPlanner *oa = AP_OAPathPlanner::get_singleton();
     if (oa != nullptr) {
         Location oa_origin_new, oa_destination_new;
         AP_OAPathPlanner::OAPathPlannerUsed path_planner_used;
-        const AP_OAPathPlanner::OA_RetState oa_retstate = oa->mission_avoidance(current_loc, _origin_oabak, _destination_oabak, oa_origin_new, oa_destination_new, path_planner_used);
+        const AP_OAPathPlanner::OA_RetState oa_retstate = oa->mission_avoidance(current_loc, _origin_oabak, _destination_oabak, _base_speed_max, oa_origin_new, oa_destination_new, _oa_desired_speed, path_planner_used);
         switch (oa_retstate) {
 
         case AP_OAPathPlanner::OA_NOT_REQUIRED:
@@ -73,6 +75,11 @@ void AR_WPNav_OA::update(float dt)
         case AP_OAPathPlanner::OA_PROCESSING:
         case AP_OAPathPlanner::OA_ERROR:
             // during processing or in case of error, slow vehicle to a stop
+            stop_vehicle = true;
+            _oa_active = false;
+            break;
+        case AP_OAPathPlanner::OA_ABANDON:
+            _oa_abandon = true;
             stop_vehicle = true;
             _oa_active = false;
             break;
@@ -104,7 +111,9 @@ void AR_WPNav_OA::update(float dt)
                     }
                 }
                 break;
-
+                
+            case AP_OAPathPlanner::OAPathPlannerUsed::SLT:
+            case AP_OAPathPlanner::OAPathPlannerUsed::EM:
             case AP_OAPathPlanner::OAPathPlannerUsed::BendyRulerHorizontal: {
                 // BendyRuler.  Action is only needed if path planner has just became active or the target destination's lat or lon has changed
                 if (!_oa_active || !oa_destination_new.same_latlon_as(_oa_destination)) {

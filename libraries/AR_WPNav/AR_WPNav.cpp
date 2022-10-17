@@ -197,6 +197,7 @@ bool AR_WPNav::set_speed_max(float speed_max)
     }
 
     _base_speed_max = speed_max;
+    _oa_desired_speed = speed_max;
     return true;
 }
 
@@ -227,6 +228,7 @@ bool AR_WPNav::set_desired_location(const struct Location& destination, Location
     // when oa_state is true, we do not replace origin with destination
     if (!oa_state) {
         _origin = _destination;
+        _oa_desired_speed = _base_speed_max;
     }
     _destination = destination;
     _orig_and_dest_valid = true;
@@ -462,7 +464,7 @@ void AR_WPNav::advance_wp_target_along_track(const Location &current_loc, float 
             _reached_destination = true;
         } else {
             // regular waypoints also require the vehicle to be within the waypoint radius or past the "finish line"
-            const bool near_wp = current_loc.get_distance(_destination) <= _radius;
+            const bool near_wp = current_loc.get_distance(_destination) <= _radius || (_oa_abandon == true);
             const bool past_wp = current_loc.past_interval_finish_line(_origin, _destination);
             _reached_destination = near_wp || past_wp;
         }
@@ -490,7 +492,7 @@ void AR_WPNav::update_psc_input_shaping(float dt)
         // calculate position difference between destination and position controller input shaped target
         Vector2p pos_target_diff = pos_target - _pos_control.get_pos_target();
         // vehicle has reached destination when the target is within 1cm of the destination and vehicle is within waypoint radius
-        _reached_destination = (pos_target_diff.length_squared() < sq(0.01)) && (_pos_control.get_pos_error().length_squared() < sq(_radius));
+        _reached_destination = (_oa_abandon == true) ||((pos_target_diff.length_squared() < sq(0.01)) && (_pos_control.get_pos_error().length_squared() < sq(_radius)));
     }
 }
 
@@ -611,7 +613,7 @@ bool AR_WPNav::set_origin_and_destination_to_stopping_point()
 // updates position controller limits and recalculate scurve path if required
 void AR_WPNav::update_speed_max()
 {
-    const float speed_max = MAX(_base_speed_max, _nudge_speed_max);
+    const float speed_max = MAX(_oa_desired_speed, _nudge_speed_max);
 
     // ignore calls that do not change the speed
     if (is_equal(speed_max, _pos_control.get_speed_max())) {
