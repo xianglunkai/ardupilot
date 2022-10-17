@@ -17,6 +17,10 @@
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
 #endif
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX || CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#include <stdio.h>
+#endif
+
 #define SCHED_TASK(func, rate_hz, max_time_micros, prio) SCHED_TASK_CLASS(AP_Vehicle, &vehicle, func, rate_hz, max_time_micros, prio)
 
 /*
@@ -139,12 +143,23 @@ void AP_Vehicle::setup()
                         "\n\nFree RAM: %u\n",
                         AP::fwversion().fw_string,
                         (unsigned)hal.util->available_memory());
+    
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+    printf("\n\nInit %s"
+                        "\n\nFree RAM: %u\n",
+                        AP::fwversion().fw_string,
+                        (unsigned)hal.util->available_memory());
+#endif
 
 #if AP_CHECK_FIRMWARE_ENABLED
     check_firmware_print();
 #endif
 
     load_parameters();
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+    printf("Load parameters success!\n");
+#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     if (AP_BoardConfig::get_sdcard_slowdown() != 0) {
@@ -160,6 +175,10 @@ void AP_Vehicle::setup()
     uint32_t log_bit;
     get_scheduler_tasks(tasks, task_count, log_bit);
     AP::scheduler().init(tasks, task_count, log_bit);
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+    printf("Scheduler initialization success!\n");
+#endif
 
     // time per loop - this gets updated in the main loop() based on
     // actual loop rate
@@ -272,6 +291,10 @@ void AP_Vehicle::setup()
     custom_rotations.init();
 
     gcs().send_text(MAV_SEVERITY_INFO, "ArduPilot Ready");
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+    printf("ArduPilot Ready\n");
+#endif
 }
 
 void AP_Vehicle::loop()
