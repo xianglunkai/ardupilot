@@ -256,8 +256,6 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
         }
     }
 
-    // todo abandon waypoint with some solutions
-
     // interpolation
     const float dt = _tf / (_nfe - 1);
     planning::Trajectory data(_nfe);
@@ -523,9 +521,11 @@ float AP_DPPlanner::calculate_static_obstacle_cost(const object &obj)
         const float collision_distance = (obj.pos - obstacle.pos).length() -  (obj.radius + obstacle.radius);
         if (collision_distance < 0) {
             return std::numeric_limits<float>::infinity();
-        } else {
+        } else if (collision_distance > 0 && collision_distance < 2.0f * _safe_margin){
             obstacle_cost += _obstacle_collision_weight * planning::Sigmoid(_safe_margin - collision_distance);
-        } 
+        } else {
+
+        }
     }
     
     if (_road_barrier.empty()) {
@@ -570,8 +570,10 @@ float AP_DPPlanner::calculate_dynamic_obstacle_cost(const float time, const obje
         const float collision_distance = (obj.pos - obs_pos_t).length() -  (obj.radius + obs.radius);
         if (collision_distance < 0) {
             return std::numeric_limits<float>::infinity();
-        } else {
+        } else if (collision_distance > 0 && collision_distance < 10 * _safe_margin){
              obstacle_cost += _obstacle_collision_weight * planning::Sigmoid(_safe_margin - collision_distance);
+        } else {
+            
         }
     }
     return obstacle_cost;
