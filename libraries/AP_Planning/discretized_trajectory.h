@@ -73,9 +73,9 @@ namespace planning {
 
     PathPoint InterpolateUsingLinearApproximation(const PathPoint &p0,
                                               const PathPoint &p1,
-                                              const double s);
+                                              const float s);
 
     TrajectoryPoint InterpolateUsingLinearApproximation(const TrajectoryPoint &tp0,
                                                     const TrajectoryPoint &tp1,
-                                                    const double t);
+                                                    const float t);
 }
