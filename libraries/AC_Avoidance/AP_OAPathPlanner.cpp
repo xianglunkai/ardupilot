@@ -398,7 +398,7 @@ void AP_OAPathPlanner::avoidance_thread()
         // check goal and current location near obstacles
         _abandon_wp = false;
         _margin_min = FLT_MAX;
-        const float check_margin = 2.0f * _margin_max;
+        const float check_margin = _lookahead;
         
         if (check_unreachable_from_object_database(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
             GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近障碍物");
