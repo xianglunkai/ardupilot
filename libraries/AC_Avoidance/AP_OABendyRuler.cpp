@@ -69,6 +69,18 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
     // @User: Standard
     AP_GROUPINFO_FRAME("TYPE", 4, AP_OABendyRuler, _bendy_type, OA_BENDYRULER_TYPE_DEFAULT, AP_PARAM_FRAME_COPTER | AP_PARAM_FRAME_HELI | AP_PARAM_FRAME_TRICOPTER),
 
+    // @Param{Rover}: MARG_TYPE
+    // @DisplayName: MARG_TYPE
+    // @Description: 0: without prediction 1: with prediction 2: only with static and incoming objects
+    // @User: Standard
+    AP_GROUPINFO_FRAME("MARG_TYPE", 5, AP_OABendyRuler, _margin_type, 0, AP_PARAM_FRAME_ROVER),
+
+    // @Param: SAFE_COFF
+    // @DisplayName: SAFE_COFF
+    // @Description: return normal route safe factor
+    // @User: Standard
+    AP_GROUPINFO("SAFE_COFF", 6, AP_OABendyRuler, _safe_factor, 1.5),
+
     AP_GROUPEND
 };
 
@@ -84,7 +96,10 @@ AP_OABendyRuler::AP_OABendyRuler()
 bool AP_OABendyRuler::update(const Location& current_loc, const Location& destination, const Vector2f &ground_speed_vec, Location &origin_new, Location &destination_new, OABendyType &bendy_type, bool proximity_only)
 {
     // bendy ruler always sets origin to current_loc
-    origin_new = current_loc;
+    _current_loc = current_loc;
+    _origin_loc = origin_new;
+    _destination_loc = destination_new;
+    _shortest_path_ok = false;
 
     // init bendy_type returned
     bendy_type = OABendyType::OA_BENDY_DISABLED;
@@ -115,6 +130,16 @@ bool AP_OABendyRuler::update(const Location& current_loc, const Location& destin
         ground_course_deg = degrees(ground_speed_vec.angle());
     }
 
+    // Calculate groundspeed
+    float groundSpeed = ground_speed_vec.length();
+    _groundspeed_vector = {ground_speed_vec,0.0f};
+    if (groundSpeed < 0.1f) {
+        // use a small ground speed vector in the right direction,
+        // allowing us to use the compass heading at zero GPS velocity
+        groundSpeed = 0.1f;
+        _groundspeed_vector = Vector3f(cosf(AP::ahrs().yaw), sinf(AP::ahrs().yaw),0.0f) * groundSpeed;
+    }
+
     bool ret;
     switch (get_type()) {
         case OABendyType::OA_BENDY_VERTICAL:
@@ -129,7 +154,10 @@ bool AP_OABendyRuler::update(const Location& current_loc, const Location& destin
             ret = search_xy_path(current_loc, destination, ground_course_deg, destination_new, lookahead_step1_dist, lookahead_step2_dist, bearing_to_dest, distance_to_dest, proximity_only);
             bendy_type = OABendyType::OA_BENDY_HORIZONTAL;
     }
-
+    // update origin_new
+    if (ret) {
+        origin_new = current_loc;
+    }
     return ret;
 }
 
@@ -198,15 +226,19 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
                     if (margin2 > _margin_max) {
                         // if the chosen direction is directly towards the destination avoidance can be turned off
                         // i == 0 && j == 0 implies no deviation from bearing to destination 
-                        const bool active = (i != 0 || j != 0);
+                        const bool active = (i != 0 || j != 0) || (_margin_min < _safe_factor *_margin_max);
                         float final_bearing = bearing_test;
                         float final_margin = margin;
                         // check if we need ignore test_bearing and continue on previous bearing
                         const bool ignore_bearing_change = resist_bearing_change(destination, current_loc, active, bearing_test, lookahead_step1_dist, margin, _destination_prev,_bearing_prev, final_bearing, final_margin, proximity_only);
 
                         // all good, now project in the chosen direction by the full distance
-                        destination_new = current_loc;
-                        destination_new.offset_bearing(final_bearing, MIN(distance_to_dest, lookahead_step1_dist));
+                        if (active) {
+                            destination_new = current_loc;
+                            destination_new.offset_bearing(final_bearing, MIN(distance_to_dest, lookahead_step1_dist));
+                            _shortest_path_ok = true;
+                            _destination_new = destination_new;
+                        }
                         _current_lookahead = MIN(_lookahead, _current_lookahead * 1.1f);
                         Write_OABendyRuler((uint8_t)OABendyType::OA_BENDY_HORIZONTAL, active, bearing_to_dest, 0.0f, ignore_bearing_change, final_margin, destination, destination_new);
                         return active;
@@ -236,9 +268,30 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
     destination_new = current_loc;
     destination_new.offset_bearing(chosen_bearing, chosen_distance);
 
+    // update avoidance result
+    _shortest_path_ok = true;
+    _destination_new = destination_new;
+
     // log results
     Write_OABendyRuler((uint8_t)OABendyType::OA_BENDY_HORIZONTAL, true, chosen_bearing, 0.0f, false, best_margin, destination, destination_new);
 
+    return true;
+}
+
+// return location point from final path
+bool AP_OABendyRuler::get_shortest_path_location(uint8_t point_num, Location& Loc) const
+{
+    if (!_shortest_path_ok || point_num >= 2) {
+        // this is acting like a basic semaphore to save doing it properly
+        return false;
+    }
+
+    if (point_num == 0) {
+        Loc = _current_loc;
+    } else if (point_num == 1) {
+        Loc = _destination_new;
+    } else {
+    }
     return true;
 }
 
@@ -419,10 +472,19 @@ float AP_OABendyRuler::calc_avoidance_margin(const Location &start, const Locati
 
     float latest_margin;
     
-    if (calc_margin_from_object_database(start, end, latest_margin)) {
-        margin_min = MIN(margin_min, latest_margin);
+    // calculate margin from obstacles for dynamical scenario
+    if (_margin_type.get() == 1) {
+        // with prediction
+        if(calc_margin_from_object_database_with_prediction(start, end, latest_margin)){
+            margin_min = MIN(margin_min, latest_margin);
+        }
+    } else {
+        // without prediction
+         if (calc_margin_from_object_database(start, end, latest_margin)) {
+            margin_min = MIN(margin_min, latest_margin);
+        }
     }
-    
+
     if (proximity_only) {
         // only need margin from proximity data
         return margin_min;
@@ -708,3 +770,51 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
 
     return false;
 }
+
+bool AP_OABendyRuler::calc_margin_from_object_database_with_prediction(const Location &start,const Location &end,float &margin) const
+{
+    // exit immediately if db is empty
+    AP_OADatabase *oaDb = AP::oadatabase();
+    if (oaDb == nullptr || !oaDb->healthy()) {
+        return false;
+    }
+
+    // convert start and end to offsets (in cm) from EKF origin
+    Vector3f start_NEU,end_NEU,cur_NEU;
+    if (!start.get_vector_from_origin_NEU(start_NEU) || !end.get_vector_from_origin_NEU(end_NEU) ||
+        !_current_loc.get_vector_from_origin_NEU(cur_NEU)) {
+        return false;
+    }
+    if (start_NEU == end_NEU) {
+        return false;
+    }
+
+     // check each obstacle's distance from segment
+    float smallest_margin = FLT_MAX;
+    const float eplase_time = (start_NEU - cur_NEU).length() / _groundspeed_vector.length();
+    const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
+    const float ref_bearing = _origin_loc.get_bearing_to(_destination_loc) * 0.01f;
+
+    for (uint16_t i=0; i<oaDb->database_count(); i++) {
+        const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
+        const Vector3f point_cm = item.pos * 100.0f;
+        const Vector3f point_pred_cm = point_cm + item.vel * eplase_time * 100.0f;
+        // calculate closest distance on relative velocity
+        const Vector3f relative_vel =  (desired_speed - item.vel);
+        const Vector3f end_pred_NEU =  start_NEU + relative_vel.normalized() * (end_NEU - start_NEU).length();
+        const float m = Vector3f::closest_distance_between_line_and_point(start_NEU, end_pred_NEU, point_pred_cm) * 0.01f - item.radius;
+        if (m < smallest_margin) {
+            smallest_margin = m;
+        }
+    }
+
+    // return smallest margin
+    if (smallest_margin < FLT_MAX) {
+        margin = smallest_margin;
+        return true;
+    }
+
+    return false;
+}
+
+

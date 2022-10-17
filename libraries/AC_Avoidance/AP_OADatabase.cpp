@@ -103,6 +103,20 @@ const AP_Param::GroupInfo AP_OADatabase::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO_FRAME("ALT_MIN", 8, AP_OADatabase, _min_alt, 0.0f, AP_PARAM_FRAME_COPTER | AP_PARAM_FRAME_HELI | AP_PARAM_FRAME_TRICOPTER),
 
+    // @Param: DOB_EN
+    // @DisplayName: OADatabase dynamical object manager enable 
+    // @Description: Enable or disable dynamical object manager
+    // @User: Advanced
+    AP_GROUPINFO("DOB_EN", 10, AP_OADatabase, _dynamical_object_enable, 0),
+
+    // @Param: DOB_LIFE
+    // @DisplayName: OADatabase dynamical object lifte time in seconds
+    // @Description: Dynamical object life time 
+    // @Units: seconds
+    // @Range: 0.2 10
+    // @User: Advanced
+    AP_GROUPINFO("DOB_LIFE", 11, AP_OADatabase, _dynamical_object_life_time, 0.5f),
+
     AP_GROUPEND
 };
 
@@ -143,7 +157,7 @@ void AP_OADatabase::update()
 }
 
 // push a location into the database
-void AP_OADatabase::queue_push(const Vector3f &pos, uint32_t timestamp_ms, float distance)
+void AP_OADatabase::queue_push(const Vector3f &pos, uint32_t timestamp_ms, float distance,float radius)
 {
     if (!healthy()) {
         return;
@@ -172,12 +186,67 @@ void AP_OADatabase::queue_push(const Vector3f &pos, uint32_t timestamp_ms, float
         return;
     }
 
-    const OA_DbItem item = {pos, timestamp_ms, MAX(_radius_min, distance * dist_to_radius_scalar), 0, AP_OADatabase::OA_DbItemImportance::Normal};
+   if(is_zero(radius)){
+        radius = MAX(_radius_min, distance * dist_to_radius_scalar);
+    }else{
+        radius = MAX(_radius_min,radius);
+    }
+
+    const Vector3f vel;
+
+    const OA_DbItem item = {pos, vel,timestamp_ms, radius, 0, AP_OADatabase::OA_DbItemImportance::Normal};
     {
         WITH_SEMAPHORE(_queue.sem);
         _queue.items->push(item);
     }
 }
+
+
+void AP_OADatabase::queue_push(const Vector3f &pos, const Vector3f &vel,uint32_t timestamp_ms, float distance,float radius)
+{
+     if (!healthy()) {
+        return;
+    }
+
+    // check if this obstacle needs to be rejected from DB because of low altitude near home
+    #if APM_BUILD_TYPE(APM_BUILD_ArduCopter)
+    if (!is_zero(_min_alt)) { 
+        Vector2f current_pos;
+        if (!AP::ahrs().get_relative_position_NE_home(current_pos)) {
+            // we do not know where the vehicle is
+            return;
+        }
+        if (current_pos.length() < AP_OADATABASE_DISTANCE_FROM_HOME) {
+            // vehicle is within a small radius of home 
+            float height_above_home;
+            AP::ahrs().get_relative_position_D_home(height_above_home);
+            if (-height_above_home < _min_alt) {
+                // vehicle is below the minimum alt
+                return;
+            }
+        }
+    }
+    #endif
+    
+    // ignore objects that are far away
+    if ((_dist_max > 0.0f) && (distance > _dist_max)) {
+        return;
+    }
+
+    if(is_zero(radius)){
+        radius = MAX(_radius_min, distance * dist_to_radius_scalar);
+    }else{
+        radius = MAX(_radius_min,radius);
+    }
+   
+    const OA_DbItem item = {pos, vel,timestamp_ms, radius, 0, AP_OADatabase::OA_DbItemImportance::Normal};
+    {
+        WITH_SEMAPHORE(_queue.sem);
+        _queue.items->push(item);
+    }
+}
+
+
 
 void AP_OADatabase::init_queue()
 {
@@ -338,9 +407,15 @@ void AP_OADatabase::database_items_remove_all_expired()
 
     const uint32_t now_ms = AP_HAL::millis();
     const uint32_t expiry_ms = (uint32_t)_database_expiry_seconds * 1000;
+    const uint32_t dynamical_expiry_time = (uint32_t)1000 * MAX(_dynamical_object_life_time,0.2f);
     uint16_t index = 0;
     while (index < _database.count) {
-        if (now_ms - _database.items[index].timestamp_ms > expiry_ms) {
+        
+        const bool dynamical_object_expiry =  _dynamical_object_enable && 
+                                              (_database.items[index].vel.length() > 0.5f) &&
+                                              (now_ms - _database.items[index].timestamp_ms > dynamical_expiry_time);
+
+        if (now_ms - _database.items[index].timestamp_ms > expiry_ms || dynamical_object_expiry){
             database_item_remove(index);
         } else {
             index++;
@@ -405,7 +480,7 @@ void AP_OADatabase::send_adsb_vehicle(mavlink_channel_t chan, uint16_t interval_
 
         // convert object's position as an offset from EKF origin to Location
         const Location item_loc(Vector3f(_database.items[idx].pos.x * 100.0f, _database.items[idx].pos.y * 100.0f, _database.items[idx].pos.z * 100.0f), Location::AltFrame::ABOVE_ORIGIN);
-
+        const uint16_t hor_velocity = _database.items[idx].vel.length() * 100;   
         mavlink_msg_adsb_vehicle_send(chan,
             idx,
             item_loc.lat,
@@ -413,7 +488,7 @@ void AP_OADatabase::send_adsb_vehicle(mavlink_channel_t chan, uint16_t interval_
             0,                          // altitude_type
             item_loc.alt,               
             0,                          // heading
-            0,                          // hor_velocity
+            hor_velocity,               // hor_velocity
             0,                          // ver_velocity
             callsign,                   // callsign
             255,                        // emitter_type
