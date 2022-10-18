@@ -32,7 +32,6 @@ const int16_t OA_OPTIONS_DEFAULT = 1;
 
 const int16_t OA_UPDATE_MS  = 1000;     // path planning updates run at 1hz
 const int16_t OA_TIMEOUT_MS = 3000;     // results over 3 seconds old are ignored
-const float   OA_LOOKAHEAD_M = 15.0f;   // minimal track line length
 const size_t  FLAGS_trajectory_stitching_preserved_length = 20;
 const bool    FLAGS_enable_trajectory_stitcher = true;
 const bool    FLAGS_replan_by_offset = true;
@@ -91,6 +90,15 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     // @Group: DP_
     // @Path: AP_SLTPlanner.cpp
     AP_SUBGROUPPTR(_slt_planner, "DP_", 10, AP_OAPathPlanner, AP_SLTPlanner),
+
+    // @Param: LOOKAHEAD
+    // @DisplayName: Object Avoidance look ahead distance maximum
+    // @Description: Object Avoidance will look this many meters ahead of vehicle
+    // @Units: m
+    // @Range: 1 100
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("LOOKAHEAD", 11, AP_OAPathPlanner, _lookahead, 10),
 
     AP_GROUPEND
 };
@@ -300,10 +308,12 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
                 result_destination = temp_loc;
                 const float desired_bearing = result_origin.get_bearing_to(result_destination) * 0.01f;
                 const float desired_distance = result_origin.get_distance(result_destination);
-                if (desired_distance < OA_LOOKAHEAD_M) {
+                if (desired_distance < _lookahead) {
                     result_destination = current_loc;
-                    result_destination.offset_bearing(desired_bearing, OA_LOOKAHEAD_M);
+                    result_destination.offset_bearing(desired_bearing, _lookahead);
                 }
+            } else {
+                return OA_ABANDON;
             }
         }
 
@@ -385,7 +395,7 @@ void AP_OAPathPlanner::avoidance_thread()
         // check goal and current location near obstacles
         _abandon_wp = false;
         _margin_min = FLT_MAX;
-        const float check_margin = 2.0f * _margin_max;
+        const float check_margin = _lookahead;
         
         if (check_unreachable_from_object_database(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
             GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近障碍物");
