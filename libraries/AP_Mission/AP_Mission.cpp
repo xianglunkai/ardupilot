@@ -1211,6 +1211,7 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
         cmd.content.scripting.p3 = packet.param4;
         break;
 
+#if AP_SCRIPTING_ENABLED
     case MAV_CMD_NAV_SCRIPT_TIME:
         cmd.content.nav_script_time.command = packet.param1;
         cmd.content.nav_script_time.timeout_s = packet.param2;
@@ -1219,6 +1220,7 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
         cmd.content.nav_script_time.arg3 = int16_t(packet.x);
         cmd.content.nav_script_time.arg4 = int16_t(packet.y);
         break;
+#endif
 
     case MAV_CMD_NAV_ATTITUDE_TIME:
         cmd.content.nav_attitude_time.time_sec = constrain_float(packet.param1, 0, UINT16_MAX);
@@ -1704,6 +1706,7 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
         packet.param4 = cmd.content.scripting.p3;
         break;
 
+#if AP_SCRIPTING_ENABLED
     case MAV_CMD_NAV_SCRIPT_TIME:
         packet.param1 = cmd.content.nav_script_time.command;
         packet.param2 = cmd.content.nav_script_time.timeout_s;
@@ -1712,6 +1715,7 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
         packet.x = cmd.content.nav_script_time.arg3;
         packet.y = cmd.content.nav_script_time.arg4;
         break;
+#endif
 
     case MAV_CMD_NAV_ATTITUDE_TIME:
         packet.param1 = cmd.content.nav_attitude_time.time_sec;
@@ -2466,8 +2470,10 @@ const char *AP_Mission::Mission_Command::type() const
         return "Jump";
     case MAV_CMD_DO_GO_AROUND:
         return "Go Around";
+#if AP_SCRIPTING_ENABLED
     case MAV_CMD_NAV_SCRIPT_TIME:
         return "NavScriptTime";
+#endif
     case MAV_CMD_NAV_ATTITUDE_TIME:
         return "NavAttitudeTime";
     case MAV_CMD_DO_PAUSE_CONTINUE:
@@ -2638,7 +2644,9 @@ bool AP_Mission::calc_rewind_pos(Mission_Command& rewind_cmd)
 void AP_Mission::format_conversion(uint8_t tag_byte, const Mission_Command &cmd, PackedContent &packed_content) const
 {
     // currently only one conversion needed, more can be added
+#if AP_SCRIPTING_ENABLED
     if (tag_byte == 0 && cmd.id == MAV_CMD_NAV_SCRIPT_TIME) {
+        // PARAMETER_CONVERSION: conversion code added Oct 2022
         struct nav_script_time_Command_tag0 old_fmt;
         struct nav_script_time_Command new_fmt;
         memcpy((void*)&old_fmt, packed_content.bytes, sizeof(old_fmt));
@@ -2650,6 +2658,7 @@ void AP_Mission::format_conversion(uint8_t tag_byte, const Mission_Command &cmd,
         new_fmt.arg4 = 0;
         memcpy(packed_content.bytes, (void*)&new_fmt, sizeof(new_fmt));
     }
+#endif
 }
 
 // singleton instance
