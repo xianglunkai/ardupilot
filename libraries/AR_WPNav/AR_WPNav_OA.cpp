@@ -37,7 +37,6 @@ void AR_WPNav_OA::update(float dt)
 
     // run path planning around obstacles
     bool stop_vehicle = false;
-    bool oa_was_abandon = _oa_abandon;
     _oa_abandon = false;
     
     // backup _origin and _destination when not doing oa

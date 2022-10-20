@@ -137,7 +137,7 @@ bool AR_PivotTurn::would_activate(float yaw_change_deg) const
 float AR_PivotTurn::get_turn_rate_rads(float desired_heading_deg, float dt)
 {
     // handle pivot turns
-    const float desired_turn_rate_rads = _atc.get_turn_rate_from_heading(radians(desired_heading_deg), radians(_rate_max));
+    const float desired_turn_rate_rads = _atc.get_turn_rate_from_heading(radians(desired_heading_deg), AP::ahrs().yaw, radians(_rate_max));
 
     // update flag so that it can be cleared
     check_activation(desired_heading_deg);
