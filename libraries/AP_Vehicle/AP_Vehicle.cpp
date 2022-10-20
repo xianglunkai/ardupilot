@@ -144,7 +144,7 @@ void AP_Vehicle::setup()
                         AP::fwversion().fw_string,
                         (unsigned)hal.util->available_memory());
     
-#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX || CONFIG_HAL_BOARD == HAL_BOARD_SITL
     printf("\n\nInit %s"
                         "\n\nFree RAM: %u\n",
                         AP::fwversion().fw_string,
@@ -157,7 +157,7 @@ void AP_Vehicle::setup()
 
     load_parameters();
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX || CONFIG_HAL_BOARD == HAL_BOARD_SITL
     printf("Load parameters success!\n");
 #endif
 
@@ -176,7 +176,7 @@ void AP_Vehicle::setup()
     get_scheduler_tasks(tasks, task_count, log_bit);
     AP::scheduler().init(tasks, task_count, log_bit);
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX || CONFIG_HAL_BOARD == HAL_BOARD_SITL
     printf("Scheduler initialization success!\n");
 #endif
 
@@ -292,7 +292,7 @@ void AP_Vehicle::setup()
 
     gcs().send_text(MAV_SEVERITY_INFO, "ArduPilot Ready");
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX || CONFIG_HAL_BOARD == HAL_BOARD_SITL
     printf("ArduPilot Ready\n");
 #endif
 }
