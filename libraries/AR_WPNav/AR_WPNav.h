@@ -169,6 +169,7 @@ protected:
     uint32_t _last_update_ms;       // system time of last call to update
     Location _origin;               // origin Location (vehicle will travel from the origin to the destination)
     Location _destination;          // destination Location when in Guided_WP
+    Location _next_destination{};
     float    _oa_desired_speed;     // intermediate avoidance desired speed
     bool _orig_and_dest_valid;      // true if the origin and destination have been set
     bool _reversed;                 // execute the mission by backing up

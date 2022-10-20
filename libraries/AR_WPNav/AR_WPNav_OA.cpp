@@ -37,14 +37,20 @@ void AR_WPNav_OA::update(float dt)
 
     // run path planning around obstacles
     bool stop_vehicle = false;
+    bool oa_was_abandon = _oa_abandon;
+    _oa_abandon = false;
     
     // backup _origin and _destination when not doing oa
     if (!_oa_active) {
         _origin_oabak = _origin;
         _destination_oabak = _destination;
+        // backup next destination
+        if (_next_destination.initialised()) {
+            _next_destination_oabak = _next_destination;
+        }
+        // backup base speed
         _oa_desired_speed = _base_speed_max;
     }
-    _oa_abandon = false;
 
     AP_OAPathPlanner *oa = AP_OAPathPlanner::get_singleton();
     if (oa != nullptr) {
@@ -62,7 +68,7 @@ void AR_WPNav_OA::update(float dt)
                 }
 
                 // object avoidance has become inactive so reset target to original destination
-                if (!AR_WPNav::set_desired_location(_destination_oabak, {}, true)) {
+                if (!AR_WPNav::set_desired_location(_destination_oabak, _next_destination_oabak, true)) {
                     // this should never happen because we should have an EKF origin and the destination must be valid
                     INTERNAL_ERROR(AP_InternalError::error_t::flow_of_control);
                     stop_vehicle = true;
@@ -79,8 +85,9 @@ void AR_WPNav_OA::update(float dt)
             _oa_active = false;
             break;
         case AP_OAPathPlanner::OA_ABANDON:
-            _oa_abandon = true;
             stop_vehicle = true;
+            _destination = _destination_oabak;
+            _oa_abandon = true;
             _oa_active = false;
             break;
 
@@ -167,6 +174,10 @@ bool AR_WPNav_OA::set_desired_location(const struct Location& destination, Locat
 // true if vehicle has reached desired location. defaults to true because this is normally used by missions and we do not want the mission to become stuck
 bool AR_WPNav_OA::reached_destination() const
 {
+    if (_oa_abandon) {
+        return true;
+    }
+
     // object avoidance should always be deactivated before reaching final destination
     if (_oa_active) {
         return false;

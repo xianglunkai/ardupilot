@@ -275,6 +275,7 @@ bool AR_WPNav::set_desired_location(const struct Location& destination, Location
     _fast_waypoint = false;
     _pivot_at_next_wp = false;
     if (next_destination.initialised()) {
+         _next_destination = next_destination;
         // check if vehicle should pivot at next waypoint
         const float next_wp_yaw_change = get_corner_angle(_origin, destination, next_destination);
         _pivot_at_next_wp = _pivot.would_activate(next_wp_yaw_change);
@@ -464,7 +465,7 @@ void AR_WPNav::advance_wp_target_along_track(const Location &current_loc, float 
             _reached_destination = true;
         } else {
             // regular waypoints also require the vehicle to be within the waypoint radius or past the "finish line"
-            const bool near_wp = current_loc.get_distance(_destination) <= _radius || (_oa_abandon == true);
+            const bool near_wp = current_loc.get_distance(_destination) <= _radius;
             const bool past_wp = current_loc.past_interval_finish_line(_origin, _destination);
             _reached_destination = near_wp || past_wp;
         }
@@ -492,7 +493,7 @@ void AR_WPNav::update_psc_input_shaping(float dt)
         // calculate position difference between destination and position controller input shaped target
         Vector2p pos_target_diff = pos_target - _pos_control.get_pos_target();
         // vehicle has reached destination when the target is within 1cm of the destination and vehicle is within waypoint radius
-        _reached_destination = (_oa_abandon == true) ||((pos_target_diff.length_squared() < sq(0.01)) && (_pos_control.get_pos_error().length_squared() < sq(_radius)));
+        _reached_destination = (pos_target_diff.length_squared() < sq(0.01)) && (_pos_control.get_pos_error().length_squared() < sq(_radius));
     }
 }
 
