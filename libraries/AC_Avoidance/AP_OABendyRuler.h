@@ -16,6 +16,8 @@ public:
     // send configuration info stored in front end parameters
     void set_config(float margin_max) { _margin_max = MAX(margin_max, 0.0f); }
 
+    void set_lookahead(float lookahead) { _lookahead = MAX(_lookahead, 1.0f); }
+
     void set_margin_min(float margin_min) { _margin_min = margin_min; }
 
     enum class OABendyType {
@@ -86,7 +88,6 @@ private:
     float _margin_min;
     
     // BendyRuler parameters
-    AP_Float _lookahead;            // object avoidance will look this many meters ahead of vehicle
     AP_Float _bendy_ratio;          // object avoidance will avoid major directional change if change in margin ratio is less than this param
     AP_Int16 _bendy_angle;          // object avoidance will try avoding change in direction over this much angle
     AP_Int8  _bendy_type;           // Type of BendyRuler to run
@@ -94,6 +95,7 @@ private:
     AP_Float _safe_factor;
     
     // internal variables used by background thread
+    float _lookahead{10.0f};        // object avoidance will look this many meters ahead of vehicle
     float _current_lookahead;       // distance (in meters) ahead of the vehicle we are looking for obstacles
     float _bearing_prev;            // stored bearing in degrees 
     Location _destination_prev;     // previous destination, to check if there has been a change in destination

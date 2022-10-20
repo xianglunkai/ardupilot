@@ -39,15 +39,7 @@ const AP_Param::GroupInfo AP_ShorelineAvoid::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("SHLEN_MIN", 2, AP_ShorelineAvoid, _shoreline_min_length, 30),
 
-    // @Param: SAFE_DST
-    // @DisplayName: Shoreline Avoidance safe distance minimum
-    // @Description: Safe distance from shoreline
-    // @Units: m
-    // @Range: 1 100
-    // @Increment: 1
-    // @User: Standard
-    AP_GROUPINFO("SAFE_DST", 3, AP_ShorelineAvoid, _shoreline_safe_dist, 20),
-
+   
     // @Param: RADIUS_MIN
     // @DisplayName: Shoreline Avoidance item radius minmum
     // @Description: Minimum radius of shoreline point cloud

@@ -160,6 +160,7 @@ private:
     AP_ShallowAvoid _oashallow;     // shallow avoidance node
 
     bool proximity_only = true;
+    
     static AP_OAPathPlanner *_singleton;
 };
 

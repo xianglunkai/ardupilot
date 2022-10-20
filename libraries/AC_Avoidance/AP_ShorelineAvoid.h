@@ -23,6 +23,9 @@ class AP_ShorelineAvoid{
         // Paramter group info
         static const struct AP_Param::GroupInfo var_info[];
 
+        // send configuration info stored in front end parameters
+        void set_safe_distance(float shoreline_safe_dist) { _shoreline_safe_dist = MAX(shoreline_safe_dist, 0.0f); }
+
         // Run background task to find shoreline and update avoidance result
         // Return true if shoreline detected and can not reach destination 
         // Return false if destination could arrivalable temporarily.
@@ -37,13 +40,13 @@ class AP_ShorelineAvoid{
          AP_Int8 _enable;
          AP_Float _shoreline_link_dist;
          AP_Float _shoreline_min_length;
-         AP_Float _shoreline_safe_dist;
          AP_Float _min_radius;
          AP_Float _shoreline_scan_max_angle;
          AP_Float _shollow_min_depth;
          AP_Float _shollow_move_dist;
 
          // Common variables
+         float _shoreline_safe_dist{20.0f};
          Location _origin_prev;
          Location _destination_prev;
          Vector2f _intersect_point;

@@ -37,15 +37,6 @@ const float OA_BENDYRULER_LOW_SPEED_SQUARED = (0.2f * 0.2f);    // when ground c
 
 const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
 
-    // @Param: LOOKAHEAD
-    // @DisplayName: Object Avoidance look ahead distance maximum
-    // @Description: Object Avoidance will look this many meters ahead of vehicle
-    // @Units: m
-    // @Range: 1 100
-    // @Increment: 1
-    // @User: Standard
-    AP_GROUPINFO("LOOKAHEAD", 1, AP_OABendyRuler, _lookahead, OA_BENDYRULER_LOOKAHEAD_DEFAULT),
-
     // @Param: CONT_RATIO
     // @DisplayName: Obstacle Avoidance margin ratio for BendyRuler to change bearing significantly 
     // @Description:  BendyRuler will avoid changing bearing unless ratio of previous margin from obstacle (or fence) to present calculated margin is atleast this much.
@@ -107,9 +98,6 @@ bool AP_OABendyRuler::update(const Location& current_loc, const Location& destin
     // calculate bearing and distance to final destination
     const float bearing_to_dest = current_loc.get_bearing_to(destination) * 0.01f;
     const float distance_to_dest = current_loc.get_distance(destination);
-
-    // make sure user has set a meaningful value for _lookahead
-    _lookahead.set(MAX(_lookahead,1.0f));
 
     // lookahead distance is adjusted dynamically based on avoidance results
     _current_lookahead = constrain_float(_current_lookahead, _lookahead * 0.5f, _lookahead);
