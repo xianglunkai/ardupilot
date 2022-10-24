@@ -424,9 +424,6 @@ class Board:
                 UAVCAN_NULLPTR = 'nullptr'
             )
 
-            env.INCLUDES += [
-                cfg.srcnode.find_dir('modules/uavcan/libuavcan/include').abspath()
-            ]
         
         if self.with_osqp:
             env.AP_LIBRARIES += [
