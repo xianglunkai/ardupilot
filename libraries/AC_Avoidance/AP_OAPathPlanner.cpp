@@ -18,10 +18,11 @@
 #include <AP_AHRS/AP_AHRS.h>
 #include <AC_Fence/AC_Fence.h>
 #include <AP_Logger/AP_Logger.h>
+#include <AP_Planning/trajectory_stitcher.h>
+#include <GCS_MAVLink/GCS.h>
+
 #include "AP_OABendyRuler.h"
 #include "AP_OADijkstra.h"
-
-#include <AP_Planning/trajectory_stitcher.h>
 
 extern const AP_HAL::HAL &hal;
 
@@ -76,7 +77,7 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     // @Path: AP_SpeedDecider.cpp
     AP_SUBGROUPPTR(_speed_decider, "SP_", 7, AP_OAPathPlanner, AP_SpeedDecider),
 
-    #if APM_BUILD_TYPE(APM_BUILD_Rover)
+#if APM_BUILD_TYPE(APM_BUILD_Rover)
     // @Group: SL_
     // @Path: AP_ShorelineAvoid.cpp
     AP_SUBGROUPINFO(_oashoreline, "SL_", 8, AP_OAPathPlanner, AP_ShorelineAvoid),
@@ -84,20 +85,20 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     // @Group: SO_
     // @Path: AP_ShallowAvoid.cpp
     AP_SUBGROUPINFO(_oashallow, "SO_", 9, AP_OAPathPlanner, AP_ShallowAvoid),
-   #endif
+#endif
 
     // @Group: DP_
-    // @Path: AP_DPPlanner.cpp
-    AP_SUBGROUPPTR(_dp_planner, "DP_", 10, AP_OAPathPlanner, AP_DPPlanner),
+    // @Path: AP_SLTPlanner.cpp
+    AP_SUBGROUPPTR(_slt_planner, "DP_", 10, AP_OAPathPlanner, AP_SLTPlanner),
 
     // @Param: LOOKAHEAD
-    // @DisplayName:look ahead distance maximum
-    // @Description:look this many meters ahead of vehicle
+    // @DisplayName: Object Avoidance look ahead distance maximum
+    // @Description: Object Avoidance will look this many meters ahead of vehicle
     // @Units: m
     // @Range: 1 100
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("LOOKAHEAD", 11, AP_OAPathPlanner, _lookahead, 15),
+    AP_GROUPINFO("LOOKAHEAD", 11, AP_OAPathPlanner, _lookahead, 10),
 
     AP_GROUPEND
 };
@@ -148,15 +149,11 @@ void AP_OAPathPlanner::init()
             _speed_decider = new AP_SpeedDecider();
             AP_Param::load_object_from_eeprom(_speed_decider, AP_SpeedDecider::var_info);
         }
-        if (_oabendyruler == nullptr) {
-            _oabendyruler = new AP_OABendyRuler();
-            AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
-        }
         break;
-    case OA_DP:
-        if (_dp_planner == nullptr) {
-            _dp_planner = new AP_DPPlanner();
-            AP_Param::load_object_from_eeprom(_dp_planner, AP_DPPlanner::var_info);
+    case OA_SLT:
+        if (_slt_planner == nullptr) {
+            _slt_planner = new AP_SLTPlanner();
+            AP_Param::load_object_from_eeprom(_slt_planner, AP_SLTPlanner::var_info);
         }
         break;
     }
@@ -196,8 +193,8 @@ bool AP_OAPathPlanner::pre_arm_check(char *failure_msg, uint8_t failure_msg_len)
             hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
         }
         break;
-    case OA_DP:
-        if (_dp_planner == nullptr) {
+    case OA_SLT:
+        if (_slt_planner == nullptr) {
             hal.util->snprintf(failure_msg, failure_msg_len, "OA requires reboot");
         }
         break;
@@ -291,7 +288,7 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
         path_planner_used = avoidance_result.path_planner_used;
 
         // override result_origin, result_destination, result_desired_speed
-        if (path_planner_used == OAPathPlannerUsed::DP &&
+        if (path_planner_used == OAPathPlannerUsed::SLT &&
             avoidance_result.last_publishable_trajectory.size() > 0) {
             result_origin = current_loc;
             const float relative_time = (now - avoidance_result.last_publishable_trajectory.header_time()) * 0.001f;
@@ -307,7 +304,7 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
                                         track_point.path_point.y * 100, 0.0},
                                         Location::AltFrame::ABOVE_ORIGIN);
 
-                // ensure track line minimal length is grater OA_LOOKAHEAD_M
+                // ensure track line minimal length is grater _lookahead
                 result_destination = temp_loc;
                 const float desired_bearing = result_origin.get_bearing_to(result_destination) * 0.01f;
                 const float desired_distance = result_origin.get_distance(result_destination);
@@ -315,13 +312,14 @@ AP_OAPathPlanner::OA_RetState AP_OAPathPlanner::mission_avoidance(const Location
                     result_destination = current_loc;
                     result_destination.offset_bearing(desired_bearing, _lookahead);
                 }
-            } else {
-                return OA_ABANDON;
-            }
+            } 
         }
-
+        
         return avoidance_result.ret_state;
     }
+    
+    // if a new route is executed, reset ret_state
+    avoidance_result.ret_state = OA_NOT_REQUIRED;
 
     // if timeout then path planner is taking too long to respond
     if (timed_out) {
@@ -396,28 +394,27 @@ void AP_OAPathPlanner::avoidance_thread()
         OAPathPlannerUsed path_planner_used = OAPathPlannerUsed::None;
 
         // check goal and current location near obstacles
-        _abandon_wp = false;
         _margin_min = FLT_MAX;
-        const float check_margin = _lookahead;
-        
-        if (check_unreachable_from_object_database(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
+        const bool unreach_ret1 = check_unreachable_from_object_database(avoidance_request2.current_loc, avoidance_request2.destination, _lookahead);
+        const bool unreach_ret2 = check_unreachable_from_home_fence(avoidance_request2.current_loc, avoidance_request2.destination, _lookahead);
+        const bool unreach_ret3 = check_unreachable_from_inclusion_and_exclusion_polygons(avoidance_request2.current_loc, avoidance_request2.destination, _lookahead);
+        const bool unreach_ret4 = check_unreachable_from_inclusion_and_exclusion_circles(avoidance_request2.current_loc, avoidance_request2.destination, _lookahead);
+
+        _abandon_wp = false;
+        if ( unreach_ret1 && avoidance_result.ret_state != OA_ABANDON) {
             GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近障碍物");
             _abandon_wp = true;
-        }
-
-        if (check_unreachable_from_home_fence(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
+        } else if ( unreach_ret2 && avoidance_result.ret_state != OA_ABANDON) {
             GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近家围栏");
             _abandon_wp = true;
-        }
-
-        if (check_unreachable_from_inclusion_and_exclusion_polygons(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
+        } else if ( unreach_ret3 && avoidance_result.ret_state != OA_ABANDON) {
             GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近多边形围栏");
             _abandon_wp = true;
-        }
-
-        if (check_unreachable_from_inclusion_and_exclusion_circles(avoidance_request2.current_loc, avoidance_request2.destination, check_margin)) {
+        }else if ( unreach_ret4 && avoidance_result.ret_state != OA_ABANDON) {
             GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"目标航点靠近圆形围栏");
             _abandon_wp = true;
+        } else {
+
         }
         
         // 1. update vehicle state
@@ -460,6 +457,7 @@ void AP_OAPathPlanner::avoidance_thread()
                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             }
+            _oabendyruler->set_lookahead(_lookahead);
             _oabendyruler->set_config(_margin_max);
             _oabendyruler->set_margin_min(_margin_min);
 
@@ -500,6 +498,7 @@ void AP_OAPathPlanner::avoidance_thread()
                  GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             } 
+            _oabendyruler->set_lookahead(_lookahead);
             _oabendyruler->set_config(_margin_max);
             _oabendyruler->set_margin_min(_margin_min);
             AP_OABendyRuler::OABendyType bendy_type;
@@ -539,19 +538,12 @@ void AP_OAPathPlanner::avoidance_thread()
         }
         
         case OA_EM: {
-            if ((_oabendyruler == nullptr) || (_speed_decider == nullptr)) {
+            if ( _speed_decider == nullptr) {
                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             }
              path_planner_used = OAPathPlannerUsed::EM;
              
-             _oabendyruler->set_config(_margin_max);
-             _oabendyruler->set_margin_min(_margin_min);
-            AP_OABendyRuler::OABendyType bendy_type;
-            if (_oabendyruler->update(avoidance_request2.current_loc, avoidance_request2.destination, avoidance_request2.ground_speed_vec, origin_new, destination_new, bendy_type, false)) {
-                res = OA_SUCCESS;
-            }
-
             _speed_decider->set_config(_margin_max);
             if (_speed_decider->update(avoidance_request2.current_loc, origin_new, destination_new, avoidance_request2.ground_speed_vec, desired_speed_new, planning_cycle_time)) {
                 res = OA_SUCCESS;
@@ -560,16 +552,16 @@ void AP_OAPathPlanner::avoidance_thread()
             break;
         }
 
-        case OA_DP: {
-            if (_dp_planner == nullptr) {
+        case OA_SLT: {
+            if (_slt_planner == nullptr) {
                 GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"OAPathPlanner need reboot");
                 continue;
             }
-            path_planner_used = OAPathPlannerUsed::DP;
+            path_planner_used = OAPathPlannerUsed::SLT;
 
-            _dp_planner->set_config(_margin_max);
+            _slt_planner->set_config(_margin_max);
             // use planning start point from sitching trajectory
-            if (_dp_planner->update(planning_start_point, avoidance_request2.origin, avoidance_request2.destination,
+            if (_slt_planner->update(planning_start_point, avoidance_request2.origin, avoidance_request2.destination,
                                     avoidance_request2.desired_speed, 
                                     planned_trajectory_pb, planning_cycle_time)) {
                 res = OA_SUCCESS;
@@ -581,6 +573,8 @@ void AP_OAPathPlanner::avoidance_thread()
 
 #if APM_BUILD_TYPE(APM_BUILD_Rover)
         // shoreline avoidance
+        _oashoreline.set_safe_distance(2.0f * _lookahead + 1.5f * _margin_max);
+
         bool shoreline_detect = _oashoreline.update(avoidance_request2.current_loc,
                                                     avoidance_request2.origin, avoidance_request2.destination);
         // shallow avoidance
@@ -638,11 +632,11 @@ uint16_t AP_OAPathPlanner::get_path_count() const
         return _oabendyruler->get_path_length();
         break;
 
-    case OA_DP:
-        if (_dp_planner == nullptr) {
+    case OA_SLT:
+        if (_slt_planner == nullptr) {
             return 0;
         }
-        return _dp_planner->get_path_length();
+        return _slt_planner->get_path_length();
         break;
 
     default:
@@ -670,8 +664,8 @@ bool AP_OAPathPlanner::get_path_point(uint8_t point_num, Location& Loc) const
         return true;
         break;
         
-    case OA_DP:
-        if (_dp_planner == nullptr || !_dp_planner->get_shortest_path_location(point_num, Loc)) {
+    case OA_SLT:
+        if (_slt_planner == nullptr || !_slt_planner->get_shortest_path_location(point_num, Loc)) {
             return false;
         }
         return true;

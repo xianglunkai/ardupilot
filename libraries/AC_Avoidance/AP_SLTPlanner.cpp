@@ -1,4 +1,4 @@
-#include "AP_DPPlanner.h"
+#include "AP_SLTPlanner.h"
 #include "AP_OADatabase.h"
 #include <AC_Fence/AC_Fence.h>
 #include <AP_Planning/linear_interpolation.h>
@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <AP_Planning/math_utils.h>
 
-const AP_Param::GroupInfo AP_DPPlanner::var_info[] = {
+const AP_Param::GroupInfo AP_SLTPlanner::var_info[] = {
 
     // @Param: ENABLE
     // @DisplayName: Enable
@@ -14,94 +14,94 @@ const AP_Param::GroupInfo AP_DPPlanner::var_info[] = {
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
     // @RebootRequired: True
-    AP_GROUPINFO_FLAGS("ENABLE", 0, AP_DPPlanner, _enable, 0, AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO_FLAGS("ENABLE", 0, AP_SLTPlanner, _enable, 0, AP_PARAM_FLAG_ENABLE),
 
     // @Param: NFE
     // @Description: number of finite elements used to descretize an OCP
     // @Range: 1 320
     // @User: Standard
-    AP_GROUPINFO("NFE", 1, AP_DPPlanner, _nfe, 20),
+    AP_GROUPINFO("NFE", 1, AP_SLTPlanner, _nfe, 20),
 
     // @Param: TF
     // @Description: time horizon length
     // @Range: 1 100
     // @User: Standard
-    AP_GROUPINFO("TF", 2, AP_DPPlanner, _tf, 16),
+    AP_GROUPINFO("TF", 2, AP_SLTPlanner, _tf, 16),
 
     // @Param: ROB_SIZE
     // @Description: vehicle width
     // @Units: m
     // @Range: 0 10
     // @User: Standard
-    AP_GROUPINFO("ROB_SIZE", 3, AP_DPPlanner, _vehicle_radius, 0.5f),
+    AP_GROUPINFO("ROB_SIZE", 3, AP_SLTPlanner, _vehicle_radius, 0.5f),
 
     // @Param: OBS_WGT
     // @Description: obstacle cpst
     // @Range: 1 100
     // @User: Standard
-    AP_GROUPINFO("OBS_WGT",4 , AP_DPPlanner, _obstacle_collision_weight, 10),
+    AP_GROUPINFO("OBS_WGT",4 , AP_SLTPlanner, _obstacle_collision_weight, 10),
 
     // @Param: LAT_WGT
     // @Description: lateral cost
     // @Range: 0 10
     // @User: Standard
-    AP_GROUPINFO("LAT_WGT", 5, AP_DPPlanner, _lateral_weight, 1.0f),
+    AP_GROUPINFO("LAT_WGT", 5, AP_SLTPlanner, _lateral_weight, 1.0f),
 
     // @Param: LSAT_WGT
     // @Description: lateral change cost dl/ds
     // @Range: 0 10
     // @User: Standard
-    AP_GROUPINFO("LSAT_WGT", 6, AP_DPPlanner, _lateral_change_weight, 1.5f),
+    AP_GROUPINFO("LSAT_WGT", 6, AP_SLTPlanner, _lateral_change_weight, 1.5f),
 
     // @Param: LTAT_WGT
     // @Description: lateral change cost, dl/dt
     // @Units: m/s^2
     // @Range: 0 10
     // @User: Standard
-    AP_GROUPINFO("LTAT_WGT", 7, AP_DPPlanner, _lateral_vel_change_weight, 1.5f),
+    AP_GROUPINFO("LTAT_WGT", 7, AP_SLTPlanner, _lateral_vel_change_weight, 1.5f),
 
     // @Param: LON_WGT
     // @Description: longitudinal velocity cost
     // @Range: 0 10
     // @User: Standard
-    AP_GROUPINFO("LON_WGT", 8, AP_DPPlanner, _longitudinal_vel_weight, 10.0f),
+    AP_GROUPINFO("LON_WGT", 8, AP_SLTPlanner, _longitudinal_vel_weight, 10.0f),
 
     // @Param: LTON_WGT
     // @Description: Cost of longitudinal velocity change, ds/dt
     // @Range: 0 10
     // @User: Standard
-    AP_GROUPINFO("LTON_WGT", 9, AP_DPPlanner, _longitudinal_vel_change_weight, 10.0f),
+    AP_GROUPINFO("LTON_WGT", 9, AP_SLTPlanner, _longitudinal_vel_change_weight, 10.0f),
 
     // @Param: REF_LB
     // @Description: reference center line left range
     // @Units: m
     // @Range: 0 100
     // @User: Standard
-    AP_GROUPINFO("REF_LB", 10, AP_DPPlanner, _reference_left_bound, 20.0f),
+    AP_GROUPINFO("REF_LB", 10, AP_SLTPlanner, _reference_left_bound, 20.0f),
 
     // @Param: REF_RB
     // @Description: reference center line right range
     // @Range: 0 10
     // @User: Standard
-    AP_GROUPINFO("REF_RB", 11, AP_DPPlanner, _reference_right_bound, 20.0f),
+    AP_GROUPINFO("REF_RB", 11, AP_SLTPlanner, _reference_right_bound, 20.0f),
 
     // @Param: REF_RES
     // @Description: reference center line resolution
     // @Range: 0 10
     // @User: Standard
-    AP_GROUPINFO("REF_RES", 12, AP_DPPlanner, _reference_resolution, 0.2f),
+    AP_GROUPINFO("REF_RES", 12, AP_SLTPlanner, _reference_resolution, 0.2f),
 
   AP_GROUPEND
 };
 
-AP_DPPlanner::AP_DPPlanner() 
+AP_SLTPlanner::AP_SLTPlanner() 
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
 
 // run background task to find best cruise speed and update avoidance results
 // returns false if obstacle avoidance is not required
-bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, const Location& destination, 
+bool AP_SLTPlanner::update(const Location &current_loc, const Location& origin, const Location& destination, 
                           const float cruise_speed, 
                           planning::DiscretizedTrajectory &planned_trajectory_pb, 
                           const float planning_cycle_time)
@@ -312,7 +312,7 @@ bool AP_DPPlanner::update(const Location &current_loc, const Location& origin, c
 
 
 // generate stop trajectory
-void AP_DPPlanner::generate_stop_trajectory(planning::DiscretizedTrajectory& trajectory_data)
+void AP_SLTPlanner::generate_stop_trajectory(planning::DiscretizedTrajectory& trajectory_data)
 {
     Vector3f pos;
     if (!AP::ahrs().get_relative_position_NED_origin(pos)) {
@@ -337,7 +337,7 @@ void AP_DPPlanner::generate_stop_trajectory(planning::DiscretizedTrajectory& tra
 }
 
 // return location point from final path
-bool AP_DPPlanner::get_shortest_path_location(uint8_t point_num, Location& Loc) const
+bool AP_SLTPlanner::get_shortest_path_location(uint8_t point_num, Location& Loc) const
 {
     if (!_shortest_path_ok || _path_numpoints == 0 || point_num >= _path_numpoints) {
         // this is acting like a basic semaphore to save doing it properly
@@ -354,7 +354,7 @@ bool AP_DPPlanner::get_shortest_path_location(uint8_t point_num, Location& Loc) 
 }
 
 // set reference line
-void AP_DPPlanner::set_reference(const planning::DiscretizedTraj &reference)
+void AP_SLTPlanner::set_reference(const planning::DiscretizedTraj &reference)
 {
     _reference = reference;
     _road_barrier.clear();
@@ -375,7 +375,7 @@ void AP_DPPlanner::set_reference(const planning::DiscretizedTraj &reference)
 
 
 // get collision cost
-float AP_DPPlanner::get_collision_cost(StateIndex parent_ind, StateIndex current_ind)
+float AP_SLTPlanner::get_collision_cost(StateIndex parent_ind, StateIndex current_ind)
 {
     float parent_s = _state.start_s, grandparent_s = _state.start_s;
     float last_l = _state.start_l, last_s = _state.start_s;
@@ -428,7 +428,7 @@ float AP_DPPlanner::get_collision_cost(StateIndex parent_ind, StateIndex current
 
 // get total cost
 // todo: it is necessary to consider the calculation of safety margin without collision
-std::pair<float, float> AP_DPPlanner::get_total_cost(StateIndex parent_ind, StateIndex cur_ind)
+std::pair<float, float> AP_SLTPlanner::get_total_cost(StateIndex parent_ind, StateIndex cur_ind)
 {
     float parent_s = _state.start_s, grandparent_s = _state.start_s;
     float parent_l = _state.start_l, grandparent_l = _state.start_l;
@@ -478,7 +478,7 @@ std::pair<float, float> AP_DPPlanner::get_total_cost(StateIndex parent_ind, Stat
 }
 
 // get lateral offset
-float AP_DPPlanner::get_lateral_offset(const float s, const int16_t l_ind)
+float AP_SLTPlanner::get_lateral_offset(const float s, const int16_t l_ind)
 {
     if (l_ind == NL - 1) {
         return 0.0f;
@@ -490,7 +490,7 @@ float AP_DPPlanner::get_lateral_offset(const float s, const int16_t l_ind)
 }
 
 // linear polate
-std::vector<planning::Vec2d> AP_DPPlanner::interpolate_linearly(const float parent_s, const int16_t parent_l_ind, const int16_t current_s_ind, const int16_t current_l_ind)
+std::vector<planning::Vec2d> AP_SLTPlanner::interpolate_linearly(const float parent_s, const int16_t parent_l_ind, const int16_t current_s_ind, const int16_t current_l_ind)
 {
     std::vector<planning::Vec2d> result(_nseg);
     float pl = _state.start_l;
@@ -514,7 +514,7 @@ std::vector<planning::Vec2d> AP_DPPlanner::interpolate_linearly(const float pare
     return result;
 }
 
-float AP_DPPlanner::calculate_static_obstacle_cost(const object &obj)
+float AP_SLTPlanner::calculate_static_obstacle_cost(const object &obj)
 {
     float obstacle_cost = 0.0f;
     for (auto &obstacle: _static_obstacles) {
@@ -562,7 +562,7 @@ float AP_DPPlanner::calculate_static_obstacle_cost(const object &obj)
 }
 
 
-float AP_DPPlanner::calculate_dynamic_obstacle_cost(const float time, const object &obj)
+float AP_SLTPlanner::calculate_dynamic_obstacle_cost(const float time, const object &obj)
 {
     float obstacle_cost = 0.0f;
     for (auto &obs: _dynamic_obstacles) {
@@ -579,7 +579,7 @@ float AP_DPPlanner::calculate_dynamic_obstacle_cost(const float time, const obje
     return obstacle_cost;
 }
 
-float AP_DPPlanner::calculate_obstacle_cost(const float time, const planning::Pose &pose)
+float AP_SLTPlanner::calculate_obstacle_cost(const float time, const planning::Pose &pose)
 {
     struct object rob;
     rob.pos.x = pose.x();
@@ -601,7 +601,7 @@ float AP_DPPlanner::calculate_obstacle_cost(const float time, const planning::Po
 }
 
 
-void AP_DPPlanner::update_obstacles()
+void AP_SLTPlanner::update_obstacles()
 {
     // reset list
     _dynamic_obstacles.clear();
@@ -613,7 +613,7 @@ void AP_DPPlanner::update_obstacles()
     update_fence_obstacles();
 }
 
-void AP_DPPlanner::update_proximity_obstacles()
+void AP_SLTPlanner::update_proximity_obstacles()
 {
     // exit immediately if db is empty
     AP_OADatabase *oaDb = AP::oadatabase();
@@ -639,7 +639,7 @@ void AP_DPPlanner::update_proximity_obstacles()
   
 }
 
- void AP_DPPlanner::update_fence_obstacles()
+ void AP_SLTPlanner::update_fence_obstacles()
  {
     // exit immediately if fence is not enabled
     const AC_Fence *fence = AC_Fence::get_singleton();

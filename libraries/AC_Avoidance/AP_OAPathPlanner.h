@@ -12,7 +12,7 @@
 #include "AP_ShorelineAvoid.h"
 #include "AP_ShallowAvoid.h"
 #include "AP_SpeedDecider.h"
-#include "AP_DPPlanner.h"
+#include "AP_SLTPlanner.h"
 
 /*
  * This class provides path planning around fence, stay-out zones and moving obstacles
@@ -56,7 +56,7 @@ public:
         BendyRulerVertical,
         Dijkstras,
         EM,
-        DP,
+        SLT,
     };
 
     // provides an alternative target location if path planning around obstacles is required
@@ -78,7 +78,7 @@ public:
         OA_PATHPLAN_DIJKSTRA = 2,
         OA_PATHPLAN_DJIKSTRA_BENDYRULER = 3,
         OA_EM = 4,
-        OA_DP = 5,
+        OA_SLT = 5,
     };
 
     // enumeration for _OPTION parameter
@@ -152,7 +152,7 @@ private:
     AP_OABendyRuler *_oabendyruler; // Bendy Ruler algorithm
     AP_OADijkstra *_oadijkstra;     // Dijkstra's algorithm
     AP_SpeedDecider *_speed_decider;// Speed Decider algorithm
-    AP_DPPlanner * _dp_planner;     // DP planner algorithm
+    AP_SLTPlanner * _slt_planner;     // DP planner algorithm
     AP_OADatabase _oadatabase;      // Database of dynamic objects to avoid
     uint32_t avoidance_latest_ms;   // last time Dijkstra's or BendyRuler algorithms ran
 
@@ -160,6 +160,7 @@ private:
     AP_ShallowAvoid _oashallow;     // shallow avoidance node
 
     bool proximity_only = true;
+    
     static AP_OAPathPlanner *_singleton;
 };
 

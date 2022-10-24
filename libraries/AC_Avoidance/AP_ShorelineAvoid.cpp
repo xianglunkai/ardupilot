@@ -39,15 +39,7 @@ const AP_Param::GroupInfo AP_ShorelineAvoid::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("SHLEN_MIN", 2, AP_ShorelineAvoid, _shoreline_min_length, 30),
 
-    // @Param: SAFE_DST
-    // @DisplayName: Shoreline Avoidance safe distance minimum
-    // @Description: Safe distance from shoreline
-    // @Units: m
-    // @Range: 1 100
-    // @Increment: 1
-    // @User: Standard
-    AP_GROUPINFO("SAFE_DST", 3, AP_ShorelineAvoid, _shoreline_safe_dist, 20),
-
+   
     // @Param: RADIUS_MIN
     // @DisplayName: Shoreline Avoidance item radius minmum
     // @Description: Minimum radius of shoreline point cloud
@@ -180,7 +172,7 @@ bool AP_ShorelineAvoid::update_avoidance(const Vector2f& current_ne, const Vecto
     RangeFinder *rangefinder = RangeFinder::get_singleton();
     if (rangefinder != nullptr && rangefinder->has_data_orient(ROTATION_PITCH_270)) {
         const bool sensor_healthy = (rangefinder->status_orient(ROTATION_PITCH_270) == RangeFinder::Status::Good);
-        const float water_depth_m = rangefinder->distance_orient(ROTATION_PITCH_270,true);
+        const float water_depth_m = rangefinder->distance_orient(ROTATION_PITCH_270, true);
 
         if (sensor_healthy && water_depth_m <=_shollow_min_depth && _close_to_shoreline) {
 

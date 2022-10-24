@@ -14,11 +14,11 @@
 #include <AP_Planning/pose.h>
 
 
-class AP_DPPlanner {
+class AP_SLTPlanner {
 public:
-    AP_DPPlanner();
+    AP_SLTPlanner();
 
-    CLASS_NO_COPY(AP_DPPlanner);  /* Do not allow copies */
+    CLASS_NO_COPY(AP_SLTPlanner);  /* Do not allow copies */
 
     // send configuration info stored in front end parameters
     void set_config(float margin_max) { _safe_margin = MAX(margin_max, 0.0f); }

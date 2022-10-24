@@ -36,15 +36,6 @@ const float OA_BENDYRULER_LOW_SPEED_SQUARED = (0.2f * 0.2f);        // when grou
 
 const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
 
-    // @Param: LOOKAHEAD
-    // @DisplayName: Object Avoidance look ahead distance maximum
-    // @Description: Object Avoidance will look this many meters ahead of vehicle
-    // @Units: m
-    // @Range: 1 100
-    // @Increment: 1
-    // @User: Standard
-    AP_GROUPINFO("LOOKAHEAD", 1, AP_OABendyRuler, _lookahead, OA_BENDYRULER_LOOKAHEAD_DEFAULT),
-
     // @Param: CONT_RATIO
     // @DisplayName: Obstacle Avoidance margin ratio for BendyRuler to change bearing significantly 
     // @Description:  BendyRuler will avoid changing bearing unless ratio of previous margin from obstacle (or fence) to present calculated margin is atleast this much.
@@ -72,7 +63,7 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
     // @DisplayName: MARG_TYPE
     // @Description: 0: without prediction 1: with prediction 2: only with static and incoming objects
     // @User: Standard
-    AP_GROUPINFO_FRAME("MARG_TYPE", 5, AP_OABendyRuler, _margin_type, 1, AP_PARAM_FRAME_ROVER),
+    AP_GROUPINFO_FRAME("MARG_TYPE", 5, AP_OABendyRuler, _margin_type, 0, AP_PARAM_FRAME_ROVER),
 
     // @Param: SAFE_COFF
     // @DisplayName: SAFE_COFF
@@ -107,9 +98,6 @@ bool AP_OABendyRuler::update(const Location& current_loc, const Location& destin
     const float bearing_to_dest = current_loc.get_bearing_to(destination) * 0.01f;
     const float distance_to_dest = current_loc.get_distance(destination);
 
-    // make sure user has set a meaningful value for _lookahead
-    _lookahead.set(MAX(_lookahead,1.0f));
-
     // lookahead distance is adjusted dynamically based on avoidance results
     _current_lookahead = constrain_float(_current_lookahead, _lookahead * 0.5f, _lookahead);
 
@@ -138,9 +126,6 @@ bool AP_OABendyRuler::update(const Location& current_loc, const Location& destin
         groundSpeed = 0.1f;
         _groundspeed_vector = Vector3f(cosf(AP::ahrs().yaw), sinf(AP::ahrs().yaw),0.0f) * groundSpeed;
     }
-
-    // consider vehicle speed impact,planning period is 1Hz
-    _margin_max += groundSpeed * 1.0f;
 
     bool ret;
     switch (get_type()) {
@@ -196,7 +181,6 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
 
             // calculate margin from obstacles for this scenario
             float margin = calc_avoidance_margin(current_loc, test_loc, proximity_only);
-            
             if (margin > best_margin) {
                 best_margin_bearing = bearing_test;
                 best_margin = margin;
@@ -231,10 +215,10 @@ bool AP_OABendyRuler::search_xy_path(const Location& current_loc, const Location
                         // i == 0 && j == 0 implies no deviation from bearing to destination 
                         const bool active = (i != 0 || j != 0) || (_margin_min < _safe_factor *_margin_max);
                         float final_bearing = bearing_test;
-                        float final_margin  = margin;
+                        float final_margin = margin;
                         // check if we need ignore test_bearing and continue on previous bearing
                         const bool ignore_bearing_change = resist_bearing_change(destination, current_loc, active, bearing_test, lookahead_step1_dist, margin, _destination_prev,_bearing_prev, final_bearing, final_margin, proximity_only);
-                
+
                         // all good, now project in the chosen direction by the full distance
                         if (active) {
                             destination_new = current_loc;
@@ -478,12 +462,7 @@ float AP_OABendyRuler::calc_avoidance_margin(const Location &start, const Locati
     // calculate margin from obstacles for dynamical scenario
     if (_margin_type.get() == 1) {
         // with prediction
-        if(calc_margin_from_object_database_with_prediction(start, end, latest_margin, false)){
-            margin_min = MIN(margin_min, latest_margin);
-        }
-    } else if (_margin_type.get() == 2) {
-        // only consider static and incoming obstacles
-        if(calc_margin_from_object_database_with_prediction(start, end, latest_margin, true)){
+        if(calc_margin_from_object_database_with_prediction(start, end, latest_margin)){
             margin_min = MIN(margin_min, latest_margin);
         }
     } else {
@@ -779,7 +758,7 @@ bool AP_OABendyRuler::calc_margin_from_object_database(const Location &start, co
     return false;
 }
 
-bool AP_OABendyRuler::calc_margin_from_object_database_with_prediction(const Location &start,const Location &end,float &margin, bool static_only) const
+bool AP_OABendyRuler::calc_margin_from_object_database_with_prediction(const Location &start,const Location &end,float &margin) const
 {
     // exit immediately if db is empty
     AP_OADatabase *oaDb = AP::oadatabase();
@@ -801,21 +780,9 @@ bool AP_OABendyRuler::calc_margin_from_object_database_with_prediction(const Loc
     float smallest_margin = FLT_MAX;
     const float eplase_time = (start_NEU - cur_NEU).length() / _groundspeed_vector.length();
     const Vector3f desired_speed = (end_NEU - start_NEU).normalized() * _groundspeed_vector.length();
-    const float ref_bearing = _origin_loc.get_bearing_to(_destination_loc) * 0.01f;
 
     for (uint16_t i=0; i<oaDb->database_count(); i++) {
         const AP_OADatabase::OA_DbItem& item = oaDb->get_item(i);
-
-        // only consider static and incomming objects
-        if (static_only) {
-            if (item.vel.length_squared() > sq(0.3)) {
-                const float object_vel_dir = degrees(item.vel.xy().angle());
-                if (fabs(wrap_180(object_vel_dir - ref_bearing + 180)) > OA_BENDYRULER_BEARING_INC_XY ) {
-                    continue;
-                }
-            }
-        }
-
         const Vector3f point_cm = item.pos * 100.0f;
         const Vector3f point_pred_cm = point_cm + item.vel * eplase_time * 100.0f;
         // calculate closest distance on relative velocity
