@@ -31,8 +31,8 @@ public:
     // return a steering servo output given a heading in radians
     // set rate_max_rads to a non-zero number to apply a limit on the desired turn rate
     // return value is normally in range -1.0 to +1.0 but can be higher or lower
-    float get_steering_out_course(float heading_rad, float rate_max_rads, bool motor_limit_left, bool motor_limit_right, float dt);
-    float get_steering_out_course_adrc(float heading_deg, float current_heading, float dt);
+    float get_steering_out_course(float heading_rad, float rate_max_rads, bool motor_limit_left, bool motor_limit_right,float dt);
+    float get_steering_out_course_adrc(float heading_rad, float current_heading, float dt);
     float get_steering_out_course_mfac(float heading_rad, float current_heading, float dt);
 
     // return a desired turn-rate given a desired heading in radians
@@ -77,9 +77,9 @@ public:
     //   motor_limit should be true if motors have hit their upper or lower limits
     //   cruise speed should be in m/s, cruise throttle should be a number from -1 to +1
     float get_throttle_out_speed(float desired_speed, bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt);
-    float get_throttle_out_speed_adrc(float desired_speed,float dt);
-    float get_throttle_out_speed_mfac(float desired_speed,float dt);
-    float get_throttle_out_speed_mrac(float desired_speed,float dt);
+    float get_throttle_out_speed_adrc(float desired_speed, float dt);
+    float get_throttle_out_speed_mfac(float desired_speed, float dt);
+    float get_throttle_out_speed_mrac(float desired_speed, float dt);
 
     // return a throttle output from -1 to +1 to perform a controlled stop.  stopped is set to true once stop has been completed
     float get_throttle_out_stop(bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt, bool &stopped);
