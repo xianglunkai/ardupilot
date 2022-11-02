@@ -92,6 +92,9 @@ const AP_Param::GroupInfo AC_MRAC::var_info[] = {
 
   AC_MRAC::AC_MRAC(float wn, float b0, float dt)
   {
+    // load parameter values from eeprom
+    AP_Param::setup_object_defaults(this,var_info);
+    
     ts_ = dt;
     wn_.set_and_default(wn);
     b0_.set_and_default(b0);

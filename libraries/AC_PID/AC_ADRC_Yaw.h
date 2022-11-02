@@ -37,14 +37,12 @@ class AC_ADRC_YAW{
     
     private:
         // Parameters
-        AP_Float gama_;
         AP_Float wc_;
         AP_Float wo_;
+        AP_Float kesai_;
         AP_Float b0_;
         AP_Float delta_;
         AP_Float bound_command_;
-        AP_Float kesai_;
-        AP_Float error_max_;
 
         // flags
         struct ar_adrc_flags {

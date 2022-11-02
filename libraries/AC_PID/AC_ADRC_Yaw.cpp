@@ -3,20 +3,13 @@
 
 const AP_Param::GroupInfo AC_ADRC_YAW::var_info[] = {
 
-    // @Param: GAMA
-    // @Description: Disturb composent factor
-    // @Range: 0 1
-    // @Increment: 0.1
-    // @User: Standard
-    AP_GROUPINFO("GAMA",0,AC_ADRC_YAW,gama_,1),
-
     // @Param: WC
     // @Description: Response bandwidth
     // @Units: rad/s
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("WC",1,AC_ADRC_YAW,wc_,10),
+    AP_GROUPINFO("WC", 0, AC_ADRC_YAW, wc_, 1.57),
 
     // @Param: WO
     // @Description: ESO bandwidth
@@ -24,32 +17,27 @@ const AP_Param::GroupInfo AC_ADRC_YAW::var_info[] = {
     // @Range: 0.1 100
     // @Increment: 1
     // @User: Standard
-    AP_GROUPINFO("WO",2,AC_ADRC_YAW,wo_,15),
+    AP_GROUPINFO("WO", 1, AC_ADRC_YAW, wo_, 6.28),
 
     // @Param: B0
     // @Description: Control input gain
     // @User: Standard
-    AP_GROUPINFO("B0",3,AC_ADRC_YAW,b0_,10),
+    AP_GROUPINFO("B0", 2, AC_ADRC_YAW, b0_, 10),
 
     // @Param: DELTA
     // @Description: Linear deadzone
     // @User: Standard
-    AP_GROUPINFO("DELTA",4,AC_ADRC_YAW,delta_,50),
+    AP_GROUPINFO("DELTA", 3, AC_ADRC_YAW, delta_, 1),
 
     // @Param: KESAI
     // @Description: Response damping,should set zero initially
     // @User: Standard
-    AP_GROUPINFO("KESAI",5,AC_ADRC_YAW,kesai_,0.0f),
-
-    // @Param: ERMAX
-    // @Description: Control error maximum
-    // @User: Standard
-    AP_GROUPINFO("ERMAX",6,AC_ADRC_YAW,error_max_,60),
+    AP_GROUPINFO("KESAI", 4, AC_ADRC_YAW, kesai_, 1.0f),
 
     // @Param: LM
     // @Description: Control output bound
     // @User: Standard
-    AP_GROUPINFO("LM",7,AC_ADRC_YAW,bound_command_,1.0f),
+    AP_GROUPINFO("LM", 5, AC_ADRC_YAW, bound_command_, 1.0f),
 
     AP_GROUPEND
 };
@@ -65,9 +53,7 @@ AC_ADRC_YAW::AC_ADRC_YAW(float initial_wc,float initial_wo,float initial_b0,floa
     wo_.set_and_default(initial_wo);
     b0_.set_and_default(initial_b0);
     delta_.set_and_default(intial_delta);
-    gama_.set_and_default(initial_gama);
     kesai_.set_and_default(initial_kesai);
-    error_max_.set_and_default(initial_error_max);
 
     // reset input filter to first value received
     flags_.reset_filter_ = true;
@@ -89,37 +75,35 @@ float AC_ADRC_YAW::update_all(float target,float measurement)
     }
 
     // observation error
-    float est_error = wrap_180(measurement - z1_);
+    float est_error = wrap_PI(measurement - z1_);
     if(isnan(est_error)){est_error = 0;}
  
     // Smooth reference signal and calculate and filter derivative
-    float error = wrap_180(target - z1_);
+    float error = wrap_PI(target - z1_);
     float derivative = 0 - z2_;
-
-    error = constrain_float(error,-error_max_,error_max_);
 
     // update control output
     float kp = wc_ * wc_,kd = 2 * wc_ * kesai_;
     const float yita = 1.0f / (sq(est_error) + 1.0f);
-    float control_unbounded = (kp * fal(error,0.5f,delta_) + kd *fal(derivative,0.25,delta_) - gama_ * yita * z3_) / b0_;
+    float control_unbounded = (kp * fal(error, 0.5f ,delta_) + kd *fal(derivative, 0.25 ,delta_) - yita * z3_) / b0_;
    
     // Anti saturation
     float control = 0.0f;
     if (is_zero(bound_command_.get())) {
         control = control_unbounded;
     }else{
-        control = constrain_float(control_unbounded, -bound_command_,+bound_command_);
+        control = constrain_float(control_unbounded, -bound_command_, +bound_command_);
     }
      
     // ESO update
     float l1 = 3 * wo_;
 	float l2 = 3 * wo_ * wo_;
 	float l3 = wo_ * wo_ * wo_;
-    float fe  = fal(est_error,0.5,delta_);
-    float fe1 = fal(est_error,0.25,delta_);
+    float fe  = fal(est_error, 0.5, delta_);
+    float fe1 = fal(est_error, 0.25, delta_);
 
     z1_ += (z2_ + l1 * est_error) * dt_;
-    z1_ = wrap_360(z1_);
+    z1_ = wrap_2PI(z1_);
     z2_ += (z3_ + b0_ * control + l2 * fe) * dt_;
     z3_ += (l3 * fe1) * dt_;
 
