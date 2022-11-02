@@ -650,9 +650,9 @@ class sitl(Board):
             env.CFLAGS.remove('-Werror=unused-variable')
             env.CXXFLAGS.remove('-Werror=unused-variable')
 
-        env.CXXFLAGS += [
-            '-Werror=float-equal'
-        ]
+        # env.CXXFLAGS += [
+        #     '-Werror=float-equal'
+        # ]
 
         if cfg.options.ubsan or cfg.options.ubsan_abort:
             env.CXXFLAGS += [
