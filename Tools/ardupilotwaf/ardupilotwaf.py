@@ -114,6 +114,11 @@ COMMON_VEHICLE_DEPENDENT_LIBRARIES = [
     'AP_AIS',
     'AP_OpenDroneID',
     'AP_CheckFirmware',
+    'hysteresis',
+    'eigen',
+    'eigen/include/',
+    'eigen/include/eigen3',
+    'eigen/include/eigen3/Eigen',
 ]
 
 def get_legacy_defines(sketch_name, bld):
