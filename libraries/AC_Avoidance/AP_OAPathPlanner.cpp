@@ -13,6 +13,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <AP_Vehicle/AP_Vehicle_Type.h>
+
 #include "AP_OAPathPlanner.h"
 #include <AP_Math/AP_Math.h>
 #include <AP_AHRS/AP_AHRS.h>
@@ -23,6 +25,7 @@
 
 #include "AP_OABendyRuler.h"
 #include "AP_OADijkstra.h"
+
 
 extern const AP_HAL::HAL &hal;
 
