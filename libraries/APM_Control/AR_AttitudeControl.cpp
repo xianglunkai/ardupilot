@@ -39,7 +39,7 @@
 #define AR_ATTCONTROL_PITCH_THR_D       0.03f
 #define AR_ATTCONTROL_PITCH_THR_IMAX    1.0f
 #define AR_ATTCONTROL_PITCH_THR_FILT    10.0f
-#define AR_ATTCONTROL_BAL_SPEED_FF      1.0f
+#define AR_ATTCONTROL_BAL_PITCH_FF      0.4f
 #define AR_ATTCONTROL_DT                0.02f
 #define AR_ATTCONTROL_TIMEOUT_MS        200
 #define AR_ATTCONTROL_HEEL_SAIL_P       1.0f
@@ -352,7 +352,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
 
     // @Param: _BAL_FLTT
     // @DisplayName: Pitch control Target filter frequency in Hz
-    // @Description: Target filter frequency in Hz
+    // @Description: Pitch control Target filter frequency in Hz
     // @Range: 0.000 100.000
     // @Increment: 0.1
     // @Units: Hz
@@ -360,7 +360,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
 
     // @Param: _BAL_FLTE
     // @DisplayName: Pitch control Error filter frequency in Hz
-    // @Description: Error filter frequency in Hz
+    // @Description: Pitch control Error filter frequency in Hz
     // @Range: 0.000 100.000
     // @Increment: 0.1
     // @Units: Hz
@@ -368,7 +368,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
 
     // @Param: _BAL_FLTD
     // @DisplayName: Pitch control Derivative term filter frequency in Hz
-    // @Description: Derivative filter frequency in Hz
+    // @Description: Pitch control Derivative filter frequency in Hz
     // @Range: 0.000 100.000
     // @Increment: 0.1
     // @Units: Hz
@@ -376,20 +376,21 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
 
     // @Param: _BAL_SMAX
     // @DisplayName: Pitch control slew rate limit
-    // @Description: Sets an upper limit on the slew rate produced by the combined P and D gains. If the amplitude of the control action produced by the rate feedback exceeds this value, then the D+P gain is reduced to respect the limit. This limits the amplitude of high frequency oscillations caused by an excessive gain. The limit should be set to no more than 25% of the actuators maximum slew rate to allow for load effects. Note: The gain will not be reduced to less than 10% of the nominal value. A value of zero will disable this feature.
+    // @Description: Pitch control upper limit on the slew rate produced by the combined P and D gains. If the amplitude of the control action produced by the rate feedback exceeds this value, then the D+P gain is reduced to respect the limit. This limits the amplitude of high frequency oscillations caused by an excessive gain. The limit should be set to no more than 25% of the actuators maximum slew rate to allow for load effects. Note: The gain will not be reduced to less than 10% of the nominal value. A value of zero will disable this feature.
     // @Range: 0 200
     // @Increment: 0.5
     // @User: Advanced
 
-    //AP_SUBGROUPINFO(_pitch_to_throttle_pid, "_BAL_", 10, AR_AttitudeControl, AC_PID),
+    AP_SUBGROUPINFO(_pitch_to_throttle_pid, "_BAL_", 10, AR_AttitudeControl, AC_PID),
 
-    // @Param: _BAL_SPD_FF
-    // @DisplayName: Pitch control feed forward from speed
-    // @Description: Pitch control feed forward from speed
-    // @Range: 0.0 10.0
+    // @Param: _BAL_PIT_FF
+    // @DisplayName: Pitch control feed forward from current pitch angle
+    // @Description: Pitch control feed forward from current pitch angle
+    // @Range: 0.0 1.0
     // @Increment: 0.01
     // @User: Standard
-    //AP_GROUPINFO("_BAL_SPD_FF", 11, AR_AttitudeControl, _pitch_to_throttle_speed_ff, AR_ATTCONTROL_BAL_SPEED_FF),
+    AP_GROUPINFO("_BAL_PIT_FF", 11, AR_AttitudeControl, _pitch_to_throttle_ff, AR_ATTCONTROL_BAL_PITCH_FF),
+  
 
     // @Param: _SAIL_P
     // @DisplayName: Sail Heel control P gain
@@ -465,7 +466,7 @@ const AP_Param::GroupInfo AR_AttitudeControl::var_info[] = {
     // @Increment: 0.5
     // @User: Advanced
 
-    //AP_SUBGROUPINFO(_sailboat_heel_pid, "_SAIL_", 12, AR_AttitudeControl, AC_PID),
+    AP_SUBGROUPINFO(_sailboat_heel_pid, "_SAIL_", 12, AR_AttitudeControl, AC_PID),
 
     // @Param: _TURN_MAX_G
     // @DisplayName: Turning maximum G force
@@ -1400,10 +1401,9 @@ float AR_AttitudeControl::get_throttle_out_stop(bool motor_limit_low, bool motor
     return get_throttle_out_speed(desired_speed_limited, motor_limit_low, motor_limit_high, cruise_speed, cruise_throttle, dt);
 }
 
-// balancebot pitch to throttle controller
-// returns a throttle output from -100 to +100 given a desired pitch angle and vehicle's current speed (from wheel encoders)
-// desired_pitch is in radians, veh_speed_pct is supplied as a percentage (-100 to +100) of vehicle's top speed
-float AR_AttitudeControl::get_throttle_out_from_pitch(float desired_pitch, float vehicle_speed_pct, bool motor_limit_low, bool motor_limit_high, float dt)
+// returns a throttle output from -1 to +1 given a desired pitch angle (in radians)
+// motor_limit should be true if the motors have hit their upper or lower limit
+float AR_AttitudeControl::get_throttle_out_from_pitch(float desired_pitch, bool motor_limit, float dt)
 {
     // sanity check dt
     dt = constrain_float(dt, 0.0f, 1.0f);
@@ -1419,9 +1419,12 @@ float AR_AttitudeControl::get_throttle_out_from_pitch(float desired_pitch, float
     // set PID's dt
     _pitch_to_throttle_pid.set_dt(dt);
 
-    // add feed forward from speed
-    float output = vehicle_speed_pct * 0.01f * _pitch_to_throttle_speed_ff;
-    output += _pitch_to_throttle_pid.update_all(desired_pitch, AP::ahrs().pitch, (motor_limit_low || motor_limit_high));
+    // initialise output to feed forward from current pitch angle
+    const float pitch_rad = AP::ahrs().pitch;
+    float output = sinf(pitch_rad) * _pitch_to_throttle_ff;
+
+    // add regular PID control
+    output += _pitch_to_throttle_pid.update_all(desired_pitch, pitch_rad, motor_limit);
     output += _pitch_to_throttle_pid.get_ff();
 
     // constrain and return final output
