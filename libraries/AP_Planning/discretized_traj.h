@@ -44,6 +44,10 @@ class DiscretizedTraj {
 
         Vec2d get_cartesian(const float station, const float lateral) const;
 
+        virtual TrajPoint StartPoint() const;
+
+        virtual float length() const;
+
     private:
         Trajectory _data;
 };

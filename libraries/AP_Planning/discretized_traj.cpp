@@ -117,4 +117,23 @@ Vec2d DiscretizedTraj::get_cartesian(const float station, const float lateral) c
     auto ref = evaluate_station(station);
     return {ref.x - lateral * sinf(ref.theta), ref.y + lateral * cosf(ref.theta)};
 }
+
+
+// get start point
+TrajPoint DiscretizedTraj::StartPoint() const
+{
+    return _data.front();
+}
+
+
+// get trajectory space legnth
+float DiscretizedTraj::length() const
+{
+    if (_data.empty()) {
+        return 0.0f;
+    }
+    return _data.back().s - _data.front().s;
+}
+
+
 }
