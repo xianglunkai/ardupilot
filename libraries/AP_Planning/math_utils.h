@@ -7,6 +7,7 @@
 
 #include <limits>
 #include <utility>
+#include <vector>
 
 #include "vec2d.h"
 
@@ -144,5 +145,27 @@ float Gaussian(const float u, const float std, const float x);
 
 // Sigmoid
 float Sigmoid(const float x);
+
+
+/**
+ * uniformly slice a segment [start, end] to num + 1 pieces
+ * the result sliced will contain the n + 1 points that slices the provided
+ * segment. `start` and `end` will be the first and last element in `sliced`.
+ */
+template <typename T>
+void uniform_slice(const T start, const T end, uint32_t num,
+                   std::vector<T>* sliced) {
+  if (!sliced || num == 0) {
+    return;
+  }
+  const T delta = (end - start) / num;
+  sliced->resize(num + 1);
+  T s = start;
+  for (uint32_t i = 0; i < num; ++i, s += delta) {
+    sliced->at(i) = s;
+  }
+  sliced->at(num) = end;
+}
+
 
 }  // namespace planning
