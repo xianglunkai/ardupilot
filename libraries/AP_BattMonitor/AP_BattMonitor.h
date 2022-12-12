@@ -59,6 +59,7 @@ class AP_BattMonitor_SMBus_Rotoye;
 class AP_BattMonitor_UAVCAN;
 class AP_BattMonitor_Generator;
 class AP_BattMonitor_INA2XX;
+class AP_BattMonitor_INA239;
 class AP_BattMonitor_LTC2946;
 class AP_BattMonitor_Torqeedo;
 class AP_BattMonitor_KXD_CAN;
@@ -81,6 +82,7 @@ class AP_BattMonitor
     friend class AP_BattMonitor_FuelLevel_PWM;
     friend class AP_BattMonitor_Generator;
     friend class AP_BattMonitor_INA2XX;
+    friend class AP_BattMonitor_INA239;
     friend class AP_BattMonitor_LTC2946;
 
     friend class AP_BattMonitor_Torqeedo;
@@ -125,11 +127,12 @@ public:
         Torqeedo                       = 23,
         FuelLevel_Analog               = 24,
         Analog_Volt_Synthetic_Current  = 25,
-
+        INA239_SPI                     = 26,
 
 
         KXD_CAN                        = 30,
         KXD_RS485                      = 31,
+        
     };
 
     FUNCTOR_TYPEDEF(battery_failsafe_handler_fn_t, void, const char *, const int8_t);
