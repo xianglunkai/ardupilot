@@ -1442,13 +1442,6 @@ float AR_AttitudeControl::get_throttle_out_from_pitch(float desired_pitch, float
         _pitch_limited = false;
     }
 
-<<<<<<< HEAD
-
-    // set PID's dt
-    _pitch_to_throttle_pid.set_dt(dt);
-
-=======
->>>>>>> 2f2143ca6f... AP_Control: Support changing update period
     // initialise output to feed forward from current pitch angle
     const float pitch_rad = AP::ahrs().pitch;
     float output = sinf(pitch_rad) * _pitch_to_throttle_ff;
