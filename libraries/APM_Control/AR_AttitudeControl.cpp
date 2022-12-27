@@ -750,12 +750,12 @@ AR_AttitudeControl::AR_AttitudeControl() :
     _throttle_speed_pid(AR_ATTCONTROL_THR_SPEED_P, AR_ATTCONTROL_THR_SPEED_I, AR_ATTCONTROL_THR_SPEED_D, 0.0f, AR_ATTCONTROL_THR_SPEED_IMAX, 0.0f, AR_ATTCONTROL_THR_SPEED_FILT, 0.0f),
     _pitch_to_throttle_pid(AR_ATTCONTROL_PITCH_THR_P, AR_ATTCONTROL_PITCH_THR_I, AR_ATTCONTROL_PITCH_THR_D, 0.0f, AR_ATTCONTROL_PITCH_THR_IMAX, 0.0f, AR_ATTCONTROL_PITCH_THR_FILT, 0.0f),
     _sailboat_heel_pid(AR_ATTCONTROL_HEEL_SAIL_P, AR_ATTCONTROL_HEEL_SAIL_I, AR_ATTCONTROL_HEEL_SAIL_D, 0.0f, AR_ATTCONTROL_HEEL_SAIL_IMAX, 0.0f, AR_ATTCONTROL_HEEL_SAIL_FILT, 0.0f),
-    _steer_angle_adrc(AR_ATTCONTROL_STEER_ANG_WC,AR_ATTCONTROL_STEER_ANG_WO,AR_ATTCONTROL_STEER_ANG_B0,AR_ATTCONTROL_STEER_ANG_DELTA,AR_ATTCONTROL_DT),
-    _steer_rate_adrc(AR_ATTCONTROL_STEER_RATE_WC,AR_ATTCONTROL_STEER_RATE_WO,AR_ATTCONTROL_STEER_RATE_B0,AR_ATTCONTROL_STEER_RATE_DELTA,AR_ATTCONTROL_STEER_RATE_ORDER,AR_ATTCONTROL_DT),
-    _throttle_speed_adrc(AR_ATTCONTROL_THR_SPEED_WC,AR_ATTCONTROL_THR_SPEED_WO,AR_ATTCONTROL_THR_SPEED_B0,AR_ATTCONTROL_THR_SPEED_DELTA,AR_ATTCONTROL_THR_SPEED_ORDER,AR_ATTCONTROL_DT),
-    _steer_angle_mfac(AR_ATTCONTROL_STEER_ANG_LAMADA,AR_ATTCONTROL_STEER_ANG_KR,AR_ATTCONTROL_STEER_ANG_EPLISE,AR_ATTCONTROL_DT),
-    _steer_rate_mfac(AR_ATTCONTROL_STEER_RATE_LAMADA,AR_ATTCONTROL_STEER_RATE_KR,AR_ATTCONTROL_STEER_RATE_EPLISE,AR_ATTCONTROL_DT),
-    _throttle_speed_mfac(AR_ATTCONTROL_THR_SPEED_LAMADA,AR_ATTCONTROL_THR_SPEED_KR,AR_ATTCONTROL_THR_SPEED_EPLISE,AR_ATTCONTROL_DT),
+    _steer_angle_adrc(AR_ATTCONTROL_STEER_ANG_WC, AR_ATTCONTROL_STEER_ANG_WO, AR_ATTCONTROL_STEER_ANG_B0, AR_ATTCONTROL_STEER_ANG_DELTA),
+    _steer_rate_adrc(AR_ATTCONTROL_STEER_RATE_WC, AR_ATTCONTROL_STEER_RATE_WO, AR_ATTCONTROL_STEER_RATE_B0, AR_ATTCONTROL_STEER_RATE_DELTA, AR_ATTCONTROL_STEER_RATE_ORDER),
+    _throttle_speed_adrc(AR_ATTCONTROL_THR_SPEED_WC, AR_ATTCONTROL_THR_SPEED_WO, AR_ATTCONTROL_THR_SPEED_B0, AR_ATTCONTROL_THR_SPEED_DELTA, AR_ATTCONTROL_THR_SPEED_ORDER),
+    _steer_angle_mfac(AR_ATTCONTROL_STEER_ANG_LAMADA, AR_ATTCONTROL_STEER_ANG_KR, AR_ATTCONTROL_STEER_ANG_EPLISE),
+    _steer_rate_mfac(AR_ATTCONTROL_STEER_RATE_LAMADA, AR_ATTCONTROL_STEER_RATE_KR, AR_ATTCONTROL_STEER_RATE_EPLISE),
+    _throttle_speed_mfac(AR_ATTCONTROL_THR_SPEED_LAMADA, AR_ATTCONTROL_THR_SPEED_KR, AR_ATTCONTROL_THR_SPEED_EPLISE),
     _steer_rate_mrac(AR_ATTCONTROL_STEER_RATE_WC, AR_ATTCONTROL_STEER_RATE_B0, AR_ATTCONTROL_DT),
     _throttle_speed_mrac(AR_ATTCONTROL_THR_SPEED_WC, AR_ATTCONTROL_THR_SPEED_B0, AR_ATTCONTROL_DT)
     {
@@ -854,10 +854,7 @@ float AR_AttitudeControl::get_steering_out_course_adrc(float heading_rad,float c
     } 
     _steer_angle_last_ms = now;
 
-    // set ADRC's dt
-    _steer_angle_adrc.set_dt(dt);
-
-    float output = _steer_angle_adrc.update_all(heading_rad, current_heading);
+    float output = _steer_angle_adrc.update_all(heading_rad, current_heading, dt);
     // constrain and return final output
     return output;
 }
@@ -871,10 +868,7 @@ float AR_AttitudeControl::get_steering_out_course_mfac(float heading_rad,float c
     } 
     _steer_angle_last_ms = now;
 
-    // set MFAC's dt
-    _steer_angle_mfac.set_dt(dt);
-
-    float output = _steer_angle_mfac.update_all(heading_rad, current_heading,true);
+    float output = _steer_angle_mfac.update_all(heading_rad, current_heading, true, dt);
     // constrain and return final output
     return output;
 }
@@ -988,10 +982,7 @@ float AR_AttitudeControl::get_steering_out_rate_adrc(float desired_rate,float dt
         _desired_turn_rate = constrain_float(_desired_turn_rate, -turn_rate_max, turn_rate_max);
     }
 
-    // set ADRC's dt
-    _steer_rate_adrc.set_dt(dt);
-
-    float output = _steer_rate_adrc.update_all(_desired_turn_rate, AP::ahrs().get_yaw_rate_earth());
+    float output = _steer_rate_adrc.update_all(_desired_turn_rate, AP::ahrs().get_yaw_rate_earth(), dt);
     // constrain and return final output
     return output;
 }
@@ -1030,9 +1021,7 @@ float AR_AttitudeControl::get_steering_out_rate_mfac(float desired_rate,float dt
         _desired_turn_rate = constrain_float(_desired_turn_rate, -turn_rate_max, turn_rate_max);
     }
 
-    // set MFAC's dt
-    _steer_rate_mfac.set_dt(dt);
-    float output = _steer_rate_mfac.update_all(_desired_turn_rate,AP::ahrs().get_yaw_rate_earth(),false);
+    float output = _steer_rate_mfac.update_all(_desired_turn_rate, AP::ahrs().get_yaw_rate_earth(), false, dt);
 
     // constrain and return final output
     return output;
@@ -1237,11 +1226,8 @@ float AR_AttitudeControl::get_throttle_out_speed_adrc(float desired_speed,float 
     // acceleration limit desired speed
     _desired_speed = get_desired_speed_accel_limited(desired_speed, dt);
 
-    // set ADRC's dt
-    _throttle_speed_adrc.set_dt(dt);
-
     // calculate final output
-    float throttle_out = _throttle_speed_adrc.update_all(_desired_speed, speed);
+    float throttle_out = _throttle_speed_adrc.update_all(_desired_speed, speed, dt);
  
     // clear local limit flags used to stop i-term build-up as we stop reversed outputs going to motors
     _throttle_limit_low = false;
@@ -1287,11 +1273,8 @@ float AR_AttitudeControl::get_throttle_out_speed_mfac(float desired_speed,float 
     // acceleration limit desired speed
     _desired_speed = get_desired_speed_accel_limited(desired_speed, dt);
 
-    // set MFAC's dt
-    _throttle_speed_mfac.set_dt(dt);
-
     // calculate final output
-    float throttle_out = _throttle_speed_mfac.update_all(_desired_speed, speed,false);
+    float throttle_out = _throttle_speed_mfac.update_all(_desired_speed, speed, false, dt);
  
     // clear local limit flags used to stop i-term build-up as we stop reversed outputs going to motors
     _throttle_limit_low = false;

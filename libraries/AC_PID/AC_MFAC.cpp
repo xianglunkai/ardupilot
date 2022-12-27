@@ -59,8 +59,7 @@ const AP_Param::GroupInfo AC_MFAC::var_info[] = {
 
 
 // Constructor
-AC_MFAC::AC_MFAC(float initial_lamada, float initial_kr, float initial_eplise, float dt):
-    _dt(dt)
+AC_MFAC::AC_MFAC(float initial_lamada, float initial_kr, float initial_eplise)
 {
     // load parameter values from eeprom
     AP_Param::setup_object_defaults(this,var_info);
@@ -74,7 +73,7 @@ AC_MFAC::AC_MFAC(float initial_lamada, float initial_kr, float initial_eplise, f
 }
 
 // update_all  - set target and measured inputs to MFAC controller and calculate output
-float AC_MFAC::update_all(const float target, const float measurement, const bool wrap2pi)
+float AC_MFAC::update_all(const float target, const float measurement, const bool wrap2pi, const float dt)
 {
    // don't process inf or NaN
     if (!isfinite(target) || !isfinite(measurement)) {
@@ -88,7 +87,7 @@ float AC_MFAC::update_all(const float target, const float measurement, const boo
     // MFAC controller calculation
     const float error = (wrap2pi)?wrap_PI(target - measurement) : (target - measurement);
     float control_cmd = _control_cmd
-                      + _rou[1] * _vec_fai.y * (error - _kr * del_measurement / _dt) / (_lamada + sq(_vec_fai.y))
+                      + _rou[1] * _vec_fai.y * (error - _kr * del_measurement / dt) / (_lamada + sq(_vec_fai.y))
                       - _rou[0] * _vec_fai.x * _vec_fai.y * del_measurement / (_lamada + sq(_vec_fai.y));
     
     // Limit output 

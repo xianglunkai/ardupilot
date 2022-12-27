@@ -43,8 +43,7 @@ const AP_Param::GroupInfo AC_ADRC::var_info[] = {
 
 };
 
-AC_ADRC::AC_ADRC(float initial_wc, float initial_wo, float initial_b0, float initial_delta, int8_t initial_order, float dt):
-    dt_(dt)
+AC_ADRC::AC_ADRC(float initial_wc, float initial_wo, float initial_b0, float initial_delta, int8_t initial_order)
 {
     // load parameter values from eeprom
     AP_Param::setup_object_defaults(this,var_info);
@@ -58,7 +57,7 @@ AC_ADRC::AC_ADRC(float initial_wc, float initial_wo, float initial_b0, float ini
     memset(&_debug_info, 0, sizeof(_debug_info));
 }
 
-float AC_ADRC::update_all(float target,float measurement)
+float AC_ADRC::update_all(float target,float measurement, float dt)
 {
     // don't process inf or NaN
     if (!isfinite(target) || !isfinite(measurement)) {
@@ -96,8 +95,8 @@ float AC_ADRC::update_all(float target,float measurement)
             float fe = fal(e, 0.5, delta_);
             float beta1 = 2 * wo_;
             float beta2 = wo_ * wo_;
-            z1_ = z1_ + dt_ * (z2_ - beta1*e + b0_ * output_limited);
-            z2_ = z2_ + dt_ * (-beta2 * fe);
+            z1_ = z1_ + dt * (z2_ - beta1*e + b0_ * output_limited);
+            z2_ = z2_ + dt * (-beta2 * fe);
 
             _debug_info.P      = z1_;
             _debug_info.I      = z2_;
@@ -126,9 +125,9 @@ float AC_ADRC::update_all(float target,float measurement)
             float beta3 = wo_ * wo_ * wo_;
             float fe  = fal(e, 0.5, delta_);
             float fe1 = fal(e, 0.25, delta_);
-            z1_  = z1_ + dt_ * (z2_ - beta1 * e);
-            z2_  = z2_ + dt_ * (z3_ - beta2 * fe + b0_ * output_limited);
-            z3_  = z3_ + dt_ * (- beta3 * fe1);
+            z1_  = z1_ + dt * (z2_ - beta1 * e);
+            z2_  = z2_ + dt * (z3_ - beta2 * fe + b0_ * output_limited);
+            z3_  = z3_ + dt * (- beta3 * fe1);
 
             _debug_info.P      = z1_;
             _debug_info.I      = z2_;
@@ -148,13 +147,6 @@ float AC_ADRC::update_all(float target,float measurement)
     _debug_info.error  = target - measurement;
 
     return output_limited;
-}
-
-
-
-void AC_ADRC::set_dt(float dt)
-{
-    dt_ = dt;
 }
 
 void AC_ADRC::reset_eso(float measurement)

@@ -10,17 +10,14 @@ class AC_ADRC_YAW{
     public:
         // Constructor for ADRC
         AC_ADRC_YAW(float initial_wc,float initial_wo,float initial_b0,float intial_delta,
-                    float dt,float initial_gama = 1.0f,float initial_kesai = 0.0f,float initial_error_max = 90.0f);
+                    float initial_gama = 1.0f,float initial_kesai = 0.0f,float initial_error_max = 90.0f);
         virtual ~AC_ADRC_YAW() = default;
 
         CLASS_NO_COPY(AC_ADRC_YAW);
 
         //  update_all - set target and measured inputs to ADRC controller and calculate outputs
         //  target and error are filtered
-        float update_all(float target,float measurement);
-
-        // set time step in seconds
-        void set_dt(float dt);
+        float update_all(float target, float measurement, float dt);
 
         // Reset ESO
         void reset_eso(float measurement,float measurement_rate = 0.0f);
@@ -50,7 +47,6 @@ class AC_ADRC_YAW{
         } flags_;
 
         // internal variables
-        float dt_{0.02f};
         float z1_{0.0f};
         float z2_{0.0f};
         float z3_{0.0f};

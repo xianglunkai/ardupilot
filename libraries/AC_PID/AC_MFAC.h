@@ -14,15 +14,12 @@ class AC_MFAC{
 public:
 
     // Constructor for MFAC
-    AC_MFAC(float initial_lamada, float initial_kr, float initial_eplise, float dt);
+    AC_MFAC(float initial_lamada, float initial_kr, float initial_eplise);
 
     CLASS_NO_COPY(AC_MFAC);
 
-    // set time step in seconds
-    void set_dt(float dt) { _dt = dt; }
-
     // update_all  - set target and measured inputs to MFAC controller and calculate output
-    float update_all(const float target, const float measurement, const bool wrap2pi);
+    float update_all(const float target, const float measurement, const bool wrap2pi, const float dt);
 
     // reset controller
     void reset(const float measurement);
@@ -43,9 +40,6 @@ private:
     AP_Float _rou[2];
     AP_Float _fai[2];
     AP_Float _limit;
-
-    // internal variables
-    float     _dt;             // timestep in seconds
 
     // state variables
     Vector2f _vec_fai;

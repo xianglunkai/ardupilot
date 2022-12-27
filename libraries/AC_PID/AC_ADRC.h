@@ -9,17 +9,14 @@
 class AC_ADRC{
     public:
        // Constructor for ADRC
-        AC_ADRC(float initial_wc, float initial_wo, float initial_b0, float initial_delta, int8_t initial_order, float dt);
+        AC_ADRC(float initial_wc, float initial_wo, float initial_b0, float initial_delta, int8_t initial_order);
         virtual ~AC_ADRC() = default;
 
         CLASS_NO_COPY(AC_ADRC);
 
         //  update_all - set target and measured inputs to ADRC controller and calculate outputs
         //  target and error are filtered
-        float update_all(float target, float measurement);
-
-        // set time step in seconds
-        void set_dt(float dt);
+        float update_all(float target, float measurement, float dt);
 
         // reset ESO
         void reset_eso(float measurement);
@@ -38,9 +35,6 @@ class AC_ADRC{
         AP_Float limit_;
         AP_Float delta_;
         AP_Int8  order_;
-  
-        // internal varibales
-        float dt_;                // timestep in seconds
 
         // ESO interal variables
         float z1_;

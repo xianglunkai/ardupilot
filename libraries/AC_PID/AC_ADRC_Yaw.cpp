@@ -42,9 +42,7 @@ const AP_Param::GroupInfo AC_ADRC_YAW::var_info[] = {
     AP_GROUPEND
 };
 
-AC_ADRC_YAW::AC_ADRC_YAW(float initial_wc,float initial_wo,float initial_b0,float intial_delta,
-                         float dt,float initial_gama,float initial_kesai,float initial_error_max):
-    dt_(dt)
+AC_ADRC_YAW::AC_ADRC_YAW(float initial_wc, float initial_wo, float initial_b0, float intial_delta, float initial_gama, float initial_kesai, float initial_error_max)
 {
     // load parameter values from eeprom
     AP_Param::setup_object_defaults(this,var_info);
@@ -61,10 +59,10 @@ AC_ADRC_YAW::AC_ADRC_YAW(float initial_wc,float initial_wo,float initial_b0,floa
     memset(&_debug_info, 0, sizeof(_debug_info));
 }
 
-float AC_ADRC_YAW::update_all(float target,float measurement)
+float AC_ADRC_YAW::update_all(float target,float measurement, float dt)
 {
     // don't process inf or NaN
-    if (!isfinite(target) || !isfinite(measurement) || is_zero(dt_)) {
+    if (!isfinite(target) || !isfinite(measurement) || is_zero(dt)) {
         return 0.0f;
     }
 
@@ -102,10 +100,10 @@ float AC_ADRC_YAW::update_all(float target,float measurement)
     float fe  = fal(est_error, 0.5, delta_);
     float fe1 = fal(est_error, 0.25, delta_);
 
-    z1_ += (z2_ + l1 * est_error) * dt_;
+    z1_ += (z2_ + l1 * est_error) * dt;
     z1_ = wrap_2PI(z1_);
-    z2_ += (z3_ + b0_ * control + l2 * fe) * dt_;
-    z3_ += (l3 * fe1) * dt_;
+    z2_ += (z3_ + b0_ * control + l2 * fe) * dt;
+    z3_ += (l3 * fe1) * dt;
 
      // For loggers
     _debug_info.target = target;
@@ -118,11 +116,6 @@ float AC_ADRC_YAW::update_all(float target,float measurement)
     _debug_info.FF = control;
 
     return control;
-}
-
-void AC_ADRC_YAW::set_dt(float dt)
-{
-    dt_ = dt;
 }
 
 void AC_ADRC_YAW::reset_eso(float measurement,float measurement_rate)
