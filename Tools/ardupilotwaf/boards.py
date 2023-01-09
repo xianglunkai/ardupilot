@@ -250,6 +250,9 @@ class Board:
                 env.CXXFLAGS += [
                     '-Werror=implicit-fallthrough',
                 ]
+            env.CXXFLAGS += [
+                '-fcheck-new',
+            ]
 
         if cfg.env.DEBUG:
             env.CFLAGS += [
