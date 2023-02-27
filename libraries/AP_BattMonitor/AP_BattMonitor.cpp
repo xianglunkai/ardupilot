@@ -560,8 +560,8 @@ void AP_BattMonitor::check_failsafes(void)
             }
 
             const Failsafe type = drivers[i]->update_failsafes();
-            // Allow the same event to be triggered repeatedly
-            if (type < state[i].failsafe) {
+            // Do not Allow the same event to be triggered repeatedly
+            if (type <= state[i].failsafe) {
                 continue;
             }
 
