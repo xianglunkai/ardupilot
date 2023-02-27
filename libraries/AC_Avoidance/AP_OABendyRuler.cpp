@@ -61,7 +61,7 @@ const AP_Param::GroupInfo AP_OABendyRuler::var_info[] = {
 
     // @Param{Rover}: MARG_TYPE
     // @DisplayName: MARG_TYPE
-    // @Description: 0: without prediction 1: with prediction 2: only with static and incoming objects
+    // @Description: 0: without prediction 1: with prediction 
     // @User: Standard
     AP_GROUPINFO_FRAME("MARG_TYPE", 5, AP_OABendyRuler, _margin_type, 0, AP_PARAM_FRAME_ROVER),
 
