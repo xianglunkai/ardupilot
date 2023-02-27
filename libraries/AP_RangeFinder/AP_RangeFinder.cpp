@@ -51,6 +51,7 @@
 #include "AP_RangeFinder_MSP.h"
 #include "AP_RangeFinder_USD1_CAN.h"
 #include "AP_RangeFinder_Benewake_CAN.h"
+#include "AP_RangeFinder_SDE18S.h"
 
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_Logger/AP_Logger.h>
@@ -437,6 +438,11 @@ void RangeFinder::detect_instance(uint8_t instance, uint8_t& serial_instance)
     case Type::NMEA:
 #if AP_RANGEFINDER_NMEA_ENABLED
         serial_create_fn = AP_RangeFinder_NMEA::create;
+#endif
+        break;
+    case Type::SDE18S:
+#if AP_RANGEFINDER_SDE18S_ENABLED
+        serial_create_fn = AP_RangeFinder_SDE18S::create;
 #endif
         break;
     case Type::WASP:
