@@ -350,6 +350,9 @@ bool AP_GPS_NMEA::_term_complete()
                     // HDT sentence.
                     state.gps_yaw_configured = true;
                     break;
+                case _GPS_SENTENCE_HPR:
+                    state.gps_yaw = wrap_360(_new_yaw * 0.01f);
+                    break;
                 case _GPS_SENTENCE_PHD:
                     if (_phd.msg_id == 12) {
                         state.velocity.x = _phd.fields[0] * 0.01;
@@ -425,6 +428,15 @@ bool AP_GPS_NMEA::_term_complete()
         }
         // we got a bad message, ignore it
         return false;
+    }
+
+    if(_term_number == 1){
+        /* special case for $HPR*/
+        if(strcmp(_term,"HPR") == 0){
+            _sentence_type = _GPS_SENTENCE_HPR;
+            _gps_data_good = true;
+            return false;
+        }
     }
 
     // the first term determines the sentence type
@@ -529,6 +541,9 @@ bool AP_GPS_NMEA::_term_complete()
         case _GPS_SENTENCE_RMC + 9: // Date (GPRMC)
             _new_date = atol(_term);
             break;
+        case _GPS_SENTENCE_HPR + 2: //Time (HPR)
+            _new_time = _parse_decimal_100(_term);
+            break;
 
         // location
         //
@@ -569,6 +584,26 @@ bool AP_GPS_NMEA::_term_complete()
         case _GPS_SENTENCE_RMC + 8: // Course (GPRMC)
         case _GPS_SENTENCE_VTG + 1: // Course (VTG)
             _new_course = _parse_decimal_100(_term);
+            break;
+        
+        case _GPS_SENTENCE_HPR + 3: // Heading (GPHPR)
+            _last_yaw_ms = AP_HAL::millis();
+            state.have_gps_yaw = true;
+            state.gps_yaw_time_ms = AP_HAL::millis();
+            state.gps_yaw_configured = true;
+            _new_yaw = _parse_decimal_100(_term);
+            break;
+        
+        case _GPS_SENTENCE_HPR + 4:
+            _new_pitch = _parse_decimal_100(_term);
+            break;
+        
+         case _GPS_SENTENCE_HPR + 5:
+            _new_roll = _parse_decimal_100(_term);
+            break;
+
+        case _GPS_SENTENCE_HPR + 6:
+            _new_yaw_good = (_term[0] == 'N');
             break;
 
         case _GPS_SENTENCE_PHD + 1: // PHD class

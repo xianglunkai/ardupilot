@@ -82,6 +82,7 @@ private:
         _GPS_SENTENCE_KSXT = 170, // extension for Unicore, 21 fields
         _GPS_SENTENCE_GSA = 200, // GPS DOP and active satellites, 18 fields
         _GPS_SENTENCE_GST = 220, // GPS Pseudorange Noise Statistics, 9 fields
+        _GPS_SENTENCE_HPR = 240, // GPS HPR
         _GPS_SENTENCE_OTHER = 0
     };
 
@@ -150,6 +151,13 @@ private:
     uint8_t _new_satellite_count;                       ///< satellite count parsed from a term
     uint8_t _new_quality_indicator;                                     ///< GPS quality indicator parsed from a term
 
+    //add HPR and ROT terms 
+    int32_t _new_omega;
+    int32_t _new_yaw;
+    int32_t _new_pitch;
+    int32_t _new_roll;
+    bool _new_yaw_good;
+
     uint32_t _last_RMC_ms;
     uint32_t _last_GGA_ms;
     uint32_t _last_VTG_ms;
@@ -210,10 +218,11 @@ private:
 };
 
 #define AP_GPS_NMEA_HEMISPHERE_INIT_STRING \
-        "$JATT,NMEAHE,0\r\n" /* Prefix of GP on the HDT message */      \
-        "$JASC,GPGGA,5\r\n" /* GGA at 5Hz */                            \
-        "$JASC,GPRMC,5\r\n" /* RMC at 5Hz */                            \
-        "$JASC,GPVTG,5\r\n" /* VTG at 5Hz */                            \
-        "$JASC,GPHDT,5\r\n" /* HDT at 5Hz */                            \
+        "$JATT,NMEAHE,0\r\n" /* Prefix of GP on the HDT message */    \
+        "$JASC,GPGGA,5\r\n" /* GGA at 5Hz */                          \
+        "$JASC,GPRMC,5\r\n" /* RMC at 5Hz */                          \
+        "$JASC,GPVTG,5\r\n" /* VTG at 5Hz */                          \
+        "$JASC,GPHDT,0\r\n" /* HDT at 0Hz */                          \
+        "$JASC,GPHPR,10\r\n" /* HPR at 10Hz*/                         \
         "$JMODE,SBASR,YES\r\n" /* Enable SBAS */
 #endif
