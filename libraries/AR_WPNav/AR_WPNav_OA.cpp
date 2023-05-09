@@ -48,6 +48,9 @@ void AR_WPNav_OA::update(float dt)
         _next_destination_oabak = _next_destination;
     }
 
+
+    update_oa_distance_and_bearing_to_destination();
+
     AP_OAPathPlanner *oa = AP_OAPathPlanner::get_singleton();
     if (oa != nullptr) {
         Location oa_origin_new, oa_destination_new, oa_next_destination_new;
@@ -67,7 +70,6 @@ void AR_WPNav_OA::update(float dt)
 
         case AP_OAPathPlanner::OA_NOT_REQUIRED:
             if (_oa_active) {
-
                 // resume original route, using LOS law to get resume route
                 Location intermediate_origin{};
                 if (!(oa->get_options() & AP_OAPathPlanner::OA_OPTION_WP_RESET)) {
@@ -127,30 +129,28 @@ void AR_WPNav_OA::update(float dt)
                 break;
 
             case AP_OAPathPlanner::OAPathPlannerUsed::BendyRulerHorizontal: {
-                    _oa_active = true;
-                    _oa_origin = oa_origin_new;
-                    _oa_destination = oa_destination_new;
+                _oa_active = true;
+                _oa_origin = oa_origin_new;
+                _oa_destination = oa_destination_new;
 
-                    // calculate the destination as an offset from the EKF origin in NEU
-                    Vector2f pos_target_cm{};
-                    if (!_oa_destination.get_vector_xy_from_origin_NE(pos_target_cm)) {
-                        // this should never happen because we can only get here if we have an EKF origin
-                        INTERNAL_ERROR(AP_InternalError::error_t::flow_of_control);
-                        return;
-                    }
-
-                    // initialise position controller if not called recently
-                    init_pos_control_if_necessary();
-
-                    // convert to meters and update target
-                    const Vector2p pos_target = pos_target_cm.todouble() * 0.01;
-                    _pos_control.input_pos_target(pos_target, dt);
-
-                    // calculate control commands
-                    update_steering_and_speed(current_loc, dt);
+                // calculate the destination as an offset from the EKF origin in NEU
+                Vector2f pos_target_cm{};
+                if (!_oa_destination.get_vector_xy_from_origin_NE(pos_target_cm)) {
+                    // this should never happen because we can only get here if we have an EKF origin
+                    INTERNAL_ERROR(AP_InternalError::error_t::flow_of_control);
                     return;
+                }
 
-               // }
+                // initialise position controller if not called recently
+                init_pos_control_if_necessary();
+
+                // convert to meters and update target
+                const Vector2p pos_target = pos_target_cm.topostype() * 0.01;
+                _pos_control.input_pos_target(pos_target, dt);
+
+                // calculate control commands
+                update_steering_and_speed(current_loc, dt);
+                return;
             }
             break;
 
@@ -158,7 +158,6 @@ void AR_WPNav_OA::update(float dt)
         } // switch (oa_retstate) {
     } // if (oa != nullptr) {
 
-    update_oa_distance_and_bearing_to_destination();
 
     // handle stopping vehicle if avoidance has failed
     if (stop_vehicle) {
