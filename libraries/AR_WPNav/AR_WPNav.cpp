@@ -640,7 +640,7 @@ void AR_WPNav::update_speed_max()
     _last_speed_update_ms = now_ms;
 
     // update position controller max speed
-     _pos_control.set_limits(speed_max, accel_max, lat_accel_max, jerk_max);
+    _pos_control.set_limits(speed_max, accel_max, lat_accel_max, jerk_max);
 
     // change track speed
     _scurve_this_leg.set_speed_max(_pos_control.get_speed_max(), _pos_control.get_speed_max(), _pos_control.get_speed_max());
