@@ -27,7 +27,6 @@
 extern const AP_HAL::HAL& hal;
 
 static constexpr float PROXIMITY_MAX_RANGE = 200.0f;
-static constexpr float PROXIMITY_ACCURACY = 0.1f;
 static constexpr float PROXIMITY_OBJECT_MAX_RANGE = 35.0f;
 static constexpr float PROXIMITY_OBJECT_MAX_VEL = 2.0f;
 static constexpr float PROXIMITY_OBJECT_RADIUS  = 3.0f;
