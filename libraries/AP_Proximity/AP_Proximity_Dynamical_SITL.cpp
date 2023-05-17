@@ -138,6 +138,13 @@ void AP_Proximity_Dynamical_SITL::update(void)
         set_status(AP_Proximity::Status::Good);
         for (size_t i = 0; i< PROXIMITY_OBJECT_NUM; i++) {
 
+            // get absolute postion,velocity and heading
+            const float angle_deg   = wrap_360(degrees(_objects_loc[i].angle()));
+            const float distance_m  = _objects_loc[i].length();
+            const float vel_mag     = _objects_vel[i].length();
+            const float vel_ang     =  wrap_360(degrees(_objects_vel[i].angle()));
+
+
             // get relative distance and heading
             const float distance_to_vehicle = (_objects_loc[i] - current_loc).length();
             const float direction_to_obstacle = degrees((_objects_loc[i] - current_loc).angle());
@@ -170,9 +177,10 @@ void AP_Proximity_Dynamical_SITL::update(void)
                 face_distance_valid = true;
             }
 
-            // update object avoidance database with warth-frame point
-            database_push(relative_to_angle, distance_to_vehicle);
+             // update object avoidance database with warth-frame point
+            database_push(angle_deg, 0.0f, distance_m, vel_mag, vel_ang, PROXIMITY_OBJECT_RADIUS, false);
         }
+        
         // process the last face
         if (face_distance_valid) {
             frontend.boundary.set_face_attributes(face, face_yaw_deg, face_distance, state.instance);
