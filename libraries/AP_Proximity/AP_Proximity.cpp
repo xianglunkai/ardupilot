@@ -31,6 +31,7 @@
 #include "AP_Proximity_Scripting.h"
 #include "AP_Proximity_LD06.h"
 #include "AP_Proximity_Dynamical_SITL.h"
+#include "AP_Proximity_ARS408_CAN.h"
 
 #include <AP_Logger/AP_Logger.h>
 
@@ -231,6 +232,13 @@ void AP_Proximity::init()
         case Type::DynSimSITL:
             state[instance].instance = instance;
             drivers[instance] = new AP_Proximity_Dynamical_SITL(*this, state[instance], params[instance]);
+            break;
+#endif
+
+#if AP_PROXIMITY_ARS408_CAN_ENABLED
+            case Type::ARS408:
+            state[instance].instance = instance;
+            drivers[instance] = new AP_Proximity_ARS408_CAN(*this, state[instance], params[instance]);
             break;
 #endif
         }

@@ -90,6 +90,9 @@ public:
 #if AP_PROXIMITY_DYNSIMSITL_ENABLED
         DynSimSITL = 100,
 #endif
+#if AP_PROXIMITY_ARS408_CAN_ENABLED
+        ARS408 = 16,
+#endif
     };
 
     enum class Status {
