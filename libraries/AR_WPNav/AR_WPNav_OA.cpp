@@ -22,7 +22,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-static constexpr float LOOKAHEAD_DISTANCE = 15.0;
+static constexpr float LOOKAHEAD_DISTANCE = 10.0;
 
 // update navigation
 void AR_WPNav_OA::update(float dt)
