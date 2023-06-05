@@ -52,6 +52,11 @@ struct Vector2
     constexpr Vector2<T>(const T x0, const T y0)
         : x(x0)
         , y(y0) {}
+    
+    constexpr Vector2<T>(const T angle, const T length)
+        : x(length * cos(angle))
+        , y(length * sin(angle)) {}
+
 
     // test for equality
     bool operator ==(const Vector2<T> &v) const;
