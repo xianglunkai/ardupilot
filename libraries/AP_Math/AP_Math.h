@@ -389,3 +389,10 @@ float int32_to_float_le(const uint32_t& value) WARN_IF_UNUSED;
   Convert from uint64_t to double without breaking Wstrict-aliasing due to type punning
 */
 double uint64_to_double_le(const uint64_t& value) WARN_IF_UNUSED;
+/**
+ * useful nonlinear functions for controller and filtering
+*/
+float sign(float val);
+float fhan(float v1, float v2, float r0, float h0);
+float fal(float e, float alpha, float delta);
+

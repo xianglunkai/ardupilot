@@ -240,6 +240,9 @@ void RangeFinder::update(void)
                 continue;
             }
             drivers[i]->update();
+            if(drivers[i]->status() == Status::Good){
+                drivers[i]->update_filter();
+            }
         }
     }
 #if HAL_LOGGING_ENABLED
@@ -681,18 +684,18 @@ AP_RangeFinder_Backend *RangeFinder::find_instance(enum Rotation orientation) co
     return nullptr;
 }
 
-float RangeFinder::distance_orient(enum Rotation orientation) const
+float RangeFinder::distance_orient(enum Rotation orientation, bool filt) const
 {
     AP_RangeFinder_Backend *backend = find_instance(orientation);
     if (backend == nullptr) {
         return 0;
     }
-    return backend->distance();
+    return (filt == true)?backend->distance_filt():backend->distance();
 }
 
-uint16_t RangeFinder::distance_cm_orient(enum Rotation orientation) const
+uint16_t RangeFinder::distance_cm_orient(enum Rotation orientation, bool filt) const
 {
-    return distance_orient(orientation) * 100.0;
+    return distance_orient(orientation, filt) * 100.0;
 }
 
 int8_t RangeFinder::signal_quality_pct_orient(enum Rotation orientation) const
