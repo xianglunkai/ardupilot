@@ -103,7 +103,7 @@ bool AP_OABendyRuler::update(const Location& current_loc, const Location& destin
 {
     // update the current planning start position
     Location start_location = current_loc;
-    compute_planning_start_point(start_location, ground_speed_vec, 1.0f);
+    compute_planning_start_point(start_location, ground_speed_vec, 0.5f);
 
     // bendy ruler always sets origin to current_loc
     origin_new = start_location;
