@@ -48,6 +48,7 @@ protected:
         CONT_NONE            = 0,
         CONT_EMPTY           = 1,
         CONT_PID             = 2,
+        CONT_ADRC            = 3,
     };            // controller that should be used     
 
     enum class  CustomControlOption {

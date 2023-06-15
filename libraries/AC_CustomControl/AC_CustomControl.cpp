@@ -8,6 +8,7 @@
 #include "AC_CustomControl_Backend.h"
 // #include "AC_CustomControl_Empty.h"
 #include "AC_CustomControl_PID.h"
+#include "AC_CustomControl_ADRC.h"
 #include <GCS_MAVLink/GCS.h>
 
 // table of user settable parameters
@@ -62,6 +63,9 @@ void AC_CustomControl::init(void)
             _backend = new AC_CustomControl_PID(*this, _ahrs, _att_control, _motors, _dt);
             _backend_var_info[get_type()] = AC_CustomControl_PID::var_info;
             break;
+        case CustomControlType::CONT_ADRC:
+            _backend = new AC_CustomControl_ADRC(*this, _ahrs, _att_control, _motors, _dt);
+            _backend_var_info[get_type()] = AC_CustomControl_ADRC::var_info;
         default:
             return;
     }
