@@ -3,6 +3,8 @@
 #include <AP_Common/AP_Common.h>
 #include <AC_PID/AC_PID.h>
 #include <AC_PID/AC_P.h>
+#include <AC_PID/AC_ADRC.h>
+
 
 class AR_AttitudeControl {
 public:
@@ -38,6 +40,7 @@ public:
     // return value is normally in range -1.0 to +1.0 but can be higher or lower
     // also sets steering_limit_left and steering_limit_right flags
     float get_steering_out_rate(float desired_rate, bool motor_limit_left, bool motor_limit_right, float dt);
+    float get_steering_out_rate_adrc(float desired_rate, float dt);
 
     // get latest desired turn rate in rad/sec recorded during calls to get_steering_out_rate.  For reporting purposes only
     float get_desired_turn_rate() const;
@@ -73,6 +76,7 @@ public:
     //   motor_limit should be true if motors have hit their upper or lower limits
     //   cruise speed should be in m/s, cruise throttle should be a number from -1 to +1
     float get_throttle_out_speed(float desired_speed, bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt);
+    float get_throttle_out_speed_adrc(float desired_speed, float dt);
 
     // return a throttle output from -1 to +1 to perform a controlled stop.  stopped is set to true once stop has been completed
     float get_throttle_out_stop(bool motor_limit_low, bool motor_limit_high, float cruise_speed, float cruise_throttle, float dt, bool &stopped);
@@ -102,9 +106,16 @@ public:
 
     // set the PID notch sample rates
     void set_notch_sample_rate(float sample_rate);
-
     // get the slew rate value for speed and steering for oscillation detection in lua scripts
     void get_srate(float &steering_srate, float &speed_srate);
+
+    // access ADRC controller info
+    AC_ADRC& get_steering_rate_adrc() { return _steer_rate_adrc; }
+    AC_ADRC& get_throttle_speed_adrc() { return _throttle_speed_adrc; }
+
+    // access controller type
+    AP_Int8& steering_rate_ctl_type() { return _steer_rate_ctl_type;}
+    AP_Int8& throttle_speed_ctl_type() { return _throttle_speed_ctl_type;}
 
     // get forward speed in m/s (earth-frame horizontal velocity but only along vehicle x-axis).  returns true on success
     bool get_forward_speed(float &speed) const;
@@ -136,6 +147,12 @@ public:
     // parameter var table
     static const struct AP_Param::GroupInfo var_info[];
 
+public:
+    enum Controller_type:int8_t{
+        PID   = 0,
+        ADRC  = 1,
+    };
+
 private:
 
     static AR_AttitudeControl *_singleton;
@@ -156,6 +173,13 @@ private:
     AP_Float _steer_accel_max;      // steering angle acceleration max in deg/s/s
     AP_Float _steer_rate_max;       // steering rate control maximum rate in deg/s
     AP_Float _turn_lateral_G_max;   // sterring maximum lateral acceleration limit in 'G'
+
+    // ADRC controllers
+    AC_ADRC  _steer_rate_adrc;      // steering rate ADRC controller
+    AC_ADRC  _throttle_speed_adrc;  // throttle speed ADRC controller
+  
+    AP_Int8 _steer_rate_ctl_type;   // steering rate controller type
+    AP_Int8 _throttle_speed_ctl_type; // speed/throttle controller type
 
     // steering control
     uint32_t _steer_lat_accel_last_ms;  // system time of last call to lateral acceleration controller (i.e. get_steering_out_lat_accel)
