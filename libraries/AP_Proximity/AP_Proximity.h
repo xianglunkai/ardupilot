@@ -83,9 +83,12 @@ public:
 #endif
 #if AP_PROXIMITY_SCRIPTING_ENABLED
         Scripting = 15,
-#endif
 #if AP_PROXIMITY_LD06_ENABLED
         LD06 = 16,
+#endif
+
+#if AP_PROXIMITY_DYNSIMSITL_ENABLED
+        DynSimSITL = 100,
 #endif
     };
 
