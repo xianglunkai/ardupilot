@@ -91,7 +91,7 @@ public:
         DynSimSITL = 100,
 #endif
 #if AP_PROXIMITY_ARS408_CAN_ENABLED
-        ARS408 = 16,
+        ARS408 = 17,
 #endif
     };
 
