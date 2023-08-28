@@ -90,7 +90,7 @@ AP_Proximity_ARS408_CAN::~AP_Proximity_ARS408_CAN()
 
         AP_HAL::CANFrame frame;
         frame = {(0x200 & AP_HAL::CANFrame::MaskStdID), radar_cfg_msg.raw_data, sizeof(radar_cfg_msg.raw_data)};
-        multican->write_frame(frame, AP_HAL::native_micros64() + 1000);
+        multican->write_frame(frame, AP_HAL::micros64() + 1000);
 
         _initialized = true;
     } else {
@@ -134,7 +134,7 @@ void AP_Proximity_ARS408_CAN::send_speed_message()
     // construct AP_HAL::CANframe
     AP_HAL::CANFrame speed_frame;
     speed_frame = {(0x300 & AP_HAL::CANFrame::MaskStdID), speed_information_msg.raw_data, sizeof(speed_information_msg.raw_data)};
-    multican->write_frame(speed_frame, AP_HAL::native_micros64() + 1000);
+    multican->write_frame(speed_frame, AP_HAL::micros64() + 1000);
 
 }
 
@@ -174,7 +174,7 @@ void AP_Proximity_ARS408_CAN::send_yaw_rate_message()
     // construct CANFrame
     AP_HAL::CANFrame yaw_rate_frame;
     yaw_rate_frame = {(0x301 & AP_HAL::CANFrame::MaskStdID), yaw_rate_raw.raw_data, sizeof(yaw_rate_raw.raw_data)};
-    multican->write_frame(yaw_rate_frame, AP_HAL::native_micros64() + 1000);
+    multican->write_frame(yaw_rate_frame, AP_HAL::micros64() + 1000);
 }
 
 
