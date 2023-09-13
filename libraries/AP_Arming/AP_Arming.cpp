@@ -1258,11 +1258,8 @@ bool AP_Arming::can_checks(bool report)
                 case AP_CAN::Protocol::Scripting:
                 case AP_CAN::Protocol::Scripting2:
                 case AP_CAN::Protocol::KDECAN:
-<<<<<<< HEAD
 
-=======
                 case AP_CAN::Protocol::ARS408:
->>>>>>> add support ARS408 CAN
                     break;
             }
         }
