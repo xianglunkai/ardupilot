@@ -196,7 +196,7 @@ void AP_Proximity::init()
             serial_instance++;
         }
             break;
-# endif
+#endif
 #if AP_PROXIMITY_DRONECAN_ENABLED
         case  Type::DroneCAN:
             num_instances = instance+1;
@@ -227,6 +227,7 @@ void AP_Proximity::init()
                 drivers[instance] = new AP_Proximity_LD06(*this, state[instance], params[instance], serial_instance);
                 serial_instance++;
             }
+            break;
 #endif
 #if AP_PROXIMITY_DYNSIMSITL_ENABLED
         case Type::DynSimSITL:

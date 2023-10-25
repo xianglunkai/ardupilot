@@ -29,6 +29,6 @@ public:
         Scripting2 = 12,
         TOFSenseP = 13,
         NanoRadar_NRA24 = 14,
-        ARS408 = 15,
+        ARS408 = 100,
     };
 };
