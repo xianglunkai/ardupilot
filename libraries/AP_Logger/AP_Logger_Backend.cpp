@@ -580,7 +580,9 @@ bool AP_Logger_Backend::Write_VER()
 #ifdef APJ_BOARD_ID
     pkt._APJ_BOARD_ID = APJ_BOARD_ID;
 #endif
+
     pkt.build_type = fwver.vehicle_type;
+    
     return WriteCriticalBlock(&pkt, sizeof(pkt));
 }
 
