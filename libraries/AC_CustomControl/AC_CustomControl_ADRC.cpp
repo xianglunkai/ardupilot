@@ -171,7 +171,7 @@ const AP_Param::GroupInfo AC_CustomControl_ADRC::var_info[] = {
     AP_GROUPEND
 };
 
-AC_CustomControl_ADRC::AC_CustomControl_ADRC(AC_CustomControl& frontend, AP_AHRS_View*& ahrs, AC_AttitudeControl_Multi*& att_control, AP_MotorsMulticopter*& motors, float dt) :
+AC_CustomControl_ADRC::AC_CustomControl_ADRC(AC_CustomControl& frontend, AP_AHRS_View*& ahrs, AC_AttitudeControl*& att_control, AP_MotorsMulticopter*& motors, float dt) :
     AC_CustomControl_Backend(frontend, ahrs, att_control, motors, dt),
     _p_angle_roll2(AC_ATTITUDE_CONTROL_ANGLE_P * 0.90f),
     _p_angle_pitch2(AC_ATTITUDE_CONTROL_ANGLE_P * 0.90f),
