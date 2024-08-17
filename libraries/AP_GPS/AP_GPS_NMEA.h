@@ -269,7 +269,8 @@ private:
 #if AP_GPS_NMEA_UNICORE_ENABLED && !defined(NMEA_UNICORE_SETUP)
 // we don't know what port the GPS may be using, so configure all 3. We need to get it sending
 // one message to allow the NMEA detector to run
-#define NMEA_UNICORE_SETUP "CONFIG COM1 230400 8 n 1\r\nCONFIG COM2 230400 8 n 1\r\nCONFIG COM3 230400 8 n 1\r\nGPGGA 5\r\nGPRMC 5\r\nGPVTG 5\r\nGPHDT 10\r\n"
+#define NMEA_UNICORE_SETUP "CONFIG COM1 115200 8 n 1\r\nCONFIG COM2 115200 8 n 1\r\nGPGGA 5\r\nGPRMC 5\r\nGPVTG 5\r\nGPHDT 10\r\nSaveconfig\r\n"
+
 #endif
 
 #endif // AP_GPS_NMEA_ENABLED
