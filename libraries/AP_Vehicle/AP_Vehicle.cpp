@@ -287,6 +287,11 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
     // @Group: RPM
     // @Path: ../AP_RPM/AP_RPM.cpp
     AP_SUBGROUPINFO(rpm_sensor, "RPM", 32, AP_Vehicle, AP_RPM),
+
+#if AP_ESSA_ENABLED
+    // @Group: KDE_
+    // @Path: ../AP_KDECAN/AP_KDECAN.cpp
+    AP_SUBGROUPINFO(essa, "ESSA_",  40, AP_Vehicle, AP_ESSA),
 #endif
 
     AP_GROUPEND
@@ -499,6 +504,11 @@ void AP_Vehicle::setup()
 #if AP_KDECAN_ENABLED
     kdecan.init();
 #endif
+
+#if AP_ESSA_ENABLED
+    essa.init();
+#endif
+
 
 #if AP_AIS_ENABLED
     ais.init();

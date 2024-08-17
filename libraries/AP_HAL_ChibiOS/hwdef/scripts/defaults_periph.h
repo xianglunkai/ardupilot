@@ -72,6 +72,10 @@
 #define AP_KDECAN_ENABLED 0
 #endif
 
+#ifndef AP_ESSA_ENABLED
+#define AP_ESSA_ENABLED 0
+#endif
+
 #ifndef HAL_GENERATOR_ENABLED
 #define HAL_GENERATOR_ENABLED 0
 #endif

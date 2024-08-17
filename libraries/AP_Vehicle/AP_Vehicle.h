@@ -87,6 +87,7 @@
 #endif
 
 #include <AP_IBus_Telem/AP_IBus_Telem.h>
+#include <AP_ESSA/AP_ESSA.h>
 
 class AP_DDS_Client;
 
@@ -475,6 +476,10 @@ protected:
 
 #if AP_KDECAN_ENABLED
     AP_KDECAN kdecan;
+#endif
+
+#if AP_ESSA_ENABLED
+   AP_ESSA essa;
 #endif
 
 #if AP_FENCE_ENABLED
