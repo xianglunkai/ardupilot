@@ -185,10 +185,10 @@ public:
         struct {
             uint64_t ctl_mode_select:1;     // 0: manual 1: auto
             uint64_t turbo_mode_select:1;   // 0: disable 1: enable 
-            uint64_t reserved:6;
+            uint64_t reserved:62;
         } data = {};
 
-        uint8_t raw_data[1];
+        uint8_t raw_data[8];
     };
 
 
