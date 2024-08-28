@@ -871,8 +871,9 @@ void AP_GPS_NMEA::send_config(void)
         port->printf("\r\nAGRICA %.1f\r\n" \
                      "MODE ROVER\r\n" \
                      "GNGGA %.1f\r\n" \
-                     "GNRMC %.1f\r\n",
-                     rate_s, rate_s, rate_s);
+                     "GNRMC %.1f\r\n" \
+                     "GPHDT %.1f\r\n",
+                     rate_s, rate_s, rate_s, rate_s);
         if (!_have_unicore_versiona) {
             // get version information for logging if we don't have it yet
             port->printf("VERSIONA\r\n");
