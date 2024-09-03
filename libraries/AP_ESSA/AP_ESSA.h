@@ -267,7 +267,9 @@ private:
 
 class AP_ESSA {
 public:
+
     AP_ESSA();
+
 
     /* Do not allow copies */
     CLASS_NO_COPY(AP_ESSA);
@@ -285,12 +287,34 @@ public:
     static AP_ESSA *get_singleton() { return _singleton; }
 
 private:
+
     static AP_ESSA *_singleton;
 
+    bool _initialized {false};
+    bool _delay_start {false};
+
+    // time when we control relay
+    uint64_t _starter_last_run_ms {0};
+    uint64_t _starter_delay_run_ms {0};
+
+    // communication driver
+    AP_ESSA_Driver *_driver;
+
+    // enable library
+    AP_Int8 _enable;
+
+    // time to run starter for seconds
+    AP_Float _starter_time;
+
+    // delay between start attempts seconds
+    AP_Float _starter_delay;
+
+    // dynamics system allocation type
     AP_Int8 _control_class;
+
+    // dynamics system control deadzone
     AP_Int16 _gear_dz;
 
-    AP_ESSA_Driver *_driver;
 };
 
 

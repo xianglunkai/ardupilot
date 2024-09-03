@@ -28,6 +28,7 @@
 #include <SRV_Channel/SRV_Channel.h>
 #include <AP_Math/AP_Math.h>    
 #include <RC_Channel/RC_Channel.h>
+#include <AP_Relay/AP_Relay.h>
 
 #if 0
   #include <GCS_MAVLink/GCS.h>
@@ -42,6 +43,13 @@ extern const AP_HAL::HAL & hal;
 // parameters
 const AP_Param::GroupInfo AP_ESSA::var_info[] = {
 
+    // @Param: ENABLE
+    // @DisplayName: Enable Engine control
+    // @Description: This enables internal combustion engine control
+    // @Values: 0:Disabled, 1:Enabled
+    // @User: Advanced
+    AP_GROUPINFO_FLAGS("ENABLE", 0, AP_ESSA, _enable, 0, AP_PARAM_FLAG_ENABLE),
+
     // @Param: CTL_CLASS
     // @DisplayName: propeller control class
     // @Description: 0 : diff 1: sync 2: debug 
@@ -50,7 +58,24 @@ const AP_Param::GroupInfo AP_ESSA::var_info[] = {
     // @Param: GEAR_DZ
     // @DisplayName: gear control deadzone, range[0, 100]
     // @Description: protect motor gear switch from F/R to R/F
-    AP_GROUPINFO("GEAR_DZ", 2, AP_ESSA, _gear_dz, 0),
+    AP_GROUPINFO("GEAR_DZ", 2, AP_ESSA, _gear_dz, 5),
+
+    // @Param: STARTER_TIME
+    // @DisplayName: Time to run starter
+    // @Description: This is the number of seconds to run the starter when trying to start the engine
+    // @User: Standard
+    // @Units: s
+    // @Range: 0.1 5
+    AP_GROUPINFO("START_TIME", 3, AP_ESSA, _starter_time, 3),
+
+    // @Param: START_DELAY
+    // @DisplayName: Time to wait between starts
+    // @Description: Delay between start attempts
+    // @User: Standard
+    // @Units: s
+    // @Range: 1 10
+    AP_GROUPINFO("START_DELAY", 4, AP_ESSA, _starter_delay, 2),
+
 
     AP_GROUPEND
 };
@@ -83,15 +108,51 @@ void AP_ESSA::init()
             return;
         }
     }
+
 }
+
 
 void AP_ESSA::update()
 {
-    if (_driver == nullptr) {
+    // exit if not enabled
+    if (_driver == nullptr || !_enable) {
         return;
     }
+
+   const uint64_t now = AP_HAL::millis64();
+
+    AP_Relay *relay = AP::relay();
+    if (relay == nullptr) {
+       return;
+    }
+
+    // delay start enginer
+    if (!_delay_start) {
+        _delay_start = true;
+        _starter_delay_run_ms = now;
+    }
+    if (now - _starter_delay_run_ms <= _starter_delay * 1000) {
+        relay->set(AP_Relay_Params::FUNCTION::RELAY, false);
+        return;
+    }
+
+    // start enginer 
+    if (!_initialized ) {
+        _starter_last_run_ms = now;
+        _initialized = true;
+    }
+
+    if ((now  - _starter_last_run_ms) <= _starter_time * 1000) {
+        relay->set(AP_Relay_Params::FUNCTION::RELAY, true);
+    } else {
+        relay->set(AP_Relay_Params::FUNCTION::RELAY, false);
+    }
+
+    // throttle ,steering control
     _driver->update(_control_class, _gear_dz);
 }
+
+
 
 // get latest battery status info.  returns true on success and populates arguments
 bool AP_ESSA::get_batt_info(uint8_t instance, float &voltage, float &current_amps, float &temp_C, uint8_t &pct_remaining) const
@@ -131,8 +192,6 @@ AP_ESSA_Driver::AP_ESSA_Driver() : CANSensor("ESSA")
     // start thread for receiving and sending CAN frames. Tests show we use about 640 bytes of stack
     hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_ESSA_Driver::loop, void), "ESSA", 2048, AP_HAL::Scheduler::PRIORITY_CAN, 0);
 }
-
-
 
 
 // parse inbound frames
