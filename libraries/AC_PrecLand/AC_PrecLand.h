@@ -17,6 +17,7 @@ class AC_PrecLand_MAVLink;
 class AC_PrecLand_IRLock;
 class AC_PrecLand_SITL_Gazebo;
 class AC_PrecLand_SITL;
+class AC_Precland_Simple;
 class Location;
 
 class AC_PrecLand
@@ -27,6 +28,7 @@ class AC_PrecLand
     friend class AC_PrecLand_IRLock;
     friend class AC_PrecLand_SITL_Gazebo;
     friend class AC_PrecLand_SITL;
+    friend class AC_Precland_Simple;
 
 public:
     AC_PrecLand();
@@ -152,6 +154,9 @@ private:
 #endif
 #if AC_PRECLAND_SITL_ENABLED
         SITL = 4,
+#endif
+#if AC_PRECLAND_SIMPLE_ENABLED
+        SIMPLE = 5,
 #endif
     };
 
