@@ -379,7 +379,7 @@ bool AP_GPS_NMEA::_term_complete()
             case _GPS_SENTENCE_THS:
                 if (_last_AGRICA_ms != 0 || _expect_agrica) {
                     // use AGRICA
-                    break;
+                   // break;
                 }
                 if (isnan(_new_gps_yaw)) {
                     // empty sentence
@@ -394,6 +394,8 @@ bool AP_GPS_NMEA::_term_complete()
                 // configured to provide yaw when it first sends a
                 // HDT sentence.
                 state.gps_yaw_configured = true;
+                // GCS_SEND_TEXT(MAV_SEVERITY_INFO,
+                // "yaw: %f",state.gps_yaw);
                 break;
             case _GPS_SENTENCE_PHD:
                 if (_last_AGRICA_ms != 0) {
@@ -862,17 +864,17 @@ void AP_GPS_NMEA::send_config(void)
         port->printf("\r\nCONFIG HEADING FIXLENGTH\r\n" \
                      "CONFIG UNDULATION AUTO\r\n" \
                      "CONFIG\r\n" \
-                     "UNIHEADINGA %.1f\r\n",
+                     "UNIHEADINGA %.3f\r\n",
                      rate_s);
         state.gps_yaw_configured = true;
         FALLTHROUGH;
 
     case AP_GPS::GPS_TYPE_UNICORE_NMEA: {
-        port->printf("\r\nAGRICA %.1f\r\n" \
+        port->printf("\r\nAGRICA %.3f\r\n" \
                      "MODE ROVER\r\n" \
-                     "GNGGA %.1f\r\n" \
-                     "GNRMC %.1f\r\n" \
-                     "GPHDT %.1f\r\n",
+                     "GNGGA %.3f\r\n" \
+                     "GNRMC %.3f\r\n" \
+                     "GPHDT %.3f\r\n",
                      rate_s, rate_s, rate_s, rate_s);
         if (!_have_unicore_versiona) {
             // get version information for logging if we don't have it yet
