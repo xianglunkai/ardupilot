@@ -30,12 +30,8 @@
 #include <RC_Channel/RC_Channel.h>
 #include <AP_Relay/AP_Relay.h>
 
-#if 0
-  #include <GCS_MAVLink/GCS.h>
-  #define Debug(level, fmt, args ...)  do { if (level <= RP_DEBUG_LEVEL) { gcs().send_text(MAV_SEVERITY_INFO, fmt, ## args); } } while (0)
-#else
-  #define Debug(level, fmt, args ...)
-#endif
+#include <GCS_MAVLink/GCS.h>
+
 
 extern const AP_HAL::HAL & hal;
 
@@ -123,6 +119,7 @@ void AP_ESSA::update()
 
     AP_Relay *relay = AP::relay();
     if (relay == nullptr) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "relay is null!");
        return;
     }
 
@@ -376,14 +373,33 @@ void AP_ESSA_Driver::update(const int8_t control_class, const int16_t gear_dz)
     reset_control_cmd(control_cmd);
   
     uint16_t lift_open = 0;
+    int16_t lift = 0;
 
     if(!hal.util->get_soft_armed()) {
-        const int16_t lift = SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_rcin4_mapped) * 1000.0;
-        if (lift > 1000 || lift < -1000)
+        RC_Channel *c = rc().channel(3);
+        if (c == nullptr) {
+           lift = 0;
+        }
+
+        if (c != nullptr && rc().has_valid_input()) {
+            // get starter control channel
+            lift = c->get_radio_in();
+        }   
+    }
+
+    if (lift < 1000 || lift > 2000)
+        lift_open = 0;
+    else {
+        const int16_t low = abs(lift - 1000);
+        const int16_t high = abs(lift - 2000);
+        // const int16_t center = abs(lift);
+        if (low < 100) {
+            lift_open = 2;
+        } else if (high < 100) {
+            lift_open = 1;
+        } else {
             lift_open = 0;
-        else 
-            lift_open = lift > gear_dz ? 1: ((lift < -gear_dz ) ? 2 : 0);
-            
+        }
     }
 
     if (control_class == CTL_CLASS_DIFF) {
