@@ -25,7 +25,7 @@ void AC_PrecLand_Simple::update()
 
     // get radio
     uint16_t cvalue = 1500;
-    RC_Channel *c = rc().find_channel_for_option(RC_Channel::AUX_FUNC::USER_FUNC1);
+    RC_Channel *c = rc().find_channel_for_option(RC_Channel::AUX_FUNC::SCRIPTING_2);
     if (c != nullptr && rc().has_valid_input()) {
         // get control channel
         cvalue = c->get_radio_in();
@@ -35,7 +35,7 @@ void AC_PrecLand_Simple::update()
             // send message to notify user we have set dock position
             Location loc{};
             if (AP::ahrs().get_location(loc)) {
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Set up dock pos: lat=%ld lon=%ld", (loc.lat), (loc.lat));
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Set up dock pos: lat=%d lon=%d", (loc.lat), (loc.lat));
             }
         }
     }
@@ -49,14 +49,13 @@ void AC_PrecLand_Simple::update()
         auto && _distance_to_target_vec = _dock_pos - curr_pos_NED;
 
         _distance_to_target = _distance_to_target_vec.length();
-        if (_distance_to_target > 0) {
-            _los_meas_body = _distance_to_target_vec / _distance_to_target;
-        } else {
-            // distance to target must be positive
-            return;
-        }
+       
+        _los_meas_body = (_distance_to_target_vec / (_distance_to_target + 1e-6f));
+     
         _have_los_meas = true;
         _los_meas_time_ms = AP_HAL::millis();
+    } else {
+        _have_los_meas = false;
     }
 
     _have_los_meas = _have_los_meas && AP_HAL::millis()-_los_meas_time_ms <= 1000;
