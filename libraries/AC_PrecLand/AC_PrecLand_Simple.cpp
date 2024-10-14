@@ -35,7 +35,7 @@ void AC_PrecLand_Simple::update()
             // send message to notify user we have set dock position
             Location loc{};
             if (AP::ahrs().get_location(loc)) {
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Set up dock pos: lat=%d lon=%d", (loc.lat), (loc.lat));
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Set up dock pos: lat=%ld lon=%ld", (loc.lat), (loc.lng));
             }
         }
     }
