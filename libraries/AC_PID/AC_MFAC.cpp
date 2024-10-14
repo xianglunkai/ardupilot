@@ -91,14 +91,13 @@ float AC_MFAC::update_all(const float target,const float measurement,const bool 
         _target = target;
         _error = _target - measurement;
     } else {
-        float error_last = _error;
         _target += get_filt_T_alpha() * (target - _target);
         _error += get_filt_E_alpha() * ((_target - measurement) - _error);
     }
 
 
     // MFAC controller calculation
-    const float error = (wrap2pi)?wrap_PI(_error) : (_error;
+    const float error = (wrap2pi)?wrap_PI(_error) : _error;
     float control_cmd = _control_cmd
                       + _rou[1] * _vec_fai.y * (error - _kr * del_measurement / _dt) / (_lamada + sq(_vec_fai.y))
                       - _rou[0] * _vec_fai.x * _vec_fai.y * del_measurement / (_lamada + sq(_vec_fai.y));
