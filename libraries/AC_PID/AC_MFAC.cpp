@@ -7,12 +7,12 @@ const AP_Param::GroupInfo AC_MFAC::var_info[] = {
     // @Param: LAMDA
     // @DisplayName: MFAC penalty facor for controller output change
     // @Description: Penalty factor for controller output change
-    AP_GROUPINFO("LAMDA",    0, AC_MFAC, _lamada, 1.0),
+    AP_GROUPINFO("LAMDA",    0, AC_MFAC, _lamada, 10),
 
     // @Param: MU
     // @DisplayName: MFAC penalty factor for adaptive parameters change
     // @Description: Penalty factor for adaptive parameters change
-    AP_GROUPINFO("MU",    1, AC_MFAC, _mu, 1.0),
+    AP_GROUPINFO("MU",    1, AC_MFAC, _mu, 100),
 
     // @Param: YITA
     // @DisplayName:MFAC adaptive learning rate
@@ -22,12 +22,12 @@ const AP_Param::GroupInfo AC_MFAC::var_info[] = {
     // @Param: EPLSE
     // @DisplayName: MFAC PPD reset deadzone
     // @Description: PPD reset deadzone
-    AP_GROUPINFO("EPLSE",    3, AC_MFAC, _eplise, 0.001),
+    AP_GROUPINFO("EPLSE",    3, AC_MFAC, _eplise, 0.01),
 
     // @Param: KR
     // @DisplayName: MFAC penalty factor for control system damping
     // @Description: Penalty factor for control system damping
-    AP_GROUPINFO("KR",    4, AC_MFAC, _kr, 0.3),
+    AP_GROUPINFO("KR",    4, AC_MFAC, _kr, 1.0),
 
     // @Param: ROU1
     // @DisplayName: PI Gain
@@ -36,7 +36,7 @@ const AP_Param::GroupInfo AC_MFAC::var_info[] = {
 
     // @Param: ROU2
     // @DisplayName: D Gain
-    // @Description: D Gain produces an output that is proportional to the rate of change of the error
+    // @Description: D Gain which produces an output that is proportional to the rate of change of the error
     AP_GROUPINFO("ROU2",    6, AC_MFAC, _rou[1], 1.0),
 
     // @Param: FAI1
@@ -85,8 +85,20 @@ float AC_MFAC::update_all(const float target,const float measurement,const bool 
     const float del_measurement = (wrap2pi)?wrap_PI(measurement - _measurement):(measurement - _measurement);
     _measurement = measurement;
 
+    // reset input filter to value received
+    if (_flags._reset_filter) {
+        _flags._reset_filter = false;
+        _target = target;
+        _error = _target - measurement;
+    } else {
+        float error_last = _error;
+        _target += get_filt_T_alpha() * (target - _target);
+        _error += get_filt_E_alpha() * ((_target - measurement) - _error);
+    }
+
+
     // MFAC controller calculation
-    const float error = (wrap2pi)?wrap_PI(target - measurement) : (target - measurement);
+    const float error = (wrap2pi)?wrap_PI(_error) : (_error;
     float control_cmd = _control_cmd
                       + _rou[1] * _vec_fai.y * (error - _kr * del_measurement / _dt) / (_lamada + sq(_vec_fai.y))
                       - _rou[0] * _vec_fai.x * _vec_fai.y * del_measurement / (_lamada + sq(_vec_fai.y));
@@ -135,4 +147,22 @@ void AC_MFAC::reset(const float measurement)
     _control_cmd = 0.0f;
     _measurement = measurement;
     memset(&_debug_info, 0, sizeof(_debug_info));
+}
+
+// get_filt_T_alpha - get the target filter alpha
+float AC_MFAC::get_filt_T_alpha() const
+{
+    return get_filt_alpha(_filt_T_hz);
+}
+
+// get_filt_E_alpha - get the error filter alpha
+float AC_MFAC::get_filt_E_alpha() const
+{
+    return get_filt_alpha(_filt_E_hz);
+}
+
+// get_filt_alpha - calculate a filter alpha
+float AC_MFAC::get_filt_alpha(float filt_hz) const
+{
+    return calc_lowpass_alpha_dt(_dt, filt_hz);
 }
