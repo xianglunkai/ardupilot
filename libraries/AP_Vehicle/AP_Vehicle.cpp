@@ -294,6 +294,17 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
     AP_SUBGROUPINFO(essa, "ESSA_",  40, AP_Vehicle, AP_ESSA),
 #endif
 
+
+#if AP_CANIO_ENABLE
+
+    AP_SUBGROUPINFO(can_io, "CANIO_",  33, AP_Vehicle, AP_CANIO),
+#endif
+
+#if AP_SCU_ENABLED
+
+    AP_SUBGROUPINFO(scu, "SCU_",  34, AP_Vehicle, AP_SCU),
+#endif
+
     AP_GROUPEND
 };
 
@@ -509,6 +520,13 @@ void AP_Vehicle::setup()
     essa.init();
 #endif
 
+#if AP_CANIO_ENABLE
+    can_io.init();
+#endif
+
+#if AP_SCU_ENABLED
+    scu.init();
+#endif
 
 #if AP_AIS_ENABLED
     ais.init();

@@ -32,5 +32,6 @@ public:
 
 
         ESSA = 28,
+        CANIO = 29,
     };
 };

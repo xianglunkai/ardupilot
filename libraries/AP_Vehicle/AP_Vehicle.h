@@ -88,6 +88,8 @@
 
 #include <AP_IBus_Telem/AP_IBus_Telem.h>
 #include <AP_ESSA/AP_ESSA.h>
+#include <AP_SCU/AP_CANIO.h>
+#include <AP_SCU/AP_SCU.h>
 
 class AP_DDS_Client;
 
@@ -393,6 +395,15 @@ protected:
 #if AP_RELAY_ENABLED
     AP_Relay relay;
 #endif
+
+#if AP_CANIO_ENABLE
+    AP_CANIO can_io;
+#endif
+
+#if AP_SCU_ENABLED
+    AP_SCU scu;
+#endif
+
 
 #if AP_SERVORELAYEVENTS_ENABLED
     AP_ServoRelayEvents ServoRelayEvents;

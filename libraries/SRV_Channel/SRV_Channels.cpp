@@ -26,6 +26,7 @@
 #include <AP_Logger/AP_Logger.h>
 #include <AP_KDECAN/AP_KDECAN.h>
 #include <AP_ESSA/AP_ESSA.h>
+#include <AP_SCU/AP_SCU.h>
 
 #if HAL_MAX_CAN_PROTOCOL_DRIVERS
   #include <AP_CANManager/AP_CANManager.h>
@@ -518,9 +519,15 @@ void SRV_Channels::push()
     }
 #endif
 
-#if AP_KDECAN_ENABLED
+#if AP_ESSA_ENABLED
     if (AP::essa() != nullptr) {
         AP::essa()->update();
+    }
+#endif
+
+#if AP_SCU_ENABLED
+    if (AP::scu() != nullptr) {
+        AP::scu()->update();
     }
 #endif
 

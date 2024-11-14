@@ -44,6 +44,10 @@ public:
         DroneCAN_HARDPOINT_13 = 23,
         DroneCAN_HARDPOINT_14 = 24,
         DroneCAN_HARDPOINT_15 = 25,
+        ENG_ACC = 26,
+        ENG_START = 27,
+        ENG_STOP = 28,
+        STERT_DIR = 29,
         NUM_FUNCTIONS // must be the last entry
     };
 
