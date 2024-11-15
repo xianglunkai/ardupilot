@@ -177,7 +177,6 @@ protected:
     AP_Int8 _notch_T_filter;
     AP_Int8 _notch_E_filter;
 #endif
-    AP_Float _delta;
 
     // Slew rate time constant (tau). Not exposed in this class by default, but defined as an AP_Float so parent classes can make it configurable via param table.
     AP_Float _slew_rate_tau;
