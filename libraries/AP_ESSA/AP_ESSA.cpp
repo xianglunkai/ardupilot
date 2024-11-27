@@ -517,7 +517,7 @@ void AP_ESSA_Driver::send_mode_select_messages(const prop_mode_cmd_t & mode_sele
     AP_HAL::CANFrame txFrame;
     uint32_t id = (uint32_t)(CAN_ID::PROP_CTL_MODE);
     txFrame = {(id |= AP_HAL::CANFrame::FlagEFF), mode_select.raw_data, sizeof(mode_select.raw_data)};
-    write_frame(txFrame, AP_HAL::micros64() + 1000ULL);
+    write_frame(txFrame, 10000ULL);
 }
 
 // send control mode over CAN
@@ -526,7 +526,7 @@ void AP_ESSA_Driver::send_control_cmd_messages(const prop_ctl_cmd_t & control_cm
     AP_HAL::CANFrame txFrame;
     uint32_t id = (uint32_t)(CAN_ID::PROP_CTL_CMD);
     txFrame = {(id |= AP_HAL::CANFrame::FlagEFF), control_cmd.raw_data, sizeof(control_cmd.raw_data)};
-    write_frame(txFrame, AP_HAL::micros64() + 1000ULL);
+    write_frame(txFrame,  10000ULL);
 }
 
 
