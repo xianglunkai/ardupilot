@@ -51,15 +51,10 @@ public:
 
 private:
 
-    AC_P_1D         _p_pos;
-
     SteeringRunState _steering_run_state;
 
 private:
     // parameters
-    // enable library
-    AP_Int8 enable;
-
     AP_Int8 control_type;
 
     AP_Int8 steer_ctl_sign;
@@ -71,8 +66,7 @@ private:
 
 	AP_Float steer_ctl_dz;
 
-    AP_Float steer_out_vel_max;
-    AP_Float steer_out_acc_max;
+    AP_Float kp;
 
 };
 

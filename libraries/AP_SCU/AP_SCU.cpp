@@ -2,7 +2,7 @@
 #if AP_SCU_ENABLED
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
-#include <GCS_MAVLink/GCS_MAVLink.h>
+#include <GCS_MAVLink/GCS.h>
 #include <AP_Relay/AP_Relay.h>
 #include <SRV_Channel/SRV_Channel.h>
 #include <RC_Channel/RC_Channel.h>
@@ -28,7 +28,7 @@ const AP_Param::GroupInfo AP_SCU::var_info[] = {
     // @User: 
     // @Units: 
     // @Range: 
-    AP_GROUPINFO("CCW_ON", 1, AP_SCU, steering_relay_on, 1),
+    AP_GROUPINFO("CCW_ON", 1, AP_SCU, steering_relay_on, 0),
 
     // @Param: 
     // @DisplayName: 
@@ -47,6 +47,30 @@ const AP_Param::GroupInfo AP_SCU::var_info[] = {
     // @Range: 
     AP_GROUPINFO("THR_FREQ", 3, AP_SCU, throttle_pwm_freq_khz, 1.0f),
 
+    // @Param: 
+    // @DisplayName: 
+    // @Description: 
+    // @User: 
+    // @Units: 
+    // @Range: 
+    AP_SUBGROUPINFO(_engine, "ENG_", 4,  AP_SCU, AP_SCU_Engine),
+
+    // @Param: 
+    // @DisplayName: 
+    // @Description: 
+    // @User: 
+    // @Units: 
+    // @Range: 
+    AP_SUBGROUPINFO(_steering, "STR_", 5,  AP_SCU, AP_SCU_Steering),
+
+    // @Param: 
+    // @DisplayName: 
+    // @Description: 
+    // @User: 
+    // @Units: 
+    // @Range: 
+    AP_GROUPINFO("DEBUG", 6, AP_SCU, debug, 0),
+
     AP_GROUPEND
 };
 
@@ -55,7 +79,7 @@ const AP_Param::GroupInfo AP_SCU::var_info[] = {
 // singleton instance
 AP_SCU *AP_SCU::_singleton;
 
-AP_SCU::AP_SCU():   
+AP_SCU::AP_SCU():
     _throttle_idx(SRV_Channel::k_none),
     _steering_idx(SRV_Channel::k_none)
 {
@@ -109,6 +133,11 @@ void AP_SCU::update()
     if (c_start != nullptr && rc().has_valid_input()) {
         // get starter control channel
         cvalue = c_start->get_radio_in();
+        
+        if (debug) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Armed: cvalue: %d", (uint16_t)cvalue);
+        }
+     
 
         if (cvalue >= RC_Channel::AUX_PWM_TRIGGER_HIGH) {
             sts_cmd = 1;
@@ -120,6 +149,10 @@ void AP_SCU::update()
     if (c_stop != nullptr && rc().has_valid_input()) {
         // get starter control channel
         cvalue = c_stop->get_radio_in();
+
+        if (debug) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Disarmed: cvalue: %d", (uint16_t)cvalue);
+        }
 
         if (cvalue >= RC_Channel::AUX_PWM_TRIGGER_HIGH) {
             sts_cmd = 2;
@@ -145,21 +178,25 @@ void AP_SCU::update()
 
     // 3. steering control
     const float steering = constrain_float(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_steering), -1.0f, 1.0f);
-    float steering_pos = 0;
+    uint16_t steering_pos = 0;
+    bool steerig_pos_valid = true;
+
+#if AP_CANIO_ENABLE
     AP_CANIO *can_io = AP::can_io();
     if (can_io == nullptr) {
-        SRV_Channels::set_rc_frequency(_steering_idx, 0);
-        return;
+        steerig_pos_valid = false;
     }
     if(!can_io->read(AP_CANIO_Params::FUNCTION::STEER_ANG, steering_pos)) {
+        steerig_pos_valid = false;
+    }
+#endif
+
+    if (steerig_pos_valid == false) {
         SRV_Channels::set_rc_frequency(_steering_idx, 0);
         return;
     }
+
     const float steering_out = _steering.steering_angle_control(steering, steering_pos);
-    // ouput PWM duty = 50%
-    move_servo(_steering_idx, 0, -1000, 1000);
-    // set frequency
-    SRV_Channels::set_rc_frequency(_steering_idx, steering_pwm_freq_khz * 1000 * abs(steering_out));
     // control steering direction
     AP_Relay *ap_relay = AP::relay();
     if (ap_relay == nullptr) {
@@ -167,6 +204,11 @@ void AP_SCU::update()
     }
     bool on = is_positive(steering_out) ? steering_relay_on : !steering_relay_on;
     ap_relay->set(AP_Relay_Params::FUNCTION::STERT_DIR, on);
+
+    // ouput PWM duty = 50%
+    move_servo(_steering_idx, 0, -1000, 1000);
+    // set frequency
+    SRV_Channels::set_rc_frequency(_steering_idx, steering_pwm_freq_khz * 1000 * abs(steering_out));
 }
 
 

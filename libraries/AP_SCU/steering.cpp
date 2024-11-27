@@ -7,26 +7,20 @@
 
 const AP_Param::GroupInfo AP_SCU_Steering::var_info[] = {
 
-    // @Param: ENABLE
-    // @DisplayName: Enable Engine control
-    // @Description: This enables internal combustion engine control
-    // @Values: 0:Disabled, 1:Enabled
-    // @User: Advanced
-    AP_GROUPINFO_FLAGS("ENABLE", 0, AP_SCU_Steering, enable, 0, AP_PARAM_FLAG_ENABLE),
-
+    
     // @Param: _POSZ
     // @DisplayName: Position controller P gain
     // @Description: Positioncontroller P gain.  Converts the difference between the desired altitude and actual altitude into a climb or descent rate which is passed to the throttle rate controller
     // @Range: 1.000 3.000
     // @User: Standard
-    AP_SUBGROUPINFO(_p_pos, "_POSZ", 1, AP_SCU_Steering, AC_P_1D),
+    AP_GROUPINFO("KP", 1, AP_SCU_Steering, kp, 0.1),
 
     // @Param: CTL_TYPE
     // @DisplayName: 
     // @Description: 
     // @Range: 
     // @User: Standard
-    AP_GROUPINFO("CTL_TYPE", 2, AP_SCU_Steering, control_type, STEER_BANG_BANG_CTL),
+    AP_GROUPINFO("CTL_TYE", 2, AP_SCU_Steering, control_type, STEER_BANG_BANG_CTL),
 
 
 	// @Param: CTL_SGN
@@ -76,37 +70,20 @@ const AP_Param::GroupInfo AP_SCU_Steering::var_info[] = {
     // @User: Standard
 	AP_GROUPINFO("CTL_DZ", 8, AP_SCU_Steering, steer_ctl_dz, 30.0f),
 
-    // @Param: VEL_MAX
-    // @DisplayName:
-    // @Description:
-    // @User: Standard
-	AP_GROUPINFO("VEL_MAX", 9, AP_SCU_Steering, steer_out_vel_max, 0.5f),
-
-    // @Param: ACC_MAX
-    // @DisplayName: 
-    // @Description: 
-    // @Range: 
-    // @User: Standard
-	AP_GROUPINFO("ACC_MAX", 10, AP_SCU_Steering, steer_out_acc_max, 0.5f),
 
     AP_GROUPEND
 };
 
 // constructor
-AP_SCU_Steering::AP_SCU_Steering():_p_pos(1.0)
+AP_SCU_Steering::AP_SCU_Steering()
 {
     AP_Param::setup_object_defaults(this, var_info);
-    init();
-	
 }
 
 // one time init call
 void AP_SCU_Steering::init()
 {
     memset(&_steering_run_state, 0, sizeof(_steering_run_state));
-
-    // define maximum position error and maximum first and second differential limits
-    _p_pos.set_limits(-fabsf(steer_out_vel_max), steer_out_vel_max, steer_out_acc_max, 0.0f);
 }
 
 /**
@@ -167,7 +144,8 @@ float AP_SCU_Steering::steering_angle_control(const float steer_cmd, const float
 		break;
 		case STEER_PID_CTL:
         {
-            servo_out = steer_ctl_sign * _p_pos.update_all(servo_cmd, steer_pos_ad);
+            ctl_err = steer_ctl_sign * (servo_cmd - steer_pos_ad);
+            servo_out = kp * ctl_err;
             servo_out = constrain_float(servo_out, -1.0f, 1.0f);
             if(abs(ctl_err) <= steer_ctl_dz)
 			{

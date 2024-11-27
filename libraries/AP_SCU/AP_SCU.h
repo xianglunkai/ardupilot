@@ -53,6 +53,7 @@ private:
     SRV_Channel::Aux_servo_function_t    _steering_idx;  // SRV_Channel steering function index
 
     AP_Int8 enable;
+    AP_Int8 debug;
     AP_Float steering_pwm_freq_khz;
     AP_Float throttle_pwm_freq_khz;
     AP_Int8  steering_relay_on;           // relay value to trigger camera

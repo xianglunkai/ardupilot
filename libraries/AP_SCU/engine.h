@@ -90,9 +90,8 @@ private:
 
 private:
     // parameters
-    // enable library
-    AP_Int8 enable;
-        
+
+
     // time to run starter for (seconds)
     AP_Float starter_time;
 

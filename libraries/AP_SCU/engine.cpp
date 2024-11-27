@@ -10,13 +10,6 @@
 
 const AP_Param::GroupInfo AP_SCU_Engine::var_info[] = {
 
-    // @Param: ENABLE
-    // @DisplayName: Enable Engine control
-    // @Description: This enables internal combustion engine control
-    // @Values: 0:Disabled, 1:Enabled
-    // @User: Advanced
-    AP_GROUPINFO_FLAGS("ENABLE", 0, AP_SCU_Engine, enable, 0, AP_PARAM_FLAG_ENABLE),
-
 
     // @Param: STARTER_TIME
     // @DisplayName: Time to run starter
@@ -24,7 +17,7 @@ const AP_Param::GroupInfo AP_SCU_Engine::var_info[] = {
     // @User: Standard
     // @Units: s
     // @Range: 0.1 5
-    AP_GROUPINFO("STARTER_TIME", 1, AP_SCU_Engine, starter_time, 3),
+    AP_GROUPINFO("ST_TM", 1, AP_SCU_Engine, starter_time, 3),
 
     // @Param: START_DELAY
     // @DisplayName: Time to wait between starts
@@ -32,7 +25,7 @@ const AP_Param::GroupInfo AP_SCU_Engine::var_info[] = {
     // @User: Standard
     // @Units: s
     // @Range: 1 10
-    AP_GROUPINFO("START_DELAY", 2, AP_SCU_Engine, starter_delay, 2),
+    AP_GROUPINFO("ST_DEY", 2, AP_SCU_Engine, starter_delay, 2),
 
 
 #if AP_RPM_ENABLED
@@ -41,14 +34,14 @@ const AP_Param::GroupInfo AP_SCU_Engine::var_info[] = {
     // @Description: This is the measured RPM above which the engine is considered to be running
     // @User: Standard
     // @Range: 100 100000
-    AP_GROUPINFO("RPM_THRESH", 3, AP_SCU_Engine, gear_shift_engine_speed, 100),
+    AP_GROUPINFO("RPM_THR", 3, AP_SCU_Engine, gear_shift_engine_speed, 100),
 
     // @Param: RPM_CHAN
     // @DisplayName: RPM instance channel to use
     // @Description: This is which of the RPM instances to use for detecting the RPM of the engine
     // @User: Standard
     // @Values: 0:None,1:RPM1,2:RPM2
-    AP_GROUPINFO("RPM_CHAN",  4, AP_SCU_Engine, rpm_instance, 0),
+    AP_GROUPINFO("RPM_CHN",  4, AP_SCU_Engine, rpm_instance, 0),
 #endif
 
     // @Param: IDLE_PCT
@@ -56,7 +49,7 @@ const AP_Param::GroupInfo AP_SCU_Engine::var_info[] = {
     // @Description: This is the minimum percentage throttle output while running, this includes being disarmed, but not safe
     // @User: Standard
     // @Range: 0 100
-    AP_GROUPINFO("IDLE_PCT", 5, AP_SCU_Engine, idle_percent, 10),
+    AP_GROUPINFO("IDL_PCT", 5, AP_SCU_Engine, idle_percent, 10),
 
 
     // @Param: 
@@ -76,38 +69,38 @@ const AP_Param::GroupInfo AP_SCU_Engine::var_info[] = {
     // @DisplayName:
     // @Description: 
     // @User: Standard
-    AP_GROUPINFO("IDLE_POS", 8, AP_SCU_Engine, eng_idle_thrust_out, 0),
+    AP_GROUPINFO("IDL_POS", 8, AP_SCU_Engine, eng_idle_thrust_out, 0),
 
 
     // @Param: 
     // @DisplayName:
     // @Description: 
     // @User: Standard
-    AP_GROUPINFO("HALT_POS", 9, AP_SCU_Engine, eng_halt_thrust_out, 0),
+    AP_GROUPINFO("HAT_POS", 9, AP_SCU_Engine, eng_halt_thrust_out, 0),
 
     // @Param: 
     // @DisplayName:
     // @Description: 
     // @User: Standard
-    AP_GROUPINFO("GEAR_DOUT", 10, AP_SCU_Engine, gear_D_thrust_out, 300),
+    AP_GROUPINFO("GEAR_D", 10, AP_SCU_Engine, gear_D_thrust_out, 300),
 
     // @Param: 
     // @DisplayName:
     // @Description: 
     // @User: Standard
-    AP_GROUPINFO("GEAR_NOUT", 11, AP_SCU_Engine, gear_N_thrust_out, 0),
+    AP_GROUPINFO("GEAR_N", 11, AP_SCU_Engine, gear_N_thrust_out, 0),
 
     // @Param: 
     // @DisplayName:
     // @Description: 
     // @User: Standard
-    AP_GROUPINFO("GEAR_ROUT", 12, AP_SCU_Engine, gear_R_thrust_out, -300),
+    AP_GROUPINFO("GEAR_R", 12, AP_SCU_Engine, gear_R_thrust_out, -300),
 
     // @Param: 
     // @DisplayName:
     // @Description: 
     // @User: Standard
-    AP_GROUPINFO("GEAR_TIME", 13, AP_SCU_Engine, gear_shift_block_ms, 200),
+    AP_GROUPINFO("GEAR_TM", 13, AP_SCU_Engine, gear_shift_block_ms, 200),
 
     AP_GROUPEND
 };
@@ -116,7 +109,6 @@ const AP_Param::GroupInfo AP_SCU_Engine::var_info[] = {
 AP_SCU_Engine::AP_SCU_Engine()
 {
     AP_Param::setup_object_defaults(this, var_info);
-    init();
 
     #if AP_RPM_ENABLED
         // Engine runs at 10Hz

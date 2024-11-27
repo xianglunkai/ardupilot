@@ -9,13 +9,20 @@
 #include <GCS_MAVLink/GCS.h>
 
 
+#define DEBUG 1
+
 extern const AP_HAL::HAL & hal;
 
 const AP_Param::GroupInfo AP_CANIO_Params::var_info[] = {
 
     // @User: Standard
-    AP_GROUPINFO_FLAGS("FUNCTION", 1, AP_CANIO_Params, function, (float)FUNCTION::NONE, AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO_FLAGS("FUNC", 1, AP_CANIO_Params, function, (float)FUNCTION::NONE, AP_PARAM_FLAG_ENABLE),
 
+    // @Param: DEFAULT
+    // @DisplayName: Pins
+    // @Description: Should the relay default to on or off, this only applies to RELAYx_FUNC "Relay" (1). All other uses will pick the appropriate default output state from within the controlling function's parameters. Note that if INVERTED is set then the default is inverted.
+    // @Values: 0~63 / 0~18
+    // @User: Standard
     AP_GROUPINFO("PIN", 2, AP_CANIO_Params, pin, -1),
 
 
@@ -24,17 +31,18 @@ const AP_Param::GroupInfo AP_CANIO_Params::var_info[] = {
     // @Description: Should the relay default to on or off, this only applies to RELAYx_FUNC "Relay" (1). All other uses will pick the appropriate default output state from within the controlling function's parameters. Note that if INVERTED is set then the default is inverted.
     // @Values: 0: Off,1:On,2:NoChange
     // @User: Standard
-    AP_GROUPINFO("DEFAULT", 3, AP_CANIO_Params, default_state, (float)DefaultState::OFF),
+    AP_GROUPINFO("DEFT", 3, AP_CANIO_Params, default_state, (float)DefaultState::OFF),
 
     // @Param: INVERTED
     // @DisplayName: Relay invert output signal
     // @Description: Should the relay output signal be inverted. If enabled, relay on would be pin low and relay off would be pin high. NOTE: this impact's DEFAULT.
     // @Values: 0:Normal,1:Inverted
     // @User: Standard
-    AP_GROUPINFO("INVERTED", 4, AP_CANIO_Params, inverted, false),
+    AP_GROUPINFO("INVT", 4, AP_CANIO_Params, inverted, false),
+
+    AP_GROUPEND
 
 };
-
 
 AP_CANIO_Params::AP_CANIO_Params(void) {
     AP_Param::setup_object_defaults(this, var_info);
@@ -42,107 +50,100 @@ AP_CANIO_Params::AP_CANIO_Params(void) {
 
 const AP_Param::GroupInfo AP_CANIO::var_info[] = {
 
-    // @Param: STARTER_TIME
-    // @DisplayName: Time to run starter
-    // @Description: This is the number of seconds to run the starter when trying to start the engine
-    // @User: Standard
-    // @Units: s
-    // @Range: 0.1 5
-    AP_GROUPINFO("STARTER_TIME", 0, AP_CANIO, debug, 0),
+    // @Group: 1_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[0], "1_", 1, AP_CANIO, AP_CANIO_Params),
+
+#if AP_CANIO_NUM_IO > 1
+    // @Group: 2_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[1], "2_", 2, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 2
+    // @Group: 3_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[2], "3_", 3, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 3
+    // @Group: 4_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[3], "4_", 4, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 4
+    // @Group: 5_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[4], "5_", 5, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 5
+    // @Group: 6_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[5], "6_", 6, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 6
+    // @Group: 7_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[6], "7_", 7, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 7
+    // @Group: 8_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[7], "8_", 8, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 8
+    // @Group: 9_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[8], "9_", 9, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 9
+    // @Group: 10_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[9], "10_", 10, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 10
+    // @Group: 11_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[10], "11_", 11, AP_CANIO, AP_CANIO_Params),
+#endif
+
+#if AP_CANIO_NUM_IO > 11
+    // @Group: 12_
+    // @Path: AP_CANIO_Params.cpp
+    AP_SUBGROUPINFO(_ioparams[11], "12_", 12, AP_CANIO, AP_CANIO_Params),
+#endif
+
 
     // @Group: 1_
     // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[0], "1_", 7, AP_CANIO, AP_CANIO_Params),
+    AP_SUBGROUPINFO(_aiparams[0], "AI1_", 13, AP_CANIO, AP_CANIO_Params),
 
-#if AP_CANIO_NUM_RELAYS > 1
-    // @Group: 2_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[1], "2_", 8, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 2
-    // @Group: 3_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[2], "3_", 9, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 3
-    // @Group: 4_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[3], "4_", 10, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 4
-    // @Group: 5_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[4], "5_", 11, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 5
-    // @Group: 6_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[5], "6_", 12, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 6
-    // @Group: 7_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[6], "7_", 13, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 7
-    // @Group: 8_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[7], "8_", 14, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 8
-    // @Group: 9_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[8], "9_", 15, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 9
-    // @Group: 10_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[9], "10_", 16, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 10
-    // @Group: 11_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[10], "11_", 17, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 11
+#if AP_CANIO_NUM_AI > 1
     // @Group: 12_
     // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[11], "12_", 18, AP_CANIO, AP_CANIO_Params),
+    AP_SUBGROUPINFO(_aiparams[1], "AI2_", 14, AP_CANIO, AP_CANIO_Params),
 #endif
 
-#if AP_CANIO_NUM_RELAYS > 12
-    // @Group: 13_
+#if AP_CANIO_NUM_AI > 2
+    // @Group: 12_
     // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[12], "13_", 19, AP_CANIO, AP_CANIO_Params),
+    AP_SUBGROUPINFO(_aiparams[2], "AI3_", 15, AP_CANIO, AP_CANIO_Params),
 #endif
 
-#if AP_CANIO_NUM_RELAYS > 13
-    // @Group: 14_
+#if AP_CANIO_NUM_AI > 3
+    // @Group: 12_
     // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[13], "14_", 20, AP_CANIO, AP_CANIO_Params),
+    AP_SUBGROUPINFO(_aiparams[3], "AI4_", 16, AP_CANIO, AP_CANIO_Params),
 #endif
 
-#if AP_CANIO_NUM_RELAYS > 14
-    // @Group: 15_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[14], "15_", 21, AP_CANIO, AP_CANIO_Params),
-#endif
-
-#if AP_CANIO_NUM_RELAYS > 15
-    // @Group: 16_
-    // @Path: AP_CANIO_Params.cpp
-    AP_SUBGROUPINFO(_params[15], "16_", 22, AP_CANIO, AP_CANIO_Params),
-#endif
+    AP_GROUPEND
 
 };
 
@@ -150,63 +151,136 @@ const AP_Param::GroupInfo AP_CANIO::var_info[] = {
 // singleton instance
 AP_CANIO *AP_CANIO::_singleton;
 
-AP_CANIO::AP_CANIO() : CANSensor("CANIO")
+
+AP_CANIO::AP_CANIO()
 {
     AP_Param::setup_object_defaults(this, var_info);
-
-    register_driver(AP_CAN::Protocol::CANIO);
-
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    if (_singleton != nullptr) {
+        AP_HAL::panic("AP_ESSA must be singleton");
+    }
+#endif
     _singleton = this;
-
-    // start thread for receiving and sending CAN frames. Tests show we use about 640 bytes of stack
-    hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_CANIO::loop, void), "CANIO", 2048, AP_HAL::Scheduler::PRIORITY_CAN, 0);
 }
 
 
 void AP_CANIO::init()
 {
+    for (uint8_t i = 0; i < AP_CANIO_NUM_IO; i++) {
+        // set the default
+        _ioparams[i].pin.set_default(-1);
+    }
+
+    for (uint8_t i = 0; i < AP_CANIO_NUM_AI; i++) {
+        // set the default
+        _aiparams[i].pin.set_default(-1);
+    }
+
+    if (_driver != nullptr) {
+            // only allow one instance
+            return;
+    }
+    for (uint8_t i = 0; i < HAL_NUM_CAN_IFACES; i++) {
+        if (CANSensor::get_driver_type(i) == AP_CAN::Protocol::CANIO) {
+            _driver = NEW_NOTHROW AP_CANIO_Driver(_ioparams, _aiparams);
+            return;
+        }
+    }
+}
+
+void AP_CANIO::set(AP_CANIO_Params::FUNCTION function, bool value) 
+{ 
+    if (_driver == nullptr) {
+        return;
+    }
+    _driver->set(function, value);
+}
+
+
+bool AP_CANIO::read(AP_CANIO_Params::FUNCTION function, uint16_t & value) 
+{ 
+    if (_driver == nullptr) {
+        return false;
+    }
+    return _driver->read(function, value); 
+}
+
+
+namespace AP {
+    AP_CANIO *can_io()
+    {
+        return AP_CANIO::get_singleton();
+    }
+};
+
+
+AP_CANIO_Driver::AP_CANIO_Driver(const AP_CANIO_Params *ioparams, const AP_CANIO_Params *aiparams) : 
+                                CANSensor("CANIO"),
+                                _ioparams(ioparams),
+                                _aiparams(aiparams)
+{
+  
+    register_driver(AP_CAN::Protocol::CANIO);
+    init();
+
+    // start thread for receiving and sending CAN frames. Tests show we use about 640 bytes of stack
+    hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_CANIO_Driver::loop, void), "CANIO", 2048, AP_HAL::Scheduler::PRIORITY_CAN, 0);
+}
+
+
+void AP_CANIO_Driver::init()
+{
     set_defaults();
 
     // setup the actual default values of all the pins
-    for (uint8_t instance = 0; instance < ARRAY_SIZE(_params); instance++) {
-        const int16_t pin = _params[instance].pin;
+    for (uint8_t instance = 0; instance < AP_CANIO_NUM_IO; instance++) {
+        const int16_t pin = _ioparams[instance].pin;
         if (pin == -1) {
             // no valid pin to set it on, skip it
             continue;
         }
 
-        const AP_CANIO_Params::FUNCTION function = _params[instance].function;
+        const AP_CANIO_Params::FUNCTION function = _ioparams[instance].function;
         if (!function_valid(function)) {
             // invalid function, skip it
             continue;
         }
 
-        if (function == AP_CANIO_Params::FUNCTION::RELAY) {
-            // relay by instance number, set the state to match our output
-            const AP_CANIO_Params::DefaultState default_state = _params[instance].default_state;
-            if ((default_state == AP_CANIO_Params::DefaultState::OFF) ||
-                (default_state == AP_CANIO_Params::DefaultState::ON)) {
+        // set the state to match our output
+        const AP_CANIO_Params::DefaultState default_state = _ioparams[instance].default_state;
+        if ((default_state == AP_CANIO_Params::DefaultState::OFF) ||
+            (default_state == AP_CANIO_Params::DefaultState::ON)) {
 
-                set_pin_by_instance(instance, (bool)default_state);
-            }
-        } else {
-            // all functions are supposed to be off by default
-            // this will need revisiting when we support inversion
-            set_pin_by_instance(instance, false);
+            set_pin_by_instance(instance, (bool)default_state);
         }
 
     }
 }
 
 
-void AP_CANIO::set(const AP_CANIO_Params::FUNCTION function, const bool value) {
+void AP_CANIO_Driver::set_defaults() {
+
+    memset(&_write_io_group.all, 0, sizeof(_write_io_group.raw_data));
+    memset(&_read_io_group.all, 0, sizeof(_read_io_group.raw_data));
+
+    memset(_ai_groups, 0, sizeof(_ai_groups));
+}
+
+
+// Return true is function is valid
+bool AP_CANIO_Driver::function_valid(AP_CANIO_Params::FUNCTION function) const
+{
+    return (function > AP_CANIO_Params::FUNCTION::NONE) && (function < AP_CANIO_Params::FUNCTION::NUM_FUNCTIONS);
+}
+
+void AP_CANIO_Driver::set(const AP_CANIO_Params::FUNCTION function, const bool value) {
     if (!function_valid(function)) {
         // invalid function
         return;
     }
 
-    for (uint8_t instance = 0; instance < ARRAY_SIZE(_params); instance++) {
-        if (function != _params[instance].function) {
+    for (uint8_t instance = 0; instance < AP_CANIO_NUM_IO; instance++) {
+        if (function != _ioparams[instance].function) {
             continue;
         }
 
@@ -216,98 +290,84 @@ void AP_CANIO::set(const AP_CANIO_Params::FUNCTION function, const bool value) {
 
 // set a pins output state by instance and log if required
 // this is an internal helper, instance must have already been validated to be in range
-void AP_CANIO::set_pin_by_instance(uint8_t instance, bool value)
+void AP_CANIO_Driver::set_pin_by_instance(uint8_t instance, bool value)
 {
-    const int16_t pin = _params[instance].pin;
+    const int16_t pin = _ioparams[instance].pin;
     if (pin == -1) {
         // no valid pin to set it on, skip it
         return;
     }
 
-    if (_params[instance].inverted > 0) {
+    if (_ioparams[instance].inverted > 0) {
         value = !value;
     }
 
     set_pin(pin, value);
-    
 }
 
-void AP_CANIO::set(const uint8_t instance, const bool value)
-{
-    if (instance >= ARRAY_SIZE(_params)) {
+ void AP_CANIO_Driver::get_pin_by_instance(uint8_t instance, uint16_t & value)
+ {
+    const int16_t pin = _ioparams[instance].pin;
+    if (pin == -1) {
+        // no valid pin to set it on, skip it
         return;
     }
 
-    if (_params[instance].function != AP_CANIO_Params::FUNCTION::RELAY) {
+    value = get_pin(pin);
+ }
+
+
+ void AP_CANIO_Driver::get_channel_by_instance(uint8_t instance, uint16_t & value)
+ {
+    const int16_t channel = _aiparams[instance].pin;
+    if (channel == -1) {
+        // no valid pin to set it on, skip it
         return;
     }
 
-    set_pin_by_instance(instance, value);
-}
+    const uint16_t group = channel / 4;
+    const uint16_t index = channel - 4 * group;
+    value = _ai_groups[group].data[index];
+ }
 
-void AP_CANIO::toggle(uint8_t instance)
-{
-    if (instance < ARRAY_SIZE(_params)) {
-        set(instance, !get(instance));
-    }
-}
-
-bool AP_CANIO::get(uint8_t instance) const
-{
-    if (instance >= ARRAY_SIZE(_params)) {
-        // invalid instance
-        return false;
-    }
-
-    if (_params[instance].inverted > 0) {
-        return !get_pin(_params[instance].pin.get());
-    }
-
-    return get_pin(_params[instance].pin.get());
-}
 
 // Get relay state from pin number
-bool AP_CANIO::get_pin(const int16_t pin) const
+bool AP_CANIO_Driver::get_pin(const uint64_t pin) const
 {
-    if (pin < 0) {
-        // invalid pin
-        return false;
-    }
-
     // Read pins
-    const uint64_t data = _read_pins.all & ((uint64_t)(1) << (pin-1));
-    const uint16_t pins = (data >> (pin - 1)) & 0x01;
+    const uint64_t data = _read_io_group.all & ((uint64_t)(1) << (pin));
+    const uint16_t pins = (data >> (pin)) & 0x01;
     return (bool)pins;
 }
 
 
 // Set relay state from pin number
-void AP_CANIO::set_pin(const int16_t pin, const bool value)
+void AP_CANIO_Driver::set_pin(const uint64_t pin, const bool value)
 {
-    if (pin < 0) {
-        // invalid pin
-        return;
-    }
-
+  
     // Real GPIO pin
     {
         // WITH_SEMAPHORE(sem);
-        if (pin == 1) {
-            _write_pins.all |= ((uint64_t)(1)<<(pin-1));
+        if (value == true) {
+            _write_io_group.all |= ((uint64_t)(1)<<(pin));
         } else {
-            _write_pins.all &= (0xffff - ((uint64_t)(1)<<(pin-1)));      
+            _write_io_group.all &= (0xffffffff - ((uint64_t)(1)<<(pin)));      
         }
-
-        _pins_is_new = true;
     }
 
 }
 
 // see if the relay is enabled
-bool AP_CANIO::enabled(AP_CANIO_Params::FUNCTION function) const
+bool AP_CANIO_Driver::enabled(AP_CANIO_Params::FUNCTION function) const
 {
-    for (uint8_t instance = 0; instance < ARRAY_SIZE(_params); instance++) {
-        if ((_params[instance].function == function) && (_params[instance].pin != -1)) {
+    for (uint8_t instance = 0; instance < AP_CANIO_NUM_IO; instance++) {
+        if ((_ioparams[instance].function == function) && (_ioparams[instance].pin != -1)) {
+            return true;
+        }
+    }
+
+    for (uint8_t instance = 0; instance < AP_CANIO_NUM_AI; instance++) {
+        if ((_aiparams[instance].function == function) && (_aiparams[instance].pin != -1)) {
             return true;
         }
     }
@@ -315,23 +375,40 @@ bool AP_CANIO::enabled(AP_CANIO_Params::FUNCTION function) const
 }
 
 
-bool AP_CANIO::read(AP_CANIO_Params::FUNCTION function, float &value)
+bool AP_CANIO_Driver::read(AP_CANIO_Params::FUNCTION function, uint16_t &value)
 {
-    if (function == AP_CANIO_Params::FUNCTION::THR_ANG && _ai_is_new) {
-        value = _throttle_pos;
-        return true;
+
+    if (!function_valid(function)) {
+        // invalid function
+        return false;
     }
 
-    if (function == AP_CANIO_Params::FUNCTION::THR_ANG && _ai_is_new) {
-        value = _steering_pos;
+    for (uint8_t instance = 0; instance < AP_CANIO_NUM_IO; instance++) {
+        if (function != _ioparams[instance].function) {
+            continue;
+        }
+
+        get_pin_by_instance(instance, value);
         return true;
+        
+ 
+    }
+
+    for (uint8_t channel = 0; channel < AP_CANIO_NUM_AI; channel++) {
+        if (function != _aiparams[channel].function) {
+            continue;
+        }
+
+        get_channel_by_instance(channel, value);
+        return true;
+    
     }
 
     return false;
 }
 
 
-void AP_CANIO::loop()
+void AP_CANIO_Driver::loop()
 {
     uint16_t read_io_counter = 0;
     uint16_t write_io_counter = 0;
@@ -342,48 +419,48 @@ void AP_CANIO::loop()
       
         // 10ms loop delay
         hal.scheduler->delay_microseconds(10000); 
+
         {
 
             // WITH_SEMAPHORE(sem);
-            if (_pins_is_new ) {
-                _pins_is_new = false;
+ 
+            // write IO channel 50ms
+            if (++write_io_counter >= 5) {
+                write_io_counter = 0;
 
-                // write IO channel 50ms
-                if (++write_io_counter >= 5) {
-                    write_io_counter = 0;
-                    send_messages((uint32_t)(CAN_ID::WRITE_IO), (uint8_t*)_write_pins.raw_data, 8);
-                }
+                send_messages((uint32_t)(CAN_ID::WRITE_IO), (uint8_t*)_write_io_group.raw_data, 8);
+            }
+            
+
+            // read AI channel 20ms
+            if (++read_ai_counter >= 2) {
+                read_ai_counter = 0;
+                send_messages((uint32_t)(CAN_ID::READ_AI), temp_data, 8);
+            }
+
+            // read IO channle 1000ms
+            if (++read_io_counter >= 100) {
+                read_io_counter = 0;
+                send_messages((uint32_t)(CAN_ID::READ_IO), temp_data, 8);
             }
         }
-
-        // read AI channel 20ms
-        if (++read_ai_counter >= 2) {
-            read_ai_counter = 0;
-            send_messages((uint32_t)(CAN_ID::READ_AI), (uint8_t*)temp_data, 8);
-        }
-
-        // read IO channle 1000ms
-        if (++read_io_counter >= 100) {
-            read_io_counter = 0;
-            send_messages((uint32_t)(CAN_ID::READ_IO), (uint8_t*)temp_data, 8);
-        }
         
-
     }
 }
 
 // send control mode over CAN
-void AP_CANIO::send_messages(const uint32_t cand_id, const uint8_t *data, const uint8_t data_len)
+void AP_CANIO_Driver::send_messages(const uint32_t cand_id, const uint8_t *data, const uint8_t data_len)
 {
     AP_HAL::CANFrame txFrame;
     uint32_t id = cand_id;
+
     txFrame = {(id |= AP_HAL::CANFrame::FlagEFF), data, data_len};
-    write_frame(txFrame, AP_HAL::micros64() + 1000ULL);
+    write_frame(txFrame, 10000ULL);
 }
 
 
 // parse inbound frames
-void AP_CANIO::handle_frame(AP_HAL::CANFrame &frame)
+void AP_CANIO_Driver::handle_frame(AP_HAL::CANFrame &frame)
 {
     if (!frame.isExtended()) {
         return;
@@ -395,23 +472,18 @@ void AP_CANIO::handle_frame(AP_HAL::CANFrame &frame)
 
         case CAN_ID::READ_IO:
         {
-            memcpy(&_read_pins.all, frame.data, frame.dlc);
+            memcpy(&_read_io_group.all, frame.data, frame.dlc);
             break;
         }
 
         case CAN_ID::READ_AI:
         {
-            AIChannel ai_data;
-            memcpy(&ai_data.raw_data, frame.data, frame.dlc);
+            memcpy(&_ai_groups[0].all, frame.data, frame.dlc);
 
-            // translate into real unit
-            _throttle_pos = ai_data.throttle_pos;
-            _steering_pos = ai_data.steering_pos;
-            _ai_is_new = true;
+            #if DEBUG
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "steering: %d, throttle: %d", (uint16_t)_ai_groups[0].data[0], (uint16_t)_ai_groups[0].data[1]);
+            #endif
 
-            if (debug) {
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "steering: %0.1f, throttle: %0.1f", (float)_steering_pos, (float)_throttle_pos);
-            }
             break;
         }
 
@@ -422,30 +494,5 @@ void AP_CANIO::handle_frame(AP_HAL::CANFrame &frame)
     }
 
 }
-
-void AP_CANIO::set_defaults() {
-
-    memset(&_write_pins.data, 0, sizeof(_write_pins.data));
-    memset(&_read_pins.data, 0, sizeof(_read_pins.data));
-
-    for (uint8_t i = 0; i < ARRAY_SIZE(_params); i++) {
-        // set the default
-        _params[i].pin.set_default(-1);
-    }
-}
-
-
-// Return true is function is valid
-bool AP_CANIO::function_valid(AP_CANIO_Params::FUNCTION function) const
-{
-    return (function > AP_CANIO_Params::FUNCTION::NONE) && (function < AP_CANIO_Params::FUNCTION::NUM_FUNCTIONS);
-}
-
-namespace AP {
-    AP_CANIO *can_io()
-    {
-        return AP_CANIO::get_singleton();
-    }
-};
 
 #endif
