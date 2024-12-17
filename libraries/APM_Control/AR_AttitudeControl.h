@@ -162,6 +162,7 @@ private:
     AC_PID   _steer_rate_pid;       // steering rate controller
     AC_PID   _throttle_speed_pid;   // throttle speed controller
     AC_PID   _pitch_to_throttle_pid;// balancebot pitch controller
+    AC_PID   _sailboat_heel_pid;    // Sailboat heel angle pid controller
     AP_Float _pitch_to_throttle_ff; // balancebot feed forward from current pitch angle
     AP_Float _pitch_limit_tc;       // balancebot pitch limit protection time constant
     AP_Float _pitch_limit_throttle_thresh;  // balancebot pitch limit throttle threshold (in the range 0 to 1.0)
@@ -207,6 +208,6 @@ private:
     bool _pitch_limited = false;    // true if pitch was limited on last call to get_throttle_out_from_pitch
 
     // Sailboat heel control
-    AC_PID   _sailboat_heel_pid;    // Sailboat heel angle pid controller
+
     uint32_t _heel_controller_last_ms = 0;
 };
