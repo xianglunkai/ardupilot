@@ -25,7 +25,8 @@ COMMON_VEHICLE_DEPENDENT_CAN_LIBRARIES = [
     'AP_PiccoloCAN',
     'AP_PiccoloCAN/piccolo_protocol',
     'AP_ESSA',
-    'AP_SCU'
+    'AP_SCU',
+    'AP_BCM'
 ]
 
 COMMON_VEHICLE_DEPENDENT_LIBRARIES = [
