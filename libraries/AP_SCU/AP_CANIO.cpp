@@ -157,7 +157,7 @@ AP_CANIO::AP_CANIO()
     AP_Param::setup_object_defaults(this, var_info);
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     if (_singleton != nullptr) {
-        AP_HAL::panic("AP_ESSA must be singleton");
+        AP_HAL::panic("AP_CANIO must be singleton");
     }
 #endif
     _singleton = this;
@@ -327,7 +327,8 @@ void AP_CANIO_Driver::set_pin_by_instance(uint8_t instance, bool value)
 
     const uint16_t group = channel / 4;
     const uint16_t index = channel - 4 * group;
-    value = _ai_groups[group].data[index];
+    const uint16_t tmp_value = _ai_groups[group].data[index];
+    value = ((tmp_value & 0xff) << 8) |((tmp_value & 0xff00) >> 8);
  }
 
 
@@ -419,7 +420,6 @@ void AP_CANIO_Driver::loop()
       
         // 10ms loop delay
         hal.scheduler->delay_microseconds(10000); 
-
         {
 
             // WITH_SEMAPHORE(sem);
@@ -479,10 +479,6 @@ void AP_CANIO_Driver::handle_frame(AP_HAL::CANFrame &frame)
         case CAN_ID::READ_AI:
         {
             memcpy(&_ai_groups[0].all, frame.data, frame.dlc);
-
-            #if DEBUG
-                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "steering: %d, throttle: %d", (uint16_t)_ai_groups[0].data[0], (uint16_t)_ai_groups[0].data[1]);
-            #endif
 
             break;
         }

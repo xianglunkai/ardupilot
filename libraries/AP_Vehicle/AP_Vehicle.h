@@ -90,6 +90,7 @@
 #include <AP_ESSA/AP_ESSA.h>
 #include <AP_SCU/AP_SCU.h>
 #include <AP_SCU/AP_CANIO.h>
+#include <AP_BCM/AP_BCM.h>
 
 class AP_DDS_Client;
 
@@ -492,6 +493,9 @@ protected:
     AP_SCU scu;
 #endif
 
+#if AP_BCM_ENABLED
+    AP_BCM bcm;
+#endif
 
 #if AP_FENCE_ENABLED
     AC_Fence fence;

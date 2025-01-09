@@ -33,5 +33,6 @@ public:
 
         ESSA = 28,
         CANIO = 29,
+        BCM=30,
     };
 };

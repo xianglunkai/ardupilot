@@ -17,6 +17,15 @@ public:
     /* Do not allow copies */
     CLASS_NO_COPY(AP_SCU);
 
+
+   // engine start/stop control command
+    enum class Engine_Cmd: uint16_t {
+        NO_OPS    = 0,
+        REQ_START = 1,
+        REQ_STOP  = 2
+    };
+
+
     // init - performs any required initialisation for this instance
     void init();
 
@@ -49,11 +58,10 @@ private:
 
 private:
     // SRV_Channel - different id numbers are used depending upon the instance number
-    SRV_Channel::Aux_servo_function_t    _throttle_idx;  // SRV_Channel throttle function index
-    SRV_Channel::Aux_servo_function_t    _steering_idx;  // SRV_Channel steering function index
+    AP_Int16    _throttle_idx;  // SRV_Channel throttle function index
+    AP_Int16   _steering_idx;  // SRV_Channel steering function index
 
     AP_Int8 enable;
-    AP_Int8 debug;
     AP_Float steering_pwm_freq_khz;
     AP_Float throttle_pwm_freq_khz;
     AP_Int8  steering_relay_on;           // relay value to trigger camera

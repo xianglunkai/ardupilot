@@ -63,13 +63,22 @@ const AP_Param::GroupInfo AP_SCU::var_info[] = {
     // @Range: 
     AP_SUBGROUPINFO(_steering, "STR_", 5,  AP_SCU, AP_SCU_Steering),
 
-    // @Param: 
-    // @DisplayName: 
-    // @Description: 
-    // @User: 
-    // @Units: 
-    // @Range: 
-    AP_GROUPINFO("DEBUG", 6, AP_SCU, debug, 0),
+    // @Param: _steering_idx
+    // @DisplayName: steering Servo Output Function
+    // @Description: steering Servo Output Function
+    // @Values: SRV_Channel::k_motor1
+    // @Increment: 0.1
+    // @User: Advanced
+    AP_GROUPINFO("STR_FN", 6, AP_SCU, _steering_idx, SRV_Channel::k_motor1),
+
+    // @Param: _throttle_idx
+    // @DisplayName: throttle Servo Output Function
+    // @Description: throttle Servo Output Function
+    // @Values: SRV_Channel::k_motor3
+    // @Increment: 0.1
+    // @User: Advanced
+    AP_GROUPINFO("THR_FN", 6, AP_SCU, _throttle_idx, SRV_Channel::k_motor3),
+
 
     AP_GROUPEND
 };
@@ -79,9 +88,7 @@ const AP_Param::GroupInfo AP_SCU::var_info[] = {
 // singleton instance
 AP_SCU *AP_SCU::_singleton;
 
-AP_SCU::AP_SCU():
-    _throttle_idx(SRV_Channel::k_none),
-    _steering_idx(SRV_Channel::k_none)
+AP_SCU::AP_SCU()
 {
     _singleton = this;
     AP_Param::setup_object_defaults(this, var_info);
@@ -91,9 +98,6 @@ AP_SCU::AP_SCU():
 // init - performs any required initialisation for this instance
 void AP_SCU::init()
 {
-    _steering_idx = SRV_Channel::k_motor1;
-    _throttle_idx = SRV_Channel::k_motor3;
-
     _engine.init();
     _steering.init();
 
@@ -111,7 +115,6 @@ void AP_SCU::init()
 void AP_SCU::update()
 {
     uint32_t now = AP_HAL::millis();
-
     // exit if not enabled
     if (!enable || _first_update || !hal.util->get_soft_armed())  {
         _first_update = false;
@@ -123,42 +126,29 @@ void AP_SCU::update()
     if (dt_ms >= 500) {
         dt_ms = 50;
     }
+    _last_update_ms = now;
 
-    // 1. engine start and stop control
-    // DISARM and ARMED
+    //1. engine start and stop control
+ 
     uint16_t cvalue = 1500;
     uint16_t sts_cmd = 0;
+
     // start command
     RC_Channel *c_start = rc().find_channel_for_option(RC_Channel::AUX_FUNC::ARMDISARM);
     if (c_start != nullptr && rc().has_valid_input()) {
         // get starter control channel
         cvalue = c_start->get_radio_in();
-        
-        if (debug) {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Armed: cvalue: %d", (uint16_t)cvalue);
-        }
      
-
         if (cvalue >= RC_Channel::AUX_PWM_TRIGGER_HIGH) {
-            sts_cmd = 1;
-        } 
-    }
+            sts_cmd = static_cast<uint16_t>(Engine_Cmd::REQ_START);
+                    
+              GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Staring Enginer!");
 
-    // stop command
-    RC_Channel *c_stop = rc().find_channel_for_option(RC_Channel::AUX_FUNC::DISARM);
-    if (c_stop != nullptr && rc().has_valid_input()) {
-        // get starter control channel
-        cvalue = c_stop->get_radio_in();
-
-        if (debug) {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Disarmed: cvalue: %d", (uint16_t)cvalue);
+        } else if (cvalue <= RC_Channel::AUX_PWM_TRIGGER_LOW) {
+           sts_cmd = static_cast<uint16_t>(Engine_Cmd::REQ_STOP);
+              GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Stoping Enginer!");
         }
-
-        if (cvalue >= RC_Channel::AUX_PWM_TRIGGER_HIGH) {
-            sts_cmd = 2;
-        } 
     }
-
     if (AP_Notify::flags.failsafe_radio) {
         // user has requested ignition kill on RC failsafe
         sts_cmd = 0;
@@ -172,9 +162,9 @@ void AP_SCU::update()
     // read k_throttle from AP_Motor
     const float throttle = constrain_float(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_throttle), -1.0f, 1.0f);
     const int16_t throttle_out = _engine.eng_throttle_control(throttle); 
-    move_servo(_throttle_idx, throttle_out, -1000, +1000);
+    move_servo((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), throttle_out, -1000, +1000);
     // set frequency
-    SRV_Channels::set_rc_frequency(_throttle_idx, throttle_pwm_freq_khz * 1000);
+    SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), throttle_pwm_freq_khz * 1000);
 
     // 3. steering control
     const float steering = constrain_float(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_steering), -1.0f, 1.0f);
@@ -189,10 +179,11 @@ void AP_SCU::update()
     if(!can_io->read(AP_CANIO_Params::FUNCTION::STEER_ANG, steering_pos)) {
         steerig_pos_valid = false;
     }
+
 #endif
 
     if (steerig_pos_valid == false) {
-        SRV_Channels::set_rc_frequency(_steering_idx, 0);
+        SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), 0);
         return;
     }
 
@@ -206,19 +197,22 @@ void AP_SCU::update()
     ap_relay->set(AP_Relay_Params::FUNCTION::STERT_DIR, on);
 
     // ouput PWM duty = 50%
-    move_servo(_steering_idx, 0, -1000, 1000);
+    move_servo((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), 0, -1000, 1000);
     // set frequency
-    SRV_Channels::set_rc_frequency(_steering_idx, steering_pwm_freq_khz * 1000 * abs(steering_out));
+    uint16_t freq = steering_pwm_freq_khz * 1000 * abs(steering_out);
+    SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), freq);
+
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "steering pos:%d, freq:%d", steering_pos, freq);
 }
 
 
 void AP_SCU::setup_servo_output()
 {
     // throttle are in poweer percent so -1000 ... +1000
-    SRV_Channels::set_angle(_throttle_idx, 1000);
+    SRV_Channels::set_angle((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), 1000);
 
     // steering are limited to 
-    SRV_Channels::set_angle(_steering_idx, 1000);
+    SRV_Channels::set_angle((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), 1000);
 }
 
 void AP_SCU::setup_pwm_type()
@@ -229,13 +223,13 @@ void AP_SCU::setup_pwm_type()
 void AP_SCU::setup_safety_output()
 {
     // stop sending pwm if main CPU fails
-    SRV_Channels::set_failsafe_limit(_throttle_idx, SRV_Channel::Limit::ZERO_PWM);
-    SRV_Channels::set_rc_frequency(_throttle_idx, 0);
+    SRV_Channels::set_failsafe_limit((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), SRV_Channel::Limit::ZERO_PWM);
+    SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), 0);
 
     // steering control with direction
-    SRV_Channels::set_trim_to_min_for(_steering_idx,true);
-    SRV_Channels::set_failsafe_limit(_steering_idx, SRV_Channel::Limit::ZERO_PWM);
-    SRV_Channels::set_rc_frequency(_steering_idx, 0);
+    SRV_Channels::set_trim_to_min_for((SRV_Channel::Aux_servo_function_t)_steering_idx.get(),true);
+    SRV_Channels::set_failsafe_limit((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), SRV_Channel::Limit::ZERO_PWM);
+    SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), 0);
 }
 
 

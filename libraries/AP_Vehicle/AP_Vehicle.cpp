@@ -305,6 +305,12 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
     AP_SUBGROUPINFO(scu, "SCU_",  34, AP_Vehicle, AP_SCU),
 #endif
 
+#if AP_BCM_ENABLED
+
+    AP_SUBGROUPINFO(bcm, "BCM_",  35, AP_Vehicle, AP_BCM),
+#endif
+
+
     AP_GROUPEND
 };
 
@@ -526,6 +532,10 @@ void AP_Vehicle::setup()
 
 #if AP_SCU_ENABLED
     scu.init();
+#endif
+
+#if AP_BCM_ENABLED
+    bcm.init();
 #endif
 
 #if AP_AIS_ENABLED

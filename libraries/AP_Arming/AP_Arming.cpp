@@ -69,6 +69,7 @@
   #include <AP_PiccoloCAN/AP_PiccoloCAN.h>
   #include <AP_DroneCAN/AP_DroneCAN.h>
   #include <AP_ESSA/AP_ESSA.h>
+  #include <AP_BCM/AP_BCM.h>
 #endif
 
 #include <AP_Logger/AP_Logger.h>
@@ -1312,6 +1313,7 @@ bool AP_Arming::can_checks(bool report)
                 case AP_CAN::Protocol::KDECAN:
                 case AP_CAN::Protocol::ESSA:
                 case AP_CAN::Protocol::CANIO:
+                case AP_CAN::Protocol::BCM:
 
                     break;
             }
