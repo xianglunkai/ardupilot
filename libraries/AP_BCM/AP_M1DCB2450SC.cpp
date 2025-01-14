@@ -29,7 +29,7 @@ const AP_Param::GroupInfo AP_M1DCB2450SC::var_info[] = {
     // @Param: LIMT
     // @DisplayName: device address
     // @Description: device address
-    AP_GROUPINFO("LIMT", 2, AP_M1DCB2450SC, _limit, 60),
+    AP_GROUPINFO("LIMT", 2, AP_M1DCB2450SC, _limit, 50),
 
 
     AP_GROUPEND
@@ -102,7 +102,14 @@ bool AP_M1DCB2450SC::init_internals()
 // send target motor speed
 void AP_M1DCB2450SC::send_motor_speed_cmd(const int16_t speed)
 {
-    _motor_speed_cmd = constrain_int16(speed, -_limit.get(), _limit.get());
+    int16_t motor_speed_cmd = constrain_int16(speed, -_limit.get(), _limit.get());
+    // if (motor_speed_cmd != _motor_speed_cmd) {
+    //     _command_changed = true;
+    // } else {
+    //     _command_changed = false;
+    // }
+     _motor_speed_cmd = motor_speed_cmd;
+
     if (_left_limited || _right_limited) {
         GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Over Limited, Stopping!");
     }
@@ -139,7 +146,6 @@ void AP_M1DCB2450SC::thread_main()
         _uart->read();
     }
     
-
     // set control mode
     set_work_mode();
     hal.scheduler->delay(1000);
@@ -180,14 +186,15 @@ void AP_M1DCB2450SC::thread_main()
             if (now_ms - _last_send_motor_ms >= M1DCB2450SC_SEND_MOTOR_SPEED_INTERVAL_MS) {
                 // send motor speed every 0.1sec
                 _send_motor_speed = true;
-            }  else if (now_ms - _last_send_motor_status_request_ms >= M1DCB2450SC_SEND_MOTOR_STATUS_REQUEST_INTERVAL_MS) {
-                // send request for motor status
-                read_status();
-                _last_send_motor_status_request_ms = now_ms;
             }
+            // }  else if (now_ms - _last_send_motor_status_request_ms >= M1DCB2450SC_SEND_MOTOR_STATUS_REQUEST_INTERVAL_MS) {
+            //     // send request for motor status
+            //     read_status();
+            //     _last_send_motor_status_request_ms = now_ms;
+            // }
 
             // send motor speed
-            if (_send_motor_speed) {
+            if (_send_motor_speed /*&& _command_changed*/) {
                 set_motor_speed();
                 _send_motor_speed = false;
             }

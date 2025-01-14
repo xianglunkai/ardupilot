@@ -47,8 +47,8 @@ private:
 
     static constexpr uint32_t M1DCB2450SC_SERIAL_BAUD = 19200;
     static constexpr uint32_t M1DCB2450SC_ADDRESS = 0x01;
-    static constexpr uint32_t M1DCB2450SC_SEND_MOTOR_SPEED_INTERVAL_MS = 50;
-    static constexpr uint32_t M1DCB2450SC_SEND_MOTOR_STATUS_REQUEST_INTERVAL_MS = 500;
+    static constexpr uint32_t M1DCB2450SC_SEND_MOTOR_SPEED_INTERVAL_MS = 300;
+    static constexpr uint32_t M1DCB2450SC_SEND_MOTOR_STATUS_REQUEST_INTERVAL_MS = 1000;
 
 
     // Motor specific message ids
@@ -165,7 +165,8 @@ private:
     // reply message handling
     uint8_t _reply_msgid;           // replies expected msgid (reply often does not specify the msgid so we must record it)
     uint32_t _reply_wait_start_ms;  // system time that we started waiting for a reply message
-    bool _send_motor_speed;         // true if motor speed should be sent at next opportunity
+    bool _send_motor_speed {false};         // true if motor speed should be sent at next opportunity
+    bool _command_changed {false};
 
 
     // enable library

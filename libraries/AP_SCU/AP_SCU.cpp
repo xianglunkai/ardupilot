@@ -118,7 +118,7 @@ void AP_SCU::update()
 {
     uint32_t now = AP_HAL::millis();
     // exit if not enabled
-    if (!enable || _first_update || !hal.util->get_soft_armed())  {
+    if (!enable || _first_update)  {
         _first_update = false;
         _last_update_ms = now;
         return;
@@ -239,26 +239,28 @@ void AP_SCU::generate_commands()
     uint16_t cvalue = 1500;
     uint16_t sts_cmd =  static_cast<uint16_t>(Engine_Cmd::NO_OPS);
 
-    // start command
-    RC_Channel *c_start = rc().find_channel_for_option(RC_Channel::AUX_FUNC::ARMDISARM);
-    if (c_start != nullptr && rc().has_valid_input()) {
-        // get starter control channel
-        cvalue = c_start->get_radio_in();
+    if (hal.util->get_soft_armed()) {
+        // start command
+        RC_Channel *c_start = rc().find_channel_for_option(RC_Channel::AUX_FUNC::ARMDISARM);
+        if (c_start != nullptr && rc().has_valid_input()) {
+            // get starter control channel
+            cvalue = c_start->get_radio_in();
 
-        if (cvalue <1000 || cvalue > 2000) {
-            sts_cmd = static_cast<uint16_t>(Engine_Cmd::NO_OPS);
-            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Radio Failed For STS!");
+            if (cvalue <1000 || cvalue > 2000) {
+                sts_cmd = static_cast<uint16_t>(Engine_Cmd::NO_OPS);
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Radio Failed For STS!");
 
-        } else {
-            if (cvalue >= RC_Channel::AUX_PWM_TRIGGER_HIGH && hal.util->get_soft_armed()) {
-                sts_cmd = static_cast<uint16_t>(Engine_Cmd::REQ_START);
-                GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Staring Enginer");
+            } else {
+                if (cvalue >= RC_Channel::AUX_PWM_TRIGGER_HIGH) {
+                    sts_cmd = static_cast<uint16_t>(Engine_Cmd::REQ_START);
+                    GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Staring Enginer");
 
-            }else if (cvalue <= RC_Channel::AUX_PWM_TRIGGER_LOW) {
-                sts_cmd = static_cast<uint16_t>(Engine_Cmd::REQ_STOP);
-                GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Stoping Enginer");
+                }else if (cvalue <= RC_Channel::AUX_PWM_TRIGGER_LOW) {
+                    sts_cmd = static_cast<uint16_t>(Engine_Cmd::REQ_STOP);
+                    GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Stoping Enginer");
 
-            } else {}
+                } else {}
+            }
         }
     }
     _sts_cmd = sts_cmd;
@@ -278,7 +280,7 @@ void AP_SCU::generate_commands()
         if (c != nullptr && rc().has_valid_input()) {
             // get starter control channel
             lift = c->get_radio_in();
-
+        
             if (lift <1000 || lift > 2000) {
 
                 lift_open = static_cast<uint16_t>(Lift_Pos::NORMAL);
