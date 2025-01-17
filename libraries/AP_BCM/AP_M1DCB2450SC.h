@@ -47,8 +47,8 @@ private:
 
     static constexpr uint32_t M1DCB2450SC_SERIAL_BAUD = 19200;
     static constexpr uint32_t M1DCB2450SC_ADDRESS = 0x01;
-    static constexpr uint32_t M1DCB2450SC_SEND_MOTOR_SPEED_INTERVAL_MS = 300;
-    static constexpr uint32_t M1DCB2450SC_SEND_MOTOR_STATUS_REQUEST_INTERVAL_MS = 1000;
+    static constexpr uint32_t M1DCB2450SC_SEND_MOTOR_SPEED_INTERVAL_MS = 100;
+    static constexpr uint32_t M1DCB2450SC_SEND_MOTOR_STATUS_REQUEST_INTERVAL_MS = 500;
 
 
     // Motor specific message ids

@@ -193,7 +193,7 @@ void AP_SCU::update()
     }
 #endif
 
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "steering_out:%d, steering_pos:%d", (int16_t)(steering_out * 100), steering_pos);
+    //GCS_SEND_TEXT(MAV_SEVERITY_INFO, "steering_out:%d, steering_pos:%d", (int16_t)(steering_out * 100), steering_pos);
 
 }
 
