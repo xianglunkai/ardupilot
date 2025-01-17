@@ -75,14 +75,13 @@ float AC_ADRC::update_all(float target,float measurement, float dt)
 
     float output = 0.0f;
     float output_limited = 0;
-    float sigma = 1.0f /(sq(e) + 1.0f);
 
     switch (order_)
     {
     case 1:
         {
             // nonlinear control law
-            output = (wc_ * fal(e1, 0.5f, delta_)  - sigma * z2_) / b0_;
+            output = (wc_ * fal(e1, 0.5f, delta_)  - z2_) / b0_;
 
             // limit output 
             if(is_zero(limit_.get())) {
@@ -110,7 +109,7 @@ float AC_ADRC::update_all(float target,float measurement, float dt)
             float kd  = 2*wc_;
 
             // nonlinear control law
-            output = (kp * fal(e1, 0.5f, delta_) + kd * fal(e2, 0.25, delta_) - sigma * z3_)/b0_;
+            output = (kp * fal(e1, 0.5f, delta_) + kd * fal(e2, 0.25, delta_) - z3_)/b0_;
 
             // limit output 
             if(is_zero(limit_.get())) {
