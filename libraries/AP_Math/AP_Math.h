@@ -424,3 +424,9 @@ double uint64_to_double_le(const uint64_t& value) WARN_IF_UNUSED;
   With thanks to betaflight
  */
 int32_t get_twos_complement(uint32_t raw, uint8_t length) WARN_IF_UNUSED;
+// ADRC functions
+float sign(float val);
+
+float fhan(float v1, float v2, float r0, float h0);
+
+float fal(float e, float alpha, float delta);
