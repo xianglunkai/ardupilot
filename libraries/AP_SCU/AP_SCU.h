@@ -25,6 +25,13 @@ public:
         REQ_STOP  = 2
     };
 
+    // lift down position
+    enum class Lift_Pos: uint16_t {
+        NORMAL = 0,
+        UP     = 1,
+        DOWN   = 2,
+    };
+
 
     // init - performs any required initialisation for this instance
     void init();
@@ -47,12 +54,20 @@ private:
 
     void setup_safety_output();
 
-    AP_SCU_Engine   _engine;
+    void generate_commands();
 
+    AP_SCU_Engine   _engine;
     AP_SCU_Steering _steering;
 
     uint32_t _last_update_ms;
     bool _first_update {true};
+
+    // control commands
+    float _throttle_cmd; // [-1 1]
+    float _steering_cmd; // [-1 1]
+    uint8_t _lift_cmd;   // [0 1 2]
+    uint8_t _sts_cmd;    // [0 1 2]
+
 
     static AP_SCU *_singleton;
 
@@ -64,7 +79,7 @@ private:
     AP_Int8 enable;
     AP_Float steering_pwm_freq_khz;
     AP_Float throttle_pwm_freq_khz;
-    AP_Int8  steering_relay_on;           // relay value to trigger camera
+    AP_Int8  steering_relay_on;           // relay value
 
 };
 

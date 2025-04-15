@@ -13,7 +13,7 @@ const AP_Param::GroupInfo AP_SCU_Steering::var_info[] = {
     // @Description: Positioncontroller P gain.  Converts the difference between the desired altitude and actual altitude into a climb or descent rate which is passed to the throttle rate controller
     // @Range: 1.000 3.000
     // @User: Standard
-    AP_GROUPINFO("KP", 1, AP_SCU_Steering, kp, 0.1),
+    AP_GROUPINFO("KP", 1, AP_SCU_Steering, kp, 0.001),
 
     // @Param: CTL_TYPE
     // @DisplayName: 

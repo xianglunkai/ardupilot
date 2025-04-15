@@ -260,7 +260,7 @@ public:
     void update();
 
     // add interface for AP_SCU
-    void set_control_commands(const uint16_t throttle, const uint8_t gear, const uint8_t lift, const uint8_t sts);
+    void set_control_commands(const float throttle, const uint8_t lift, const uint8_t sts);
 
     static AP_BCM *get_singleton() { return _singleton; }
 

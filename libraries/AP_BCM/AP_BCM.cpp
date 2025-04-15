@@ -71,7 +71,7 @@ AP_BCM::AP_BCM()
 
 void AP_BCM::init()
 {
-    if (_driver != nullptr) {
+    if (_driver != nullptr || !_enable) {
         // only allow one instance
         return;
     }
@@ -96,31 +96,56 @@ void AP_BCM::update()
 }
 
 // add interface for AP_SCU
-void AP_BCM::set_control_commands(const uint16_t throttle, const uint8_t gear, const uint8_t lift, const uint8_t sts)
+void AP_BCM::set_control_commands(const float throttle, const uint8_t lift, const uint8_t sts)
 {
-  if (_driver == nullptr || !_enable) {
-    return;
-  }
+	if (_driver == nullptr || !_enable) {
+		return;
+	}
 
-  // copy this data 
-  {
-    WITH_SEMAPHORE(_driver->get_semaphore());
-    // see doc
-    uint16_t control = throttle | gear <<10 | lift << 12 | sts << 14;
-    // should be reconstructed with HIGH and LOW byte
-    _driver->_bcm_to_ecu_cmd.data1.control = ((control & 0xff) << 8) | ((control &0xff00) >> 8);
-    uint16_t hand_pos;
-    if (gear == static_cast<uint16_t>(AP_BCM_Driver::Gear_Pos::N)) {
-      hand_pos = AP_BCM_Driver::BCM_TO_ECU_CMD_FRAME3_GEAR_IDEL;
-    } else if (gear == static_cast<uint16_t>(AP_BCM_Driver::Gear_Pos::F)) {
-      hand_pos = AP_BCM_Driver::BCM_TO_ECU_CMD_FRAME3_GEAR_FORWARD;
+	// throttle 
+    uint16_t throttle_open = AP_BCM_Driver::BCM_TO_ECM_CMD_FRAME1_THR_IDEL;
+    uint16_t gear_cmd = static_cast<uint16_t>(AP_BCM_Driver::Gear_Pos::N);
+    uint16_t hand_pos = AP_BCM_Driver::BCM_TO_ECU_CMD_FRAME3_GEAR_IDEL;
+
+    if (throttle > _gear_dz * 0.01f) {
+        throttle_open = linear_interpolate(
+        AP_BCM_Driver::BCM_TO_ECM_CMD_FRAME1_THR_IDEL,
+        AP_BCM_Driver::BCM_TO_ECM_CMD_FRAME1_THR_FORWARD_MAX,
+        throttle,
+        _gear_dz * 0.01f,
+        1.0f);
+
+        gear_cmd = static_cast<uint16_t>(AP_BCM_Driver::Gear_Pos::F);
+
+        hand_pos = AP_BCM_Driver::BCM_TO_ECU_CMD_FRAME3_GEAR_FORWARD;
+
+
+    } else if (throttle < -_gear_dz * 0.01f) {
+        throttle_open = linear_interpolate(
+        AP_BCM_Driver::BCM_TO_ECM_CMD_FRAME1_THR_BACKWARD_MAX,
+        AP_BCM_Driver::BCM_TO_ECM_CMD_FRAME1_THR_IDEL,
+        throttle,
+        -1.0f,
+        -_gear_dz * 0.01f);
+
+        gear_cmd = static_cast<uint16_t>(AP_BCM_Driver::Gear_Pos::R);
+
+        hand_pos = AP_BCM_Driver::BCM_TO_ECU_CMD_FRAME3_GEAR_BACKWARD;
+
     } else {
-      hand_pos = AP_BCM_Driver::BCM_TO_ECU_CMD_FRAME3_GEAR_BACKWARD;
+        hand_pos = AP_BCM_Driver::BCM_TO_ECU_CMD_FRAME3_GEAR_IDEL;
     }
-    // should be reconstructed with HIGH and LOW byte
-    _driver->_bcm_to_ecu_cmd3.data3.byte1_2 = ((hand_pos & 0xff) << 8) | ((hand_pos &0xff00) >> 8);
-  }
-  
+ 
+
+	// see doc
+	uint16_t control = throttle_open | gear_cmd <<10 | lift << 12 | sts << 14;
+	{
+		WITH_SEMAPHORE(_driver->get_semaphore());
+		_driver->_bcm_to_ecu_cmd.data1.control = ((control & 0xff) << 8) | ((control &0xff00) >> 8);
+		_driver->_bcm_to_ecu_cmd.data1.control2 = ((control & 0xff) << 8) | ((control &0xff00) >> 8);
+		_driver->_bcm_to_ecu_cmd.data1.control3 = ((control & 0xff) << 8) | ((control &0xff00) >> 8);
+		_driver->_bcm_to_ecu_cmd3.data3.byte1_2 = ((hand_pos & 0xff) << 8) | ((hand_pos &0xff00) >> 8);
+	}
 }
 
 namespace AP {

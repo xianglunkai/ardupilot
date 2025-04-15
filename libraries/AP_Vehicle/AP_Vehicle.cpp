@@ -310,6 +310,11 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
     AP_SUBGROUPINFO(bcm, "BCM_",  35, AP_Vehicle, AP_BCM),
 #endif
 
+#if AP_M1DCB2450SC_ENABLED
+
+    AP_SUBGROUPINFO(m1dcb, "M1D_",  36, AP_Vehicle, AP_M1DCB2450SC),
+#endif
+
 
     AP_GROUPEND
 };
@@ -536,6 +541,10 @@ void AP_Vehicle::setup()
 
 #if AP_BCM_ENABLED
     bcm.init();
+#endif
+
+#if AP_M1DCB2450SC_ENABLED
+    m1dcb.init();
 #endif
 
 #if AP_AIS_ENABLED

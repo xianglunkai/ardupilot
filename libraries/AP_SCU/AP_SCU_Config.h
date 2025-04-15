@@ -4,5 +4,9 @@
 
 #ifndef AP_SCU_ENABLED
 #define AP_SCU_ENABLED 1
+#endif
+
+#ifndef AP_CANIO_ENABLE
 #define AP_CANIO_ENABLE (HAL_MAX_CAN_PROTOCOL_DRIVERS && BOARD_FLASH_SIZE > 1024)
 #endif
+

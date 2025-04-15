@@ -91,6 +91,7 @@
 #include <AP_SCU/AP_SCU.h>
 #include <AP_SCU/AP_CANIO.h>
 #include <AP_BCM/AP_BCM.h>
+#include <AP_BCM/AP_M1DCB2450SC.h>
 
 class AP_DDS_Client;
 
@@ -496,6 +497,11 @@ protected:
 #if AP_BCM_ENABLED
     AP_BCM bcm;
 #endif
+
+#if AP_M1DCB2450SC_ENABLED
+    AP_M1DCB2450SC m1dcb;
+#endif
+
 
 #if AP_FENCE_ENABLED
     AC_Fence fence;

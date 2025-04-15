@@ -110,7 +110,7 @@ private:
     AP_Int16 gear_D_thrust_out;
 	AP_Int16 gear_N_thrust_out;
 	AP_Int16 gear_R_thrust_out;
-	AP_Int16 gear_shift_engine_speed;                /* Must ensure current engine speed is low,uint: rpm,resolution: 1rpm */
+	AP_Int16 gear_shift_engine_speed;              /* Must ensure current engine speed is low,uint: rpm,resolution: 1rpm */
 	AP_Int16 gear_shift_block_ms;                  /* shift gear block time to ensure shiftting is OK,uints: ms,resolution: 1ms */
 };
 
