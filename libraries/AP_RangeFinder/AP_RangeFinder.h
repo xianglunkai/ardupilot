@@ -185,6 +185,11 @@ public:
 #if AP_RANGEFINDER_HEXSOONRADAR_ENABLED
         HEXSOON_RADAR = 44,
 #endif
+
+#if AP_RANGEFINDER_SDE18S_ENABLED
+        SDE18S = 46,
+#endif
+
 #if AP_RANGEFINDER_SIM_ENABLED
         SIM = 100,
 #endif
