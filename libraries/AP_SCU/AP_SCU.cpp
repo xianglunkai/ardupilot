@@ -138,8 +138,8 @@ void AP_SCU::update()
     
     // 2. engine throttle and gear control
     const int16_t throttle_out = _engine.eng_throttle_control(_throttle_cmd); 
-    move_servo((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), throttle_out, -1000, +1000);
-    SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), throttle_pwm_freq_khz * 1000);
+    move_servo((SRV_Channel::Function)_throttle_idx.get(), throttle_out, -1000, +1000);
+    SRV_Channels::set_rc_frequency((SRV_Channel::Function)_throttle_idx.get(), throttle_pwm_freq_khz * 1000);
 
 #if AP_BCM_ENABLED
     if (AP::bcm() != nullptr) {
@@ -162,7 +162,7 @@ void AP_SCU::update()
 #endif
 
     if (steerig_pos_valid == false || steering_pos == 0) {
-        SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), 0);
+        SRV_Channels::set_rc_frequency((SRV_Channel::Function)_steering_idx.get(), 0);
 #if AP_M1DCB2450SC_ENABLED
     if (AP::m1dcb2450sc() != nullptr) {
         AP::m1dcb2450sc()->send_motor_speed_cmd(0 * 100);
@@ -182,10 +182,10 @@ void AP_SCU::update()
     }
 
     // ouput PWM duty = 50%
-    move_servo((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), 0, -1000, 1000);
+    move_servo((SRV_Channel::Function)_steering_idx.get(), 0, -1000, 1000);
     // set frequency
     uint16_t freq = steering_pwm_freq_khz * 1000 * abs(steering_out);
-    SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), freq);
+    SRV_Channels::set_rc_frequency((SRV_Channel::Function)_steering_idx.get(), freq);
 
 #if AP_M1DCB2450SC_ENABLED
     if (AP::m1dcb2450sc() != nullptr) {
@@ -201,10 +201,10 @@ void AP_SCU::update()
 void AP_SCU::setup_servo_output()
 {
     // throttle are in poweer percent so -1000 ... +1000
-    SRV_Channels::set_angle((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), 1000);
+    SRV_Channels::set_angle((SRV_Channel::Function)_throttle_idx.get(), 1000);
 
     // steering are limited to 
-    SRV_Channels::set_angle((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), 1000);
+    SRV_Channels::set_angle((SRV_Channel::Function)_steering_idx.get(), 1000);
 }
 
 void AP_SCU::setup_pwm_type()
@@ -215,20 +215,20 @@ void AP_SCU::setup_pwm_type()
 void AP_SCU::setup_safety_output()
 {
     // stop sending pwm if main CPU fails
-    SRV_Channels::set_failsafe_limit((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), SRV_Channel::Limit::ZERO_PWM);
-    SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_throttle_idx.get(), 0);
+    SRV_Channels::set_failsafe_limit((SRV_Channel::Function)_throttle_idx.get(), SRV_Channel::Limit::ZERO_PWM);
+    SRV_Channels::set_rc_frequency((SRV_Channel::Function)_throttle_idx.get(), 0);
 
     // steering control with direction
-    SRV_Channels::set_trim_to_min_for((SRV_Channel::Aux_servo_function_t)_steering_idx.get(),true);
-    SRV_Channels::set_failsafe_limit((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), SRV_Channel::Limit::ZERO_PWM);
-    SRV_Channels::set_rc_frequency((SRV_Channel::Aux_servo_function_t)_steering_idx.get(), 0);
+    SRV_Channels::set_trim_to_min_for((SRV_Channel::Function)_steering_idx.get(),true);
+    SRV_Channels::set_failsafe_limit((SRV_Channel::Function)_steering_idx.get(), SRV_Channel::Limit::ZERO_PWM);
+    SRV_Channels::set_rc_frequency((SRV_Channel::Function)_steering_idx.get(), 0);
 }
 
 
 // move_servo - moves servo with the given id to the specified angle.  all angles are in degrees * 10
 void AP_SCU::move_servo(uint8_t function_idx, int16_t angle, int16_t angle_min, int16_t angle_max)
 {
-	SRV_Channels::move_servo((SRV_Channel::Aux_servo_function_t)function_idx, angle, angle_min, angle_max);
+	SRV_Channels::move_servo((SRV_Channel::Function)function_idx, angle, angle_min, angle_max);
 }
 
 
@@ -266,8 +266,8 @@ void AP_SCU::generate_commands()
     _sts_cmd = sts_cmd;
 
     // get throttle command
-    _throttle_cmd = constrain_float(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_throttle), -1.0f, 1.0f);
-    _steering_cmd = constrain_float(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_steering), -1.0f, 1.0f);
+    _throttle_cmd = constrain_float(SRV_Channels::get_output_norm(SRV_Channel::Function::k_throttle), -1.0f, 1.0f);
+    _steering_cmd = constrain_float(SRV_Channels::get_output_norm(SRV_Channel::Function::k_steering), -1.0f, 1.0f);
 
 
     // lift

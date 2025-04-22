@@ -223,7 +223,7 @@ void AP_BCM_Driver::update(const int16_t gear_dz)
     }
 
     // throttle 
-    const float throttle = constrain_float(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_throttle), -1.0f, 1.0f);
+    const float throttle = constrain_float(SRV_Channels::get_output_norm(SRV_Channel::k_throttle), -1.0f, 1.0f);
     uint16_t throttle_open = BCM_TO_ECM_CMD_FRAME1_THR_IDEL;
     uint16_t gear_cmd = static_cast<uint16_t>(Gear_Pos::N);
     uint16_t hand_pos = BCM_TO_ECU_CMD_FRAME3_GEAR_IDEL;

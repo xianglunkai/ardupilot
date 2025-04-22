@@ -404,8 +404,8 @@ void AP_ESSA_Driver::update(const int8_t control_class, const int16_t gear_dz)
 
     if (control_class == CTL_CLASS_DIFF) {
 
-        const int16_t throttle_port = constrain_int16(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_throttleLeft) * 1000.0, -1000, 1000);
-        const int16_t throttle_stbd = constrain_int16(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_throttleRight) * 1000.0, -1000, 1000);
+        const int16_t throttle_port = constrain_int16(SRV_Channels::get_output_norm(SRV_Channel::k_throttleLeft) * 1000.0, -1000, 1000);
+        const int16_t throttle_stbd = constrain_int16(SRV_Channels::get_output_norm(SRV_Channel::k_throttleRight) * 1000.0, -1000, 1000);
        
         const uint16_t throttle_open_port = (uint32_t)(abs(throttle_port)) * 65535 / 1000 + 0;
         const uint16_t throttle_open_stbd = (uint32_t)(abs(throttle_stbd)) * 65535 / 1000 + 0;
@@ -425,12 +425,12 @@ void AP_ESSA_Driver::update(const int8_t control_class, const int16_t gear_dz)
 
     } else if (control_class == CTL_CLASS_SYNC) {
 
-        const int16_t throttle = constrain_int16(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_throttle) * 1000.0, -1000, 1000);
+        const int16_t throttle = constrain_int16(SRV_Channels::get_output_norm(SRV_Channel::k_throttle) * 1000.0, -1000, 1000);
         const uint16_t throttle_open = (uint32_t)(abs(throttle)) * 65535 / 1000 + 0;
 
         const uint16_t gear_open = throttle > gear_dz ? 1: ((throttle < -gear_dz ) ? 2 : 0);
 
-        const int16_t steering = constrain_int16(SRV_Channels::get_output_norm(SRV_Channel::Aux_servo_function_t::k_steering) * 1000.0, -1000, 1000);
+        const int16_t steering = constrain_int16(SRV_Channels::get_output_norm(SRV_Channel::k_steering) * 1000.0, -1000, 1000);
         const uint16_t steering_open = (uint32_t)(steering) * 1024 / 1000 + 1024;
 
         control_cmd.data.throttle_open_port = throttle_open;
