@@ -42,7 +42,7 @@ void AC_PrecLand_Simple::update()
     
     // get new sensor data
     if (_state.healthy && _dock_pos_valid) {
-        Vector3f curr_pos_NED;
+        Vector3p curr_pos_NED;
         if (!AP::ahrs().get_relative_position_NED_origin(curr_pos_NED)) {
             return;
         }
@@ -50,15 +50,15 @@ void AC_PrecLand_Simple::update()
 
         _distance_to_target = _distance_to_target_vec.length();
        
-        _los_meas_body = (_distance_to_target_vec / (_distance_to_target + 1e-6f));
+        _los_meas.vec_unit = (_distance_to_target_vec.tofloat() / (_distance_to_target + 1e-6f));
      
-        _have_los_meas = true;
-        _los_meas_time_ms = AP_HAL::millis();
+        _los_meas.valid = true;
+        _los_meas.time_ms = AP_HAL::millis();
     } else {
-        _have_los_meas = false;
+        _los_meas.valid = true;
     }
 
-    _have_los_meas = _have_los_meas && AP_HAL::millis()-_los_meas_time_ms <= 1000;
+     _los_meas.valid =  _los_meas.valid && AP_HAL::millis() - _los_meas.time_ms <= 1000;
 }
 
 #endif // AC_PRECLAND_IRLOCK_ENABLED

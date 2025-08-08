@@ -287,6 +287,7 @@ const AP_Param::GroupInfo AP_Vehicle::var_info[] = {
     // @Group: RPM
     // @Path: ../AP_RPM/AP_RPM.cpp
     AP_SUBGROUPINFO(rpm_sensor, "RPM", 32, AP_Vehicle, AP_RPM),
+#endif
 
 #if AP_ESSA_ENABLED
     // @Group: KDE_

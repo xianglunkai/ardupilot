@@ -25,7 +25,7 @@ public:
     void update() override;
 
 private:
-    Vector3f _dock_pos{0.0f, 0.0f, 0.0f};
+    Vector3p _dock_pos{0.0f, 0.0f, 0.0f};
     bool _dock_pos_valid{false};
 
 };
